@@ -1,160 +1,257 @@
-БАТАЛГААЖСАН ХҮРГЭЛТИЙН SAAS ПЛАТФОРМ
-Project Requirements — MVP
+# Identity-Verified Multi-Tenant E-Commerce Delivery SaaS Platform
 
+## Тойм
 
-1. ТӨСЛИЙН ТОВЧ ТАНИЛЦУУЛГА
+Энэхүү платформ нь дараах боломжуудыг нэг дор нэгтгэсэн олон-tenant (multi-tenant) SaaS систем юм:
 
-Энэхүү систем нь e-commerce дэлгүүр, хүргэлтийн ажилтан болон
-хэрэглэгчийг нэг платформд холбосон SaaS веб систем байна.
+- Shop-ууд бараа, захиалгаа удирдах
+- Баталгаажсан хүргэлтийн ажилтан (courier) бараа хүлээн авах
+- Хэрэглэгч захиалгаа real-time хянах
+- Төлбөр хийх (QPay)
+- Хүргэлтийн орлогыг ажилтны wallet-д тооцох
 
-Системийн үндсэн зорилго:
+### Үндсэн зарчим
 
-- Дэлгүүр бараа, захиалга, хүргэлтээ удирдах
-- Хүргэлтийн ажилтны иргэний мэдээллийг баталгаажуулах
-- Барааг зөвхөн баталгаажсан ажилтанд хүлээлгэн өгөх
-- Барааны хариуцлага хэнээс хэнд шилжсэнийг бүртгэх
-- Хэрэглэгч захиалгын явцыг алхам бүрээр харах
-- QPay-аар төлбөр авах
-- belen tuluh 
-- Хүргэлтийн ажилтны орлого, үлдэгдлийг тооцох
-- Олон дэлгүүрийг тусдаа tenant хэлбэрээр ажиллуулах
+| Механизм | Зорилго |
+|---|---|
+| e-Mongolia / ДАН | Тухайн хүн хэн болохыг баталгаажуулна |
+| Нүүр танилт (Face verification) | Камерын өмнө байгаа хүн баталгаажсан эзэмшигч мөн эсэхийг шалгана |
+| QR / OTP | Аль барааг хэн, хэзээ хүлээн авсныг баталгаажуулна |
+| GPS | Хүргэлтийн явц, байршлыг тогтооно |
+| Payment ledger | Хэрэглэгчийн төлбөрөөс shop болон courier-д ногдох дүнг тооцно |
 
+> **Чухал:** Ганц нүүрний зураг авах нь бараа алдагдахаас хамгаалах хангалттай баталгаа биш. Дээрх аргуудыг нийлүүлж **chain of custody** (барааны хариуцлага хэнээс хэнд шилжсэнийг нотлох систем) болгох шаардлагатай.
 
-2. СИСТЕМИЙН ХЭРЭГЛЭГЧИД
+---
 
-2.1 Platform Admin
+## 1. Системийн оролцогч ба RBAC
 
-- SaaS платформыг бүхэлд нь удирдана
-- Дэлгүүрүүдийг бүртгэх, идэвхжүүлэх, түдгэлзүүлэх
-- Subscription plan болон төлбөр удирдах
-- Маргаан, буцаалт, сэжигтэй үйлдэл хянах
-- Системийн тайлан болон audit log харах
+4 үндсэн actor байна. Customer нь tenant-ийн ажилтан биш тул RBAC-ийн хувьд тусдаа consumer actor гэж тооцно — ингэснээр архитектур цэвэр болно.
 
-2.2 Shop Admin
+| Role | Эрх, зориулалт |
+|---|---|
+| **Platform Admin** | SaaS, shop/tenant, subscription, төлбөр, маргаан, системийн тохиргоо |
+| **Shop Admin** | Бараа, захиалга, салбар, ажилтан, хүргэлт, тайлан удирдах |
+| **Delivery Employee** | Баталгаажуулалт, хүргэлт авах, GPS, хүргэлт дуусгах, орлого/данс |
+| **Customer** | Бараа захиалах, төлбөр хийх, хүргэлт хянах, бараа хүлээн авах |
 
-- Бараа, ангилал, үлдэгдэл удирдах
-- Захиалга хүлээн авах, бэлтгэх
-- Хүргэлтийн ажилтан томилох
-- Бараа хүлээлгэн өгөхийг баталгаажуулах
-- Хүргэлтийн явцыг газрын зураг дээр харах
-- Төлбөр, тайлан, буцаалт удирдах
+**Дараагийн хувилбарт** Shop Admin-ийг дараах байдлаар салгаж болно: `Shop Owner`, `Shop Manager`, `Warehouse Staff`. MVP-д 4 actor хангалттай.
 
-2.3 Delivery Employee
+### Permission-ийн үндсэн жагсаалт
 
-- ДАН/e-Mongolia-аар identity баталгаажуулах
-- Камераар нүүр болон liveness баталгаажуулах
-- Хүргэлтийн ажил хүлээн авах
-- QR кодоор бараа хүлээн авах
-- GPS байршлаа идэвхтэй хүргэлтийн үед хуваалцах
-- Хэрэглэгчид бараа хүлээлгэн өгөх
-- Орлого, wallet болон payout мэдээллээ харах
-- Банкны дансаа бүртгэх
+```
+platform.tenants.manage
+platform.subscriptions.manage
+platform.disputes.manage
+platform.audit.view
 
-2.4 Customer
+shop.products.manage
+shop.orders.manage
+shop.employees.manage
+shop.assignments.manage
+shop.reports.view
+shop.settings.manage
 
-- Дэлгүүр болон бараа үзэх
-- Сагс үүсгэж захиалга өгөх
-- Хүргэлтийн хаяг сонгох
-- QPay-аар төлбөр хийх
-- Захиалгын төлөв харах
-- Хүргэлтийг газрын зураг дээр хянах
-- OTP эсвэл QR-аар бараагаа хүлээн авах
-- Үнэлгээ, маргаан, буцаалтын хүсэлт гаргах
+delivery.jobs.view
+delivery.jobs.accept
+delivery.pickup.verify
+delivery.location.share
+delivery.delivery.complete
+delivery.wallet.view
+delivery.payout.request
 
+customer.orders.create
+customer.orders.view
+customer.payments.create
+customer.delivery.confirm
+customer.disputes.create
+```
 
-3. ҮНДСЭН БИЗНЕС ПРОЦЕСС
+---
 
-1. Customer бараагаа сонгож захиалга үүсгэнэ.
-2. Систем хүргэлтийн хаяг болон үнийг тооцно.
-3. Customer QPay-аар төлбөр хийнэ.
-4. Shop захиалгыг хүлээн авч барааг бэлтгэнэ.
-5. Shop баталгаажсан хүргэлтийн ажилтан томилно.
-6. Ажилтан хүргэлтийн ажлыг зөвшөөрч shop дээр очно.
-7. QR, GPS болон шаардлагатай тохиолдолд нүүрээр баталгаажна.
-8. Shop барааг хүргэлтийн ажилтанд хүлээлгэн өгнө.
-9. Барааны хариуцлага ажилтанд шилжиж GPS tracking эхэлнэ.
-10. Customer захиалгын явцыг real-time харна.
-11. Customer OTP эсвэл QR-аар бараагаа хүлээн авна.
-12. Захиалга амжилттай дууссаны дараа ажилтны орлого бодогдоно.
+## 2. Multi-tenant SaaS загвар
 
+- Shop бүр тусдаа **tenant** байна.
+- Tenant-д хамаарах бүх өгөгдөлд `tenant_id` байна: Products, Warehouses, Employees, Orders, Deliveries, Payments, Wallet transactions, Reports, Audit logs.
+- Нэг shop нөгөө shop-ийн захиалга, хэрэглэгч, ажилтан, санхүүгийн мэдээллийг **ямар ч нөхцөлд харах ёсгүй**.
 
-4. ХҮРГЭЛТИЙН АЖИЛТНЫ БАТАЛГААЖУУЛАЛТ
+---
 
-Ажилтан дараах дарааллаар баталгаажна:
+## 3. Гол бизнесийн процесс
 
-1. Утас эсвэл email-ээр бүртгүүлэх
-2. ДАН/e-Mongolia-аар иргэний identity баталгаажуулах
-3. Биометрийн мэдээлэл ашиглах зөвшөөрөл өгөх
-4. Камераар liveness шалгалт хийх
-5. Identity зураг болон live нүүрийг 1:1 харьцуулах
-6. Банкны данс бүртгүүлэх
-7. Shop Admin-аар хянуулж идэвхжүүлэх
+### 3.1 Хүргэлтийн ажилтны бүртгэл
 
-Ажилтны төлөв:
+1. Ажилтан утас эсвэл email-ээр бүртгүүлнэ.
+2. ДАН/e-Mongolia интеграцаар иргэний identity баталгаажуулна.
+3. Систем зөвшөөрөл авч шаардлагатай баталгаажсан мэдээллийг хадгална.
+4. Ажилтан камер ашиглан нүүрний liveness шалгалт хийнэ.
+5. Identity зураг болон live нүүрийг 1:1 face verification-оор харьцуулна.
+6. Банкны дансаа бүртгүүлнэ.
+7. Shop Admin ажилтныг review хийгээд идэвхжүүлнэ.
+8. Ажилтны статус `VERIFIED` болно.
 
+**Ажилтны verification төлөв (happy path):**
+
+```
 REGISTERED
-IDENTITY_VERIFIED
-FACE_VERIFIED
-ADMIN_REVIEW
-ACTIVE
+→ IDENTITY_PENDING
+→ IDENTITY_VERIFIED
+→ FACE_PENDING
+→ FACE_VERIFIED
+→ ADMIN_REVIEW
+→ ACTIVE
+```
+
+**Татгалзсан / хугацаа дууссан төлөвүүд:**
+
+```
 REJECTED
 SUSPENDED
 REVERIFICATION_REQUIRED
+```
 
-Нүүр баталгаажуулалтыг өөрийн AI model-оор эхнээс нь хийхгүй.
-Production түвшний liveness болон face verification provider ашиглана.
+> e-Mongolia-ийн албан мэдээлэлд ДАН системийг төр болон хувийн байгууллагын цахим үйлчилгээнд хэрэглэгч баталгаажуулах, нэвтрүүлэх дэд бүтэц гэж тодорхойлсон байдаг. Гэхдээ production интеграц хийхэд албан ёсны гэрээ, зөвшөөрөл, sandbox/API access тусад нь шаардлагатай тул үүнийг энгийн social login шиг шууд ашиглана гэж үзэж болохгүй. ([e-Mongolia — системийн тухай](https://www.e-mongolia.mn))
 
-Түүхий camera video-г үндсэн database-д хадгалахгүй.
-Зөвхөн verification үр дүн, provider reference, огноо, цагийг хадгална.
+---
 
+## 4. Нүүр танилтын шийдэл
 
-5. БАРАА ХҮЛЭЭЛЦЭХ БАТАЛГААЖУУЛАЛТ
+Нүүр танилтыг өөрсдөө эхнээс нь ML model сургаж хийх шаардлагагүй — production түвшинд баталгаажсан biometric provider ашиглах нь зөв.
 
-Барааг хүргэлтийн ажилтанд өгөхдөө дараах мэдээллийг бүртгэнэ:
+### Шаардлагатай 3 шалгалт
 
-- Employee ID болон баталгаажуулалтын төлөв
-- Order ID болон package ID
-- Нэг удаагийн QR баталгаажуулалт
-- Liveness/face verification үр дүн
-- Shop болон салбарын мэдээлэл
-- Хүлээлцсэн огноо, цаг
-- GPS координат
-- Төхөөрөмжийн мэдээлэл
-- Package зураг
-- Seal эсвэл serial number
-- Shop болон employee-ийн баталгаажуулалт
+**1. Liveness detection** — Камерын өмнө амьд хүн байгаа эсэх:
+- Зураг барьсан эсэх
+- Өөр дэлгэц дээр видео тоглуулсан эсэх
+- Mask/deepfake ашигласан эсэх
+- Камерын дүрс бодит эсэх
 
-QR код нь:
+**2. Face verification** — e-Mongolia/identity эх сурвалжийн зурагтай камерын live дүрсийг 1:1 харьцуулна.
 
-- Нэг удаагийн байна
-- Богино хугацаанд хүчинтэй байна
-- Тухайн order болон assignment-д хамаарна
-- Server дээр баталгаажна
-- Дахин ашиглах боломжгүй байна
+> Энд "олон хүнээс хэн болохыг олох" (1:N recognition) хэрэггүй. Зөвхөн **"Энэ хүн бүртгэлтэй Бат мөн үү?"** гэсэн 1:1 verification хийнэ.
 
+**3. Transaction binding** — Нүүр амжилттай таарсан үр дүнг тухайн үйлдэлтэй холбоно:
 
-6. ЗАХИАЛГЫН ТӨЛӨВ
+```
+employee_id
+verification_session_id
+delivery_id
+action = PICKUP
+liveness_result
+face_match_score
+provider_reference
+verified_at
+device_id
+ip_address
+location
+```
 
-Customer-д дараах энгийн төлөвүүд харагдана:
+### Нүүр таних үеүүд
+- Анхны employee onboarding
+- Шинэ төхөөрөмжөөс нэвтрэх
+- Shop-оос өндөр үнэтэй бараа авах
+- Сэжигтэй үйлдэл илэрсэн
+- Тодорхой хугацааны дараах re-verification
 
-1. Захиалга хүлээн авсан
-2. Төлбөр баталгаажсан
-3. Барааг бэлтгэж байна
-4. Хүргэлтийн ажилтан томилогдсон
-5. Барааг хүргэлтэд хүлээн авсан
-6. Захиалга замдаа гарсан
-7. Хүргэлтийн ажилтан ойртож байна
-8. Захиалга хүргэгдсэн
+### Эрсдэлийн дүрэм (risk-based verification)
 
-Backend-д дараах дэлгэрэнгүй төлөв ашиглана:
+Хүргэлтийн бүх бараанд дахин нүүр танилт шаардах нь ажиллагааг удаашруулна тул эрсдэлээс хамааруулна:
 
-DRAFT → PAYMENT_PENDING → PAID → CONFIRMED → PREPARING
-→ READY_FOR_PICKUP → COURIER_ASSIGNED → PICKUP_VERIFICATION
-→ PICKED_UP → IN_TRANSIT → ARRIVING → DELIVERED
-→ CUSTOMER_CONFIRMED → COMPLETED
+| Эрсдэл | Баталгаажуулалт |
+|---|---|
+| Бага үнэтэй бараа | Login + pickup QR |
+| Дунд эрсдэл | QR + employee PIN |
+| Өндөр үнэтэй бараа | QR + liveness + face verification |
+| Сэжигтэй үйлдэл | Face verification + admin approval |
 
-Алдааны болон нэмэлт төлөв:
+### Биометрийн өгөгдлийн хамгаалалт
 
+- Хэрэглэгчээс тусгай, ойлгомжтой consent авах
+- Raw camera video-г үндсэн database-д хадгалахгүй байх
+- Боломжтой бол зөвхөн provider reference болон үр дүн хадгалах
+- Хэрэв зураг хадгалбал object storage-д тусад нь шифрлэх
+- Нүүрний embedding/template-ийг шифрлэх
+- Tenant Admin-д raw biometric data харуулахгүй байх
+- Retention хугацаа тогтоох
+- Устгах хүсэлт, audit trail хэрэгжүүлэх
+- Биометрийн өгөгдлийг зар сурталчилгаа, analytics-д ашиглахгүй байх
+
+> **Санамж:** Монгол Улсад биометр болон байршлын мэдээлэлтэй холбоотой хууль зүйн үнэлгээ, зөвшөөрлийн текст, хадгалалтын хугацааг мэргэжлийн хуульчаар баталгаажуулах шаардлагатай.
+
+---
+
+## 5. Барааг ажилтанд хүлээлгэн өгөх процесс (Pickup flow)
+
+Энэ бол системийн хамгийн чухал security workflow.
+
+1. Shop ажилтан захиалгыг бэлдэнэ.
+2. Захиалгыг хүргэлтийн ажилтанд assign хийнэ.
+3. Delivery Employee web app дээр ажлын санал ирнэ.
+4. Ажилтан хүргэлтийг accept хийнэ.
+5. Shop-д очиход GPS geofence шалгана.
+6. Shop захиалгын нэг удаагийн QR код харуулна.
+7. Хүргэлтийн ажилтан QR-г уншуулна.
+8. Эрсдэлийн дүрмээр нүүр/liveness баталгаажуулалт хийнэ.
+9. Shop-ийн ажилтан барааны багц, serial/seal кодыг батална.
+10. Хоёр тал digital handover confirmation хийнэ.
+11. Барааны хариуцлага shop-оос courier руу шилжинэ.
+12. Захиалга `PICKED_UP` төлөвт орно.
+13. GPS tracking эхэлнэ.
+
+### Pickup evidence
+
+```
+Employee identity
+Shop/warehouse
+Order болон package ID
+QR verification
+Face verification result
+Pickup цаг
+GPS координат
+Device
+Package зураг
+Seal/serial number
+Shop талын баталгаажуулалт
+Audit event
+```
+
+### QR кодын шаардлага
+
+- Нэг удаагийн
+- Богино хугацаанд хүчинтэй
+- Order/assignment-д уягдсан
+- Server-side баталгааждаг
+- Screenshot дахин ашиглах боломжгүй
+
+---
+
+## 6. Захиалгын төлөвийн загвар
+
+Backend төлөвийг дэлгэрэнгүй хадгална. Customer UI дээр энгийн алхмаар харуулна.
+
+### Дотоод state machine
+
+```
+DRAFT
+→ PAYMENT_PENDING
+→ PAID
+→ CONFIRMED
+→ PREPARING
+→ READY_FOR_PICKUP
+→ COURIER_ASSIGNED
+→ COURIER_ARRIVING
+→ PICKUP_VERIFICATION
+→ PICKED_UP
+→ IN_TRANSIT
+→ ARRIVING
+→ DELIVERED
+→ CUSTOMER_CONFIRMED
+→ COMPLETED
+```
+
+### Алдааны төлөвүүд
+
+```
 PAYMENT_FAILED
 CANCELLED
 PICKUP_REJECTED
@@ -164,409 +261,514 @@ RETURNING
 RETURNED
 DISPUTED
 REFUNDED
+```
 
-Төлөв өөрчлөгдөх бүрд огноо, цаг, хэрэглэгч, тайлбар болон нотолгоог
-Order Status History-д хадгална.
+### Customer-д харагдах хялбар төлөв
 
+1. Захиалга хүлээн авсан
+2. Төлбөр баталгаажсан
+3. Захиалга бэлтгэж байна
+4. Хүргэлтийн ажилтан томилогдсон
+5. Барааг хүргэлтэд хүлээн авсан
+6. Захиалга замдаа гарсан
+7. Хүргэлтийн ажилтан ойртож байна
+8. Захиалга хүргэгдсэн
 
-7. БАРАА ХҮЛЭЭН АВАХ ПРОЦЕСС
+> `OrderStatusHistory` хүснэгтэд төлөв солигдсон цаг, хэн өөрчилсөн, тайлбар, нотолгоог хадгална.
 
-Хүргэлтийн ажилтан дангаараа Delivered дарснаар хүргэлт дуусахгүй.
+---
 
-1. Ажилтан хүргэлтийн хаягийн geofence-д очно.
-2. Customer-ийн web app-д нэг удаагийн OTP эсвэл QR гарна.
-3. Ажилтан OTP оруулах эсвэл QR уншуулна.
-4. Шаардлагатай үед хүргэлтийн зураг авна.
-5. Customer бараагаа хүлээн авснаа батална.
-6. Захиалга DELIVERED төлөвт орно.
-7. Маргаан гаргах хугацааны дараа COMPLETED болно.
-8. Ажилтны орлого available balance-д шилжинэ.
+## 7. Customer бараа хүлээн авах баталгаажуулалт
 
-Customer байхгүй тохиолдолд:
+> Зөвхөн courier "Delivered" дарснаар хүргэлт дуусах ёсгүй.
 
-- Өөр зөвшөөрөгдсөн хүн хүлээн авах
-- Safe-drop зурагтай үлдээх
+1. Courier хэрэглэгчийн байршлын geofence-д хүрнэ.
+2. Customer web app-д 6 оронтой OTP эсвэл нэг удаагийн QR гарна.
+3. Courier OTP-г оруулах буюу QR-г уншуулна.
+4. Шаардлагатай бол package зураг авна.
+5. Customer "Бараагаа хүлээн авлаа" гэж батална.
+6. Захиалга `DELIVERED` болно.
+7. Маргаан гаргах богино хугацаа эхэлнэ.
+8. Дараа нь `COMPLETED` болж settlement хийгдэнэ.
+
+### Хэрэглэгч байхгүй үед
+
+- Authorized recipient сонгох
+- Reception/guard-д өгөх зөвшөөрөл
+- Safe-drop зураг
 - Дахин хүргэх
 - Shop руу буцаах
 
-сонголтуудтай байна.
+---
 
+## 8. Хүргэлтийн үнэ тооцох requirement
 
-8. ХҮРГЭЛТИЙН ҮНЭ ТООЦОХ
+> Хүргэлтийн үнийг `watchPosition()`-оор тооцохгүй. Захиалга өгөх үед pickup болон delivery address-ийн route distance-ээр урьдчилан тооцно.
 
-Хүргэлтийн үнийг watchPosition ашиглан бодохгүй.
-Захиалга өгөх үед pickup болон delivery address-ийн авто замын
-маршрутаар урьдчилан тооцно.
+### Тооцооны үндэс
 
-Хүргэлтийн үнэ =
+```
+Delivery fee =
+  Base fee
+  + distance charge
+  + weight/volume charge
+  + zone surcharge
+  + time surcharge
+  + special handling
+  - discount
+```
 
-Суурь үнэ
-+ Зайны төлбөр
-+ Жин, оврын нэмэгдэл
-+ Бүс болон цагийн нэмэгдэл
-- Хөнгөлөлт
+**Жишээ:**
 
-Шаардлага:
+| Зүйл | Дүн |
+|---|---|
+| Суурь үнэ | 3,000₮ |
+| Эхний 3 км | багтсан |
+| 3 км-ээс хойш | 800₮ / км |
+| Хүнд барааны нэмэгдэл | 2,000₮ |
+| Оргил цагийн нэмэгдэл | 15% |
 
-- Shop-ийн pickup координат бүртгэлтэй байна
-- Customer хаягаа map pin-ээр батална
-- Шулуун шугамын зай бус авто замын маршрут ашиглана
-- Checkout дээр эцсийн үнэ харагдана
-- Төлбөр хийсний дараа үнэ түгжигдэнэ
-- Хаяг өөрчлөгдвөл үнэ дахин бодогдоно
-- Ашигласан зай, үнэ болон дүрмийн хувилбар хадгалагдана
+### Шаардлагатай дүрэм
 
+- Shop-ийн pickup координат тодорхой байна.
+- Customer address-ийг газрын зураг дээр pin-ээр батална.
+- Routing service авто замын бодит маршрутыг тооцно (шулуун шугамын зайгаар үнэ бодохгүй).
+- Тооцоолсон үнэ checkout дээр хэрэглэгчид харагдана.
+- Захиалга төлөгдсөний дараа delivery quote түгжигдэнэ.
+- Хаяг өөрчлөгдвөл үнэ дахин тооцогдоно.
+- Pricing rule бүр tenant болон zone-оор ялгаатай байж болно.
+- Quote-д ашигласан дүрэм, зай, хувилбар хадгалагдана.
 
-9. GPS TRACKING
+```typescript
+type DeliveryQuote = {
+  pickupLocation: GeoPoint;
+  dropoffLocation: GeoPoint;
+  routeDistanceMeters: number;
+  estimatedDurationSeconds: number;
+  baseFee: number;
+  distanceFee: number;
+  surcharges: number;
+  discounts: number;
+  totalFee: number;
+  currency: "MNT";
+  pricingRuleVersion: string;
+  expiresAt: string;
+};
+```
 
-- watchPosition зөвхөн идэвхтэй хүргэлтийн үед ажиллана
-- Ажилтнаас байршлын зөвшөөрөл авна
-- Ажлын бус үед байршил цуглуулахгүй
-- Байршлыг хугацаа эсвэл хөдөлгөөний threshold-оор илгээнэ
-- Offline үед түр хадгалаад сүлжээ ороход sync хийнэ
-- Shop зөвхөн өөрийн хүргэлтийн ажилтныг харна
-- Customer зөвхөн өөрийн захиалгын хүргэлтийг харна
+---
 
-Browser хаагдсан эсвэл утас sleep горимд орсон үед web tracking
-тасалдах боломжтой. Байнгын background tracking шаардлагатай бол
-дараагийн хувилбарт native эсвэл Capacitor app ашиглана.
+## 9. QPay төлбөр болон мөнгөний урсгал
 
+### Checkout процесс
 
-10. QPAY ТӨЛБӨР
+1. Backend order үүсгэнэ.
+2. Үнэ болон хүргэлтийн хөлсийг түгжинэ.
+3. QPay invoice үүсгэнэ.
+4. Customer QR-аар төлнө.
+5. QPay callback ирнэ.
+6. Backend QPay API-аар төлбөрийг дахин шалгана.
+7. Idempotency check хийнэ.
+8. Order `PAID` болно.
+9. Internal ledger-д мөнгөний задаргаа бүртгэнэ.
 
-Төлбөрийн урсгал:
+> QPay-ийн албан баримтжуулалтад OAuth credential авах, invoice үүсгэх, төлбөр шалгах, цуцлах болон буцаах API-ууд байдгийг дурдсан байдаг. Production merchant эрхийг QPay-тай гэрээгээр авна. ([QPay API documentation](https://qpay.mn))
 
-1. Backend order болон delivery quote үүсгэнэ.
-2. QPay invoice үүсгэнэ.
-3. Customer QR-аар төлнө.
-4. QPay callback илгээнэ.
-5. Backend төлбөрийг QPay API-аар дахин шалгана.
-6. Idempotency ашиглан давхар гүйлгээнээс хамгаална.
-7. Order PAID төлөвт орно.
-8. Төлбөрийн задаргааг internal ledger-д бүртгэнэ.
+### Чухал ялгаа
 
-Жишээ төлбөрийн задаргаа:
+> QPay төлбөр амжилттай болсон даруй courier-ийн available balance-д мөнгө нэмэх нь **буруу**. Courier бараагаа хүргээгүй байж болно.
 
-Барааны үнэ:                 Shop-ийн орлого
-Хүргэлтийн төлбөр:           Employee + Platform
-Үйлчилгээний шимтгэл:        Platform-ийн орлого
+### Зөв wallet төлөв
 
-QPay төлбөр амжилттай болмогц хүргэлтийн ажилтны available balance-д
-мөнгө шууд нэмэгдэхгүй.
+```
+EXPECTED
+→ PENDING
+→ AVAILABLE
+→ PAYOUT_REQUESTED
+→ PAID_OUT
+```
 
+- **EXPECTED**: хүргэлтийг accept хийхэд харагдах боломжит орлого
+- **PENDING**: бараа хүргэгдсэн ч settlement хүлээж байгаа
+- **AVAILABLE**: customer confirmation/dispute хугацааны дараа авах боломжтой
+- **PAID_OUT**: банкны данс руу шилжүүлсэн
 
-11. EMPLOYEE WALLET
+### Payment breakdown жишээ
 
-Wallet-ийн төлөв:
+Хэрэглэгч 105,000₮ төлсөн бол:
 
-EXPECTED → PENDING → AVAILABLE → PAYOUT_REQUESTED → PAID_OUT
+| Зүйл | Дүн |
+|---|---|
+| Барааны үнэ | 95,000₮ |
+| Хүргэлтийн төлбөр | 8,000₮ |
+| Үйлчилгээний шимтгэл | 2,000₮ |
+| **Нийт** | **105,000₮** |
 
-EXPECTED:
-Хүргэлтийн ажлыг авахад харагдах боломжит орлого.
+**Ledger задаргаа:**
 
-PENDING:
-Бараа хүргэгдсэн боловч баталгаажуулалт хүлээж буй орлого.
+| Зүйл | Дүн |
+|---|---|
+| Shop payable | 95,000₮ |
+| Courier earning | 6,500₮ |
+| Platform delivery fee | 1,500₮ |
+| Platform service fee | 2,000₮ |
 
-AVAILABLE:
-Customer баталгаажуулж, маргааны хугацаа дууссан орлого.
+> Систем нь мөнгийг өөрөө "хадгалж, хуваарилдаг" бол escrow/payment intermediary шинжтэй болж болзошгүй. QPay invoice API байгаа нь автоматаар split settlement болон courier payout дэмжинэ гэсэн үг биш. Иймээс merchant agreement, банкны payout механизм, татвар, eBarimt болон зохицуулалтын загварыг QPay/банк/хуульчаар тусад нь шийдэх шаардлагатай.
 
-PAYOUT_REQUESTED:
-Ажилтан банкны данс руу авах хүсэлт гаргасан.
+---
 
-PAID_OUT:
-Орлого банкны данс руу шилжсэн.
+## 10. Delivery Employee web app (Mobile-first PWA)
 
-MVP-д payout-ийг Admin баталгаажуулж гараар шилжүүлж болно.
-Automated payout-ийг дараагийн үе шатанд хэрэгжүүлнэ.
+### Үндсэн page-ууд
 
-
-12. CUSTOMER WEB APP
-
-Үндсэн хуудсууд:
-
-- Нүүр хуудас
-- Shop болон бүтээгдэхүүний жагсаалт
-- Бүтээгдэхүүний дэлгэрэнгүй
-- Сагс
-- Checkout
-- Хүргэлтийн хаяг болон map pin
-- Хүргэлтийн үнийн мэдээлэл
-- QPay төлбөр
-- Миний захиалгууд
-- Захиалгын дэлгэрэнгүй
-- Захиалгын timeline
-- Live delivery tracking
-- OTP/QR баталгаажуулалт
-- Буцаалт, маргаан
-- Үнэлгээ
-- Profile болон хадгалсан хаяг
-
-
-13. DELIVERY EMPLOYEE WEB APP
-
-Үндсэн хуудсууд:
-
-- Login
-- ДАН/e-Mongolia баталгаажуулалт
-- Нүүр болон liveness баталгаажуулалт
-- Dashboard
-- Боломжит хүргэлтийн ажлууд
-- Томилогдсон ажлууд
-- Хүргэлтийн дэлгэрэнгүй
-- Pickup QR баталгаажуулалт
-- Active delivery болон route
+- Login / ДАН баталгаажуулалт
+- Identity verification status
+- Face/liveness verification
+- Home dashboard
+- Available delivery jobs
+- Assigned jobs
+- Delivery job detail
+- Route/navigation
+- Pickup verification
+- Active delivery
 - Customer handover
-- Хүргэлтийн түүх
-- Орлого болон wallet
-- Payout хүсэлт
-- Банкны данс
-- Notification
-- Profile
-- Support болон dispute
+- Delivery history
+- Earnings
+- Wallet transactions
+- Payout request
+- Bank accounts
+- Notifications
+- Profile and documents
+- Support/dispute
+- Privacy and tracking consent
 
+### Dashboard-ийн KPI
 
-14. SHOP ADMIN
+- Өнөөдрийн хүргэлт
+- Хүлээгдэж буй ажил
+- Амжилттай хүргэлт
+- Expected earning
+- Pending balance
+- Available balance
+- Online/offline статус
+- Verification status
 
-Үндсэн хуудсууд:
+---
 
-- Dashboard
-- Бараа болон ангилал
-- Үлдэгдэл
-- Салбар болон агуулах
-- Захиалга
-- Захиалгын дэлгэрэнгүй
-- Dispatch board
-- Live delivery map
-- Хүргэлтийн ажилтан
-- Employee verification review
-- Хүргэлтийн бүс
-- Үнийн дүрэм
-- Төлбөр, settlement, refund
-- Тайлан
-- Маргаан, буцаалт
-- Audit log
-- Shop settings
-- Subscription
+## 11. Shop Admin UI
 
+### Page-ууд
 
-15. PLATFORM ADMIN
+Dashboard · Products · Categories · Inventory · Warehouses/branches · Orders · Order details · Dispatch board · Delivery live map · Delivery history · Employees · Employee verification review · Customers · Pricing rules · Delivery zones · Payments · Settlements · Refunds · Reports · Audit logs · Shop settings · Subscription and billing · Integration/API settings · Notification templates · Disputes and returns
 
-Үндсэн хуудсууд:
+### Dashboard KPI
 
-- Platform dashboard
-- Shop/tenant management
-- Subscription plans
-- Subscription management
-- Identity verification monitoring
-- Payment monitoring
-- Wallet болон payout monitoring
-- Fraud болон risk alert
-- Маргаан
-- Audit log
-- Integration health
-- Usage analytics
-- Global settings
-- Support management
+- Өнөөдрийн захиалга
+- Бэлтгэгдэж байгаа
+- Хүргэлтэд гарсан
+- Хоцорсон
+- Амжилттай хүргэгдсэн
+- Буцаагдсан
+- Нийт борлуулалт
+- Хүргэлтийн зардал
+- Courier performance
 
+---
 
-16. SAAS SUBSCRIPTION
+## 12. Customer web app
 
-Starter plan:
+### Page-ууд
 
-- 5 shop хэрэглэгч
-- 10 хүргэлтийн ажилтан
-- Сард 500 захиалга
-- 30 хоногийн location history
-- Basic report
+Landing page · Shop/catalog · Product detail · Cart · Checkout · Address and map pin · Delivery quote · QPay payment · Payment result · My orders · Order detail · Live delivery tracking · Delivery confirmation · Rating/review · Returns and disputes · Notifications · Saved addresses · Profile · Privacy settings
 
-Growth plan:
+### Tracking page-ийн агуулга
 
-- 30 shop хэрэглэгч
-- 100 хүргэлтийн ажилтан
-- Сард 10,000 захиалга
-- 180 хоногийн location history
-- Advanced report
-- API access
+- Step-by-step timeline
+- Courier-ийн зөвшөөрөгдсөн нэр/зураг
+- Estimated arrival
+- Live map
+- "Courier-тэй холбогдох"
+- OTP/QR
+- Support
+- Cancel/return policy
 
-Enterprise plan:
+> Courier-ийн хувийн утасны дугаарыг шууд харуулахын оронд **masked calling/chat** ашиглах нь зөв.
 
-- Custom хэрэглэгч болон захиалгын лимит
-- Custom data retention
-- Enterprise API
-- SLA болон priority support
+---
 
-Subscription-ийн төлөв:
+## 13. Platform Admin UI
 
+Platform overview · Tenant/shop management · Tenant detail · Subscription plans · Active subscriptions · Platform users · Identity verification monitoring · Payment monitoring · Settlement/payout monitoring · Disputes · Fraud/risk alerts · System audit · Integration health · Feature flags · Global settings · Support management · Usage analytics · System reports
+
+---
+
+## 14. SaaS subscription
+
+| | Starter | Growth | Enterprise |
+|---|---|---|---|
+| Shop users | 5 | 30 | Custom |
+| Couriers | 10 | 100 | Custom |
+| Monthly orders | 500 | 10,000 | Custom |
+| Location history | 30 хоног | 180 хоног | Custom |
+| Face verification | Нэмэлт quota | Нэмэлт quota | Contract |
+| Reports | Basic | Advanced | Custom |
+| API integration | — | Тийм | Тийм |
+| Support | Standard | Priority | SLA |
+
+### Usage-based billing үзүүлэлтүүд
+
+- Нийт захиалга
+- Face/liveness шалгалтын тоо
+- SMS/OTP
+- GPS/location хадгалалт
+- Storage
+- API request
+- Active courier
+
+### Subscription төлөв
+
+```
 TRIALING → ACTIVE → PAST_DUE → GRACE_PERIOD → SUSPENDED → CANCELLED
+```
 
-Subscription дуусахад өгөгдөл шууд устахгүй.
-Grace period хугацаанд систем read-only горимд ажиллана.
+> Subscription дууссан үед shop-ийн өгөгдлийг устгахгүй. Шинэ захиалга болон зарим үйлдлийг хаагаад read-only grace period өгнө.
 
+---
 
-17. ТЕХНИКИЙН ШИЙДЭЛ
+## 15. Functional Requirements (FR)
 
-Frontend:
-Next.js, TypeScript, Tailwind CSS
+<details>
+<summary><b>🆔 Identity — 5 requirement (дэлгэхийн тулд дар)</b></summary>
 
-Backend:
-NestJS, TypeScript
+| ID | Requirement |
+|---|---|
+| FR-ID-001 | Courier ДАН/e-Mongolia-аар identity баталгаажуулах боломжтой байна |
+| FR-ID-002 | Давхар identity-аар олон courier account үүсгэхээс хамгаална |
+| FR-ID-003 | Consent болон баталгаажуулалтын audit хадгална |
+| FR-ID-004 | Failed verification retry limit-тэй байна |
+| FR-ID-005 | Admin manual review workflow байна |
 
-Database:
-PostgreSQL, PostGIS, Prisma ORM
+</details>
 
-Queue болон cache:
-Redis, BullMQ
+<details>
+<summary><b>🙂 Face verification — 5 requirement (дэлгэхийн тулд дар)</b></summary>
 
-File storage:
-S3-compatible object storage
+| ID | Requirement |
+|---|---|
+| FR-FACE-001 | Камерын permission-г тайлбартай авна |
+| FR-FACE-002 | Passive/active liveness шалгана |
+| FR-FACE-003 | 1:1 face verification хийнэ |
+| FR-FACE-004 | Threshold-оос доош үр дүнг manual review рүү шилжүүлнэ |
+| FR-FACE-005 | Provider outage үед барааг шууд олгохгүй, fallback approval ашиглана |
 
-Live update:
-WebSocket эсвэл Server-Sent Events
+</details>
 
-Map:
-MapLibre болон routing provider
+<details>
+<summary><b>🛒 Order — 5 requirement (дэлгэхийн тулд дар)</b></summary>
 
-Local development:
-npm, Docker Compose, PostgreSQL, Redis
+| ID | Requirement |
+|---|---|
+| FR-ORD-001 | Shop бүтээгдэхүүн, inventory удирдана |
+| FR-ORD-002 | Customer cart болон checkout ашиглана |
+| FR-ORD-003 | Order status history immutable байна |
+| FR-ORD-004 | Inventory payment амжилттай үед баталгаажна |
+| FR-ORD-005 | Cancellation болон refund дүрэмтэй байна |
 
-Үндсэн backend module:
+</details>
 
-- Auth
-- Tenant
-- Identity
-- Biometric
-- Catalog
-- Inventory
-- Order
-- Delivery
-- Tracking
-- Pricing
-- Payment
-- Ledger
-- Wallet
-- Payout
-- Subscription
-- Notification
-- Audit
-- Reporting
+<details>
+<summary><b>🚚 Delivery — 7 requirement (дэлгэхийн тулд дар)</b></summary>
 
+| ID | Requirement |
+|---|---|
+| FR-DEL-001 | Хүргэлтийн үнийг checkout-оос өмнө тооцно |
+| FR-DEL-002 | Courier assign/accept/reject боломжтой байна |
+| FR-DEL-003 | Pickup QR нэг удаагийн байна |
+| FR-DEL-004 | Pickup evidence хадгална |
+| FR-DEL-005 | Active delivery үед GPS tracking ажиллана |
+| FR-DEL-006 | Customer OTP/QR-оор delivery баталгаажуулна |
+| FR-DEL-007 | Failed delivery болон return workflow байна |
 
-18. ӨГӨГДЛИЙН ҮНДСЭН ХҮСНЭГТҮҮД
+</details>
 
-- tenants
-- subscriptions
-- users
-- tenant_members
-- roles
-- identity_profiles
-- identity_verifications
-- face_verifications
-- shops
-- branches
-- warehouses
-- products
-- inventory_movements
-- customers
-- customer_addresses
-- orders
-- order_items
-- order_status_history
-- delivery_quotes
-- delivery_assignments
-- pickup_verifications
-- tracking_sessions
-- location_points
-- handover_evidence
-- payment_invoices
-- payment_transactions
-- refunds
-- ledger_accounts
-- ledger_entries
-- wallets
-- payout_requests
-- bank_accounts
-- notifications
-- disputes
-- audit_logs
-- risk_events
+<details>
+<summary><b>💳 Payment — 7 requirement (дэлгэхийн тулд дар)</b></summary>
 
-Tenant-д хамаарах хүснэгт бүр tenant_id талбартай байна.
-Нэг shop нөгөө shop-ийн өгөгдөлд хандах боломжгүй байна.
+| ID | Requirement |
+|---|---|
+| FR-PAY-001 | QPay invoice үүсгэнэ |
+| FR-PAY-002 | Callback signature/source болон төлбөрийг server-side шалгана |
+| FR-PAY-003 | Давхар callback давхар орлого үүсгэхгүй |
+| FR-PAY-004 | Refund бүр order болон ledger-тэй холбоотой байна |
+| FR-PAY-005 | Courier earning delivery completion-оос өмнө available болохгүй |
+| FR-PAY-006 | Wallet balance-ийг гүйлгээнээс тооцдог байна; шууд засахгүй |
+| FR-PAY-007 | Payout бүр approval болон audit trail-тай байна |
 
+</details>
 
-19. АЮУЛГҮЙ БАЙДАЛ
+---
 
-- HTTPS/TLS ашиглах
-- Password-ийг Argon2id-аар hash хийх
-- Secure HttpOnly session cookie ашиглах
-- Admin болон payout үйлдэлд MFA шаардах
-- RBAC болон tenant тусгаарлалт хэрэгжүүлэх
-- PostgreSQL Row Level Security ашиглах
-- Rate limiting болон input validation хийх
-- Webhook replay болон duplicate payment-ээс хамгаалах
-- Sensitive өгөгдлийг шифрлэх
-- Audit log-ийг өөрчлөх боломжгүй хадгалах
-- Automated backup болон recovery төлөвлөгөөтэй байх
-- Биометр болон GPS мэдээлэлд тусгай consent авах
-- Өгөгдөл хадгалах болон устгах хугацааг тодорхойлох
+## 16. Non-functional Requirements (NFR)
 
+<details>
+<summary><b>🔒 Security — 15 зүйл (дэлгэхийн тулд дар)</b></summary>
 
-20. MVP ACCEPTANCE CRITERIA
+| # | Requirement |
+|---|---|
+| 1 | TLS/HTTPS |
+| 2 | Argon2id password hashing |
+| 3 | HttpOnly secure session cookie |
+| 4 | Admin болон payout action-д MFA |
+| 5 | RBAC + tenant-level authorization |
+| 6 | PostgreSQL Row Level Security |
+| 7 | Rate limiting |
+| 8 | Device/session management |
+| 9 | Secrets manager |
+| 10 | Encryption at rest |
+| 11 | Immutable audit log |
+| 12 | Dependency болон vulnerability scanning |
+| 13 | Payment webhook replay protection |
+| 14 | Idempotency key |
+| 15 | OWASP ASVS шаардлагууд |
 
-[ ] Нэг shop нөгөө shop-ийн өгөгдөлд хандаж чадахгүй.
+</details>
 
-[ ] Customer бараа сонгож, хүргэлтийн үнэ харж, QPay-аар төлж чадна.
+<details>
+<summary><b>⚡ Performance — 5 metric (дэлгэхийн тулд дар)</b></summary>
 
-[ ] Employee identity болон нүүрээ баталгаажуулж чадна.
+| Metric | Target |
+|---|---|
+| Энгийн API-ийн p95 | < 500 ms |
+| Dashboard p95 load | < 2.5 сек |
+| Location update | 5 сек дотор map дээр тусах |
+| Payment callback | 30 сек дотор order төлөв шинэчлэх |
+| Availability | 99.9% сарын зорилт |
 
-[ ] Баталгаажаагүй employee-д бараа олгох боломжгүй байна.
+</details>
 
-[ ] Pickup бүр QR, цаг, байршил, employee болон нотолгоотой байна.
+<details>
+<summary><b>🛡️ Reliability — 8 зүйл (дэлгэхийн тулд дар)</b></summary>
 
-[ ] Customer захиалгын төлөв болон live tracking харж чадна.
+| # | Requirement |
+|---|---|
+| 1 | PostgreSQL automated backup |
+| 2 | Point-in-time recovery |
+| 3 | Payment reconciliation job |
+| 4 | Location offline queue |
+| 5 | Retry + dead-letter queue |
+| 6 | Monitoring болон alerting |
+| 7 | Provider outage fallback |
+| 8 | Disaster recovery procedure |
 
-[ ] Customer OTP/QR баталгаажуулалтгүй хүргэлт дуусахгүй байна.
+</details>
 
-[ ] Employee-ийн орлого хүргэлт дуусахаас өмнө available болохгүй.
+---
 
-[ ] QPay callback давтагдсан ч давхар гүйлгээ үүсэхгүй.
+## 17. Техникийн архитектур
 
-[ ] Өндөр эрсдэлтэй бүх үйлдэл audit log-т бүртгэгдэнэ.
+MVP-д **TypeScript modular monolith** хамгийн оновчтой:
 
-[ ] GPS tracking зөвхөн идэвхтэй хүргэлтийн үед ажиллана.
+- Next.js — customer/shop/employee applications
+- NestJS — API
+- PostgreSQL + PostGIS
+- Prisma ORM
+- Redis
+- BullMQ workers
+- S3-compatible object storage
+- WebSocket/SSE
+- MapLibre
+- QPay adapter
+- Identity adapter
+- Face-verification adapter
 
-[ ] Backup, monitoring, retry ажиллагаатай байна.
+### Module-ууд
 
+```
+Auth · Tenant · Identity · Biometric · Catalog · Inventory · Order
+Delivery · Tracking · Pricing · Payment · Ledger · Wallet · Payout
+Subscription · Notification · Audit · Fraud · Reporting
+```
 
-21. ХӨГЖҮҮЛЭЛТИЙН ҮЕ ШАТ
+> Identity, QPay, face provider-ийг шууд business logic дотор бичихгүй, adapter interface-аар тусгаарлана. Provider солигдоход бүх системийг дахин бичихгүй.
 
-Phase 1 — Суурь систем
+---
 
-Tenant, authentication, RBAC, shop, product, inventory, order.
+## 18. PostgreSQL үндсэн хүснэгтүүд
 
-Phase 2 — Баталгаажсан хүргэлт
+```
+tenants, subscription_plans, subscriptions, users, tenant_members, roles, permissions
 
-Employee onboarding, identity, нүүр баталгаажуулалт,
-pickup QR, GPS tracking, customer OTP.
+identity_profiles, identity_verification_sessions, biometric_consents,
+face_verification_sessions, trusted_devices
 
-Phase 3 — Төлбөр болон орлого
+shops, branches, warehouses, products, product_variants,
+inventory_items, inventory_movements
 
-QPay, refund, internal ledger, employee wallet, manual payout.
+customers, customer_addresses, orders, order_items, order_status_history
 
-Phase 4 — Өргөтгөл
+delivery_zones, delivery_pricing_rules, delivery_quotes,
+delivery_assignments, pickup_verifications, handover_evidence,
+tracking_sessions, location_points, delivery_attempts
 
-Automated payout, fraud detection, route optimization,
-native employee app, enterprise API.
+payment_invoices, payment_transactions, refunds, ledger_accounts,
+ledger_entries, courier_wallets, payout_requests, bank_accounts
 
+notifications, disputes, attachments, audit_logs, risk_events
+```
 
-22. MVP-ЭЭС ТҮР ХАСАХ БОЛОМЖУУД
+> Мөнгөний утгыг JavaScript floating number-оор хадгалахгүй:
+> - PostgreSQL `numeric`
+> - Эсвэл бүх дүнг integer MNT
+> - Ledger entry бүр debit/credit тэнцвэртэй байлгана
 
-- Өөрийн нүүр таних AI model
-- Automated bank payout
-- Dynamic surge pricing
-- AI route optimization
-- Native mobile application
-- Enterprise SSO
-- Advanced fraud scoring
+---
 
-Эдгээрийг MVP амжилттай ажилласны дараа дараагийн хувилбарт хөгжүүлнэ.
+## 19. MVP-ийн бодит хүрээ
+
+### Phase 1 — Foundation
+- Multi-tenant SaaS
+- 4 actor
+- Authentication
+- Shop/catalog
+- Product/order
+- Basic subscription
+- Audit log
+
+### Phase 2 — Secure delivery
+- Courier onboarding
+- ДАН/e-Mongolia integration
+- Face/liveness provider
+- Assignment
+- Pickup QR
+- Chain-of-custody evidence
+- GPS tracking
+- Customer OTP delivery confirmation
+
+### Phase 3 — Payment
+- QPay invoice
+- Payment callback/reconciliation
+- Refund
+- Internal ledger
+- Courier pending/available earnings
+- Manual payout approval
+
+### Phase 4 — Scale
+- Automated payout
+- Advanced fraud detection
+- Route optimization
+- Dynamic delivery pricing
+- Native courier app
+- Enterprise SSO/API
+- Advanced reporting
+
+---
+
+### Эцсийн MVP хэмжээ (ойролцоо)
+
+- **4** үндсэн actor
+- **~60** route/view
+- **18** үндсэн backend module
+- **40–50** database table
+- **3** critical external integration: identity, face/liveness, QPay
+- **4** үндсэн баталгаажуулалт: identity, face, pickup, delivery
+- **2** санхүүгийн тусдаа систем: payment ба double-entry ledger
