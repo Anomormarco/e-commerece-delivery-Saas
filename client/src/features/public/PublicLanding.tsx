@@ -5,6 +5,7 @@ import { BrandLogo } from "../../components/BrandLogo";
 type AuthMode = "login" | "register";
 type PartnerAuthMode = "login" | "register";
 type DeliveryType = "bike" | "car" | "foot";
+type PaymentMethod = "stripe" | "qpay";
 type LandingSection = "home" | "market" | "contact" | "courier" | "partner";
 
 type PublicLandingProps = {
@@ -101,6 +102,7 @@ const employeePortalUrl = import.meta.env.VITE_EMPLOYEE_PORTAL_URL ?? "http://12
 const storePortalUrl = import.meta.env.VITE_SHOP_APP_URL ?? "http://127.0.0.1:5175";
 const tokenStorageKey = "deliverhub-customer-access-token";
 const customerStorageKey = "deliverhub-customer-profile";
+const wishlistStorageKey = "deliverhub-customer-wishlist";
 const storeUsersStorageKey = "deliverhub-store-users";
 const storeSessionStorageKey = "deliverhub-store-session";
 const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
@@ -278,6 +280,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [authOpen, setAuthOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", phone: "", login: "", password: "" });
   const [partnerAuthOpen, setPartnerAuthOpen] = useState(false);
   const [partnerAuthMode, setPartnerAuthMode] = useState<PartnerAuthMode>("register");
@@ -299,6 +302,15 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     return token && customer ? { token, customer: JSON.parse(customer) } : null;
   });
   const [cart, setCart] = useState<Record<string, number>>({});
+  const [wishlist, setWishlist] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem(wishlistStorageKey);
+      return raw ? (JSON.parse(raw) as string[]) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("qpay");
   const [stores, setStores] = useState<StoreDirectoryItem[]>([]);
   const [storeSearch, setStoreSearch] = useState("");
   const [storeFilter, setStoreFilter] = useState("Бүгд");
@@ -317,6 +329,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setSection(page);
     setMenuHidden(false);
   }, [page]);
+
+  useEffect(() => {
+    localStorage.setItem(wishlistStorageKey, JSON.stringify(wishlist));
+  }, [wishlist]);
 
   useEffect(() => {
     if (section === "market" && !session) {
@@ -442,8 +458,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }, [section, session?.token, storeSearch]);
 
   const selectedStore = stores.find((store) => store.id === selectedStoreId) ?? stores[0];
-  const marketProducts = useMemo(() => {
-    const source = selectedStore?.products.length
+  const allMarketProducts = useMemo(() => (
+    selectedStore?.products.length
       ? selectedStore.products.map((product) => ({
           id: product.id,
           sku: product.id.slice(-8),
@@ -455,8 +471,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           description: `${selectedStore.name} маркетийн ${product.category.toLowerCase()} ангиллын бараа.`,
           imageUrl: product.imageUrl ?? "",
         }))
-      : initialProducts;
-    const searched = source.filter((product) => (
+      : initialProducts
+  ), [selectedStore]);
+  const marketProducts = useMemo(() => {
+    const searched = allMarketProducts.filter((product) => (
       (storeFilter === "Бүгд" || product.category === storeFilter)
       && (
         !productSearch.trim()
@@ -466,13 +484,17 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     ));
 
     return searched;
-  }, [productSearch, selectedStore, storeFilter]);
+  }, [allMarketProducts, productSearch, storeFilter]);
 
   const selectedItems = useMemo(
-    () => marketProducts
+    () => allMarketProducts
       .map((product) => ({ ...product, quantity: cart[product.id] ?? 0 }))
       .filter((product) => product.quantity > 0),
-    [cart, marketProducts],
+    [allMarketProducts, cart],
+  );
+  const wishlistItems = useMemo(
+    () => allMarketProducts.filter((product) => wishlist.includes(product.id)),
+    [allMarketProducts, wishlist],
   );
   const subtotal = selectedItems.reduce((sum, product) => sum + product.priceMnt * product.quantity, 0);
   const weightKg = Math.round(selectedItems.reduce((sum, product) => sum + product.weightGrams * product.quantity, 0) / 100) / 10;
@@ -500,6 +522,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
     setSection("market");
     setCartOpen(false);
+    setWishlistOpen(false);
     onNavigateMarket?.();
   }
 
@@ -507,6 +530,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setSection("contact");
     setMenuHidden(false);
     setCartOpen(false);
+    setWishlistOpen(false);
     onNavigateContact?.();
   }
 
@@ -514,6 +538,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setSection("partner");
     setMenuHidden(false);
     setCartOpen(false);
+    setWishlistOpen(false);
     onNavigatePartner?.();
   }
 
@@ -521,16 +546,92 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setSection("courier");
     setMenuHidden(false);
     setCartOpen(false);
+    setWishlistOpen(false);
     onNavigateCourier?.();
   }
 
   function updateCart(productId: string, delta: number) {
     setCart((current) => {
-      const product = marketProducts.find((item) => item.id === productId);
+      const product = allMarketProducts.find((item) => item.id === productId);
       const maxQuantity = product?.stockCount ?? 0;
       const nextQuantity = Math.min(maxQuantity, Math.max(0, (current[productId] ?? 0) + delta));
       return { ...current, [productId]: nextQuantity };
     });
+  }
+
+  function toggleWishlist(productId: string) {
+    setWishlist((current) => (
+      current.includes(productId)
+        ? current.filter((id) => id !== productId)
+        : [...current, productId]
+    ));
+  }
+
+  function addWishlistToCart(productId: string) {
+    updateCart(productId, 1);
+    setCartOpen(true);
+    setWishlistOpen(false);
+  }
+
+  function checkoutOrder() {
+    if (!session) {
+      setAuthMode("login");
+      setAuthOpen(true);
+      setCartOpen(false);
+      return;
+    }
+
+    if (!selectedItems.length) {
+      setNotice("Сагс хоосон байна. Бараагаа сонгоод захиална уу.");
+      return;
+    }
+
+    if (!addressText.trim() && !location) {
+      setNotice("Хүргэлтийн хаяг эсвэл GPS байршлаа оруулна уу.");
+      openMarket();
+      return;
+    }
+
+    const total = subtotal + deliveryFee;
+    const orderNo = `DH-${Date.now().toString().slice(-8)}`;
+    setTracking({
+      orderNo,
+      storeName: selectedStore?.name ?? "DeliverHub market",
+      district: addressSuggestions.join(" · ") || "Хаяг баталгаажиж байна",
+      statusLabel: "Төлбөр хүлээгдэж байна",
+      totalMnt: String(total),
+      timeline: [
+        {
+          state: "done",
+          title: paymentMethod === "stripe" ? "Stripe checkout үүссэн" : "QPay QR үүссэн",
+          description: `${formatMnt(total)} төлбөр баталгаажмагц дэлгүүрт захиалга очно.`,
+          time: "Одоо",
+        },
+        {
+          state: "active",
+          title: "Дэлгүүр баталгаажуулна",
+          description: "Барааны үлдэгдэл, бэлтгэлийн хугацааг шалгаж байна.",
+          time: `${etaMinutes} мин`,
+        },
+        {
+          state: "pending",
+          title: "Courier авах",
+          description: "Хүргэлтийн ажилтан assignment авахад realtime location гарна.",
+          time: "Дараагийн шат",
+        },
+      ],
+      courier: {
+        name: "Courier assignment хүлээгдэж байна",
+        vehicle: activeDelivery.label,
+        etaText: `${etaMinutes} минутын тооцоололтой`,
+      },
+    });
+    setNotice(paymentMethod === "stripe"
+      ? "Stripe checkout demo үүсгэлээ. Production дээр Stripe publishable/secret key холбоно."
+      : "QPay QR demo үүсгэлээ. Production дээр QPay merchant credential холбоно.");
+    setCart({});
+    setCartOpen(false);
+    setSection("market");
   }
 
   function useCurrentLocation() {
@@ -685,6 +786,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setTracking(null);
     setProfileOpen(false);
     setCartOpen(false);
+    setWishlistOpen(false);
     setSection("home");
     onNavigateHome?.();
     setNotice("Гарлаа.");
@@ -693,6 +795,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   function closeMarket() {
     setSection("home");
     setCartOpen(false);
+    setWishlistOpen(false);
     onNavigateHome?.();
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -715,6 +818,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             className={cartOpen ? "active" : ""}
             onClick={() => {
               setProfileOpen(false);
+              setWishlistOpen(false);
               setCartOpen((open) => !open);
             }}
             type="button"
@@ -724,8 +828,19 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             <span aria-hidden="true">▣</span>
             {session && selectedItems.length > 0 ? <b>{selectedItems.length}</b> : null}
           </button>
-          <button type="button" aria-label="Wishlist">
+          <button
+            className={wishlistOpen ? "active" : ""}
+            onClick={() => {
+              setProfileOpen(false);
+              setCartOpen(false);
+              setWishlistOpen((open) => !open);
+            }}
+            type="button"
+            aria-expanded={wishlistOpen}
+            aria-label="Wishlist"
+          >
             <span aria-hidden="true">♡</span>
+            {wishlistItems.length > 0 ? <b>{wishlistItems.length}</b> : null}
           </button>
           <button type="button" aria-label="Миний захиалсан">
             <span aria-hidden="true">≡</span>
@@ -790,15 +905,61 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                   <span><em>Нийт</em><strong>{formatMnt(subtotal + deliveryFee)}</strong></span>
                 </div>
 
+                <div className="landing-payment-methods" aria-label="Төлбөрийн арга">
+                  <button className={paymentMethod === "qpay" ? "active" : ""} onClick={() => setPaymentMethod("qpay")} type="button">
+                    <span>QR</span>
+                    <strong>QPay</strong>
+                  </button>
+                  <button className={paymentMethod === "stripe" ? "active" : ""} onClick={() => setPaymentMethod("stripe")} type="button">
+                    <span>Card</span>
+                    <strong>Stripe</strong>
+                  </button>
+                </div>
+
                 <footer>
                   <button onClick={() => setCart({})} type="button">Цэвэрлэх</button>
-                  <button onClick={openMarket} type="button">Захиалах</button>
+                  <button onClick={checkoutOrder} type="button">{paymentMethod === "stripe" ? "Stripe төлөх" : "QPay захиалах"}</button>
                 </footer>
               </>
             ) : (
               <div className="landing-cart-empty">
                 <strong>Сагс хоосон байна</strong>
                 <p>Маркет руу орж бараагаа сонгоход энд шууд харагдана.</p>
+                <button onClick={openMarket} type="button">Маркет үзэх</button>
+              </div>
+            )}
+          </section>
+        ) : null}
+
+        {wishlistOpen ? (
+          <section className="landing-cart-popover landing-wishlist-popover" aria-label="Wishlist">
+            <header>
+              <div>
+                <span>Wishlist</span>
+                <strong>{wishlistItems.length ? `${wishlistItems.length} бараа` : "Хоосон байна"}</strong>
+              </div>
+              <button onClick={() => setWishlistOpen(false)} type="button" aria-label="Wishlist хаах">×</button>
+            </header>
+            {wishlistItems.length ? (
+              <div className="landing-cart-items">
+                {wishlistItems.map((item) => (
+                  <article key={item.id}>
+                    {item.imageUrl ? <img alt={item.name} src={item.imageUrl} /> : <span aria-hidden="true">{item.name.slice(0, 1)}</span>}
+                    <div>
+                      <strong>{item.name}</strong>
+                      <small>{item.category} · {formatMnt(item.priceMnt)}</small>
+                    </div>
+                    <div className="landing-wishlist-actions">
+                      <button onClick={() => addWishlistToCart(item.id)} type="button">+</button>
+                      <button onClick={() => toggleWishlist(item.id)} type="button">×</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="landing-cart-empty">
+                <strong>Хадгалсан бараа алга</strong>
+                <p>Product card дээрх heart icon дарвал энд хадгалагдана.</p>
                 <button onClick={openMarket} type="button">Маркет үзэх</button>
               </div>
             )}
@@ -869,6 +1030,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             <section className="landing-product-grid">
               {marketProducts.map((product) => (
                 <article key={product.id}>
+                  <button
+                    className={`landing-product-wish ${wishlist.includes(product.id) ? "active" : ""}`}
+                    onClick={() => toggleWishlist(product.id)}
+                    type="button"
+                    aria-label={`${product.name} wishlist`}
+                  >
+                    {wishlist.includes(product.id) ? "♥" : "♡"}
+                  </button>
                   {"imageUrl" in product && product.imageUrl ? <img alt={product.name} src={product.imageUrl} /> : null}
                   <span>{product.category}</span>
                   <h3>{product.name}</h3>
