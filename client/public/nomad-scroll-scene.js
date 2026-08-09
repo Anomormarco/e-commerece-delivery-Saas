@@ -327,13 +327,13 @@ function buildMascot(){
     color:0xff5a3c, emissive:0xff3a1c, emissiveIntensity:2.2, roughness:.3
   });
 
-  // Head: rounded helmet shell + flattened dark visor on the front
-  const head = mesh(new THREE.SphereGeometry(.62,40,32), shellMat, [0,1.62,0]);
-  head.scale.set(1,.94,.92);
+  // Head: rounded helmet shell + flattened dark visor on the front.
+  const head = mesh(new THREE.SphereGeometry(.66,48,36), shellMat, [0,1.66,0]);
+  head.scale.set(1.04,.96,.94);
   g.add(head);
 
-  const visor = mesh(new THREE.SphereGeometry(.50,32,24), visorMat, [0,1.6,.28]);
-  visor.scale.set(1,.82,.62);
+  const visor = mesh(new THREE.SphereGeometry(.50,40,28), visorMat, [0,1.64,.32]);
+  visor.scale.set(1.05,.76,.50);
   g.add(visor);
 
   // Smiling arc eyes (half-ring torus segments) + a smile arc, all glowing white
@@ -341,40 +341,46 @@ function buildMascot(){
     const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(...start),new THREE.Vector3(...control),new THREE.Vector3(...end));
     return mesh(new THREE.TubeGeometry(curve,20,r,8,false),glowMat,[0,0,0]);
   }
-  const eyeL=faceStroke([-.235,1.61,.59],[-.175,1.735,.605],[-.115,1.61,.59]);
-  const eyeR=faceStroke([ .115,1.61,.59],[ .175,1.735,.605],[ .235,1.61,.59]);
-  const smile=faceStroke([-.13,1.46,.60],[0,1.365,.615],[.13,1.46,.60],.019);
+  const eyeL=faceStroke([-.235,1.65,.61],[-.175,1.765,.625],[-.115,1.65,.61]);
+  const eyeR=faceStroke([ .115,1.65,.61],[ .175,1.765,.625],[ .235,1.65,.61]);
+  const smile=faceStroke([-.16,1.50,.62],[0,1.405,.64],[.16,1.50,.62],.019);
   g.add(eyeL,eyeR,smile);
   g.userData.faceParts=[eyeL,eyeR,smile];
 
   // Ear pods
-  const earL = mesh(new THREE.CapsuleGeometry(.10,.22,6,12), shellMat, [-.60,1.60,.02], [0,0,Math.PI/2]);
-  const earR = mesh(new THREE.CapsuleGeometry(.10,.22,6,12), shellMat, [ .60,1.60,.02], [0,0,Math.PI/2]);
+  const earL = mesh(new THREE.CapsuleGeometry(.11,.22,6,14), shellMat, [-.66,1.64,.02], [0,0,Math.PI/2]);
+  const earR = mesh(new THREE.CapsuleGeometry(.11,.22,6,14), shellMat, [ .66,1.64,.02], [0,0,Math.PI/2]);
   g.add(earL,earR);
-  g.add(mesh(new THREE.TorusGeometry(.145,.03,10,20), darkJointMat, [-.665,1.60,.02], [0,Math.PI/2,0]));
-  g.add(mesh(new THREE.TorusGeometry(.145,.03,10,20), darkJointMat, [ .665,1.60,.02], [0,Math.PI/2,0]));
+  g.add(mesh(new THREE.TorusGeometry(.15,.028,10,24), darkJointMat, [-.735,1.64,.02], [0,Math.PI/2,0]));
+  g.add(mesh(new THREE.TorusGeometry(.15,.028,10,24), darkJointMat, [ .735,1.64,.02], [0,Math.PI/2,0]));
 
   // Neck joint
-  g.add(mesh(new THREE.CylinderGeometry(.16,.19,.16,20), darkJointMat, [0,1.16,0]));
+  g.add(mesh(new THREE.CylinderGeometry(.14,.17,.14,20), darkJointMat, [0,1.13,0]));
 
-  // Body: rounded upper chest tapering into the soft point seen in the reference.
-  const torso = mesh(new THREE.SphereGeometry(.61,36,30), shellMat, [0,.62,0]);
-  torso.scale.set(1,1.26,.78);
+  // Body: slimmer rounded chest tapering into the soft point seen in the reference.
+  const bodyShape = new THREE.Shape();
+  bodyShape.moveTo(0, .54);
+  bodyShape.bezierCurveTo(.42, .54, .52, .36, .49, .08);
+  bodyShape.bezierCurveTo(.45, -.26, .26, -.58, 0, -.76);
+  bodyShape.bezierCurveTo(-.26, -.58, -.45, -.26, -.49, .08);
+  bodyShape.bezierCurveTo(-.52, .36, -.42, .54, 0, .54);
+  const torso = mesh(new THREE.LatheGeometry(bodyShape.getPoints(32),48), shellMat, [0,.58,0]);
+  torso.scale.set(.82,1.03,.64);
   g.add(torso);
 
   // Chest port + status light
-  g.add(mesh(new THREE.TorusGeometry(.155,.03,12,28), darkJointMat, [0,.62,.44], [Math.PI/2,0,0]));
-  g.add(mesh(new THREE.CircleGeometry(.125,28), darkJointMat, [0,.62,.435]));
-  g.add(mesh(new THREE.SphereGeometry(.028,12,12), dotMat, [0,.86,.46]));
+  g.add(mesh(new THREE.TorusGeometry(.122,.027,12,28), darkJointMat, [.17,.58,.35], [Math.PI/2,0,0]));
+  g.add(mesh(new THREE.CircleGeometry(.096,28), darkJointMat, [.17,.58,.348]));
+  g.add(mesh(new THREE.SphereGeometry(.022,12,12), dotMat, [0,.85,.385]));
 
   // Arms: black shoulder joint, white forearm shell and articulated dark hand.
   function arm(sign){
     const grp = new THREE.Group();
-    grp.position.set(sign*.55,.90,0);
-    grp.rotation.z = sign * .22;
-    const shoulder = mesh(new THREE.CapsuleGeometry(.105,.26,8,16), darkJointMat, [0,-.20,0]);
-    const forearm = mesh(new THREE.CapsuleGeometry(.14,.34,8,18), shellMat, [0,-.54,.02]);
-    const hand = mesh(new THREE.CapsuleGeometry(.085,.21,7,14), darkJointMat, [0,-.82,.07],[.25,0,sign*.08]);
+    grp.position.set(sign*.45,.84,0);
+    grp.rotation.z = sign * .16;
+    const shoulder = mesh(new THREE.CapsuleGeometry(.092,.28,8,16), darkJointMat, [0,-.20,0]);
+    const forearm = mesh(new THREE.CapsuleGeometry(.125,.33,8,18), shellMat, [0,-.52,.02]);
+    const hand = mesh(new THREE.CapsuleGeometry(.074,.20,7,14), darkJointMat, [0,-.79,.075],[.25,0,sign*.1]);
     grp.add(shoulder,forearm,hand);
     return grp;
   }
@@ -651,9 +657,11 @@ function tick(){
   const now = performance.now();
   const heroOut=smooth(localT(current,.075,.096));
   const cityIn=smooth(localT(current,.082,.11));cityRoot.visible=current>=.082;floor.visible=current>=.082;grid.visible=current>=.082;
-  mascot.visible=current<.097;mascot.position.y=-.25+Math.sin(now*.0018)*.05+heroOut*.65;mascot.rotation.y=0;mascot.scale.setScalar(.96*(1-heroOut*.98));
+  mascot.visible=current<.097;mascot.position.y=-.25+Math.sin(now*.0018)*.05+heroOut*.65;mascot.scale.setScalar(.96*(1-heroOut*.98));
   heroHeadRig.rotation.y+=((pointer.x*.34)-heroHeadRig.rotation.y)*.08;
   heroHeadRig.rotation.x+=((pointer.y*.20)-heroHeadRig.rotation.x)*.08;
+  mascot.rotation.y+=((pointer.x*.08)-mascot.rotation.y)*.045;
+  mascot.rotation.x+=((-pointer.y*.035)-mascot.rotation.x)*.045;
 
   sample(camKeys,current,desiredPos,'p');
   sample(camKeys,current,desiredLook,'l');
