@@ -319,8 +319,10 @@ function buildMascot(){
   const visorMat = new THREE.MeshPhysicalMaterial({
     color:0x0c0d10, roughness:.12, metalness:.1, clearcoat:.9, clearcoatRoughness:.08
   });
-  const glowMat = new THREE.MeshStandardMaterial({
-    color:0xffffff, emissive:0xffffff, emissiveIntensity:1.6, roughness:.3
+  const glowMat = new THREE.MeshBasicMaterial({
+    color:0xffffff,
+    depthTest:false,
+    depthWrite:false
   });
   const darkJointMat = mat(0x1a1c20,.5,.3);
   const dotMat = new THREE.MeshStandardMaterial({
@@ -337,13 +339,15 @@ function buildMascot(){
   g.add(visor);
 
   // Smiling arc eyes (half-ring torus segments) + a smile arc, all glowing white
-  function faceStroke(start,control,end,r=.018){
+  function faceStroke(start,control,end,r=.028){
     const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(...start),new THREE.Vector3(...control),new THREE.Vector3(...end));
-    return mesh(new THREE.TubeGeometry(curve,20,r,8,false),glowMat,[0,0,0]);
+    const stroke = mesh(new THREE.TubeGeometry(curve,28,r,10,false),glowMat,[0,0,0]);
+    stroke.renderOrder = 20;
+    return stroke;
   }
-  const eyeL=faceStroke([-.235,1.65,.61],[-.175,1.765,.625],[-.115,1.65,.61]);
-  const eyeR=faceStroke([ .115,1.65,.61],[ .175,1.765,.625],[ .235,1.65,.61]);
-  const smile=faceStroke([-.16,1.50,.62],[0,1.405,.64],[.16,1.50,.62],.019);
+  const eyeL=faceStroke([-.265,1.66,.665],[-.195,1.805,.685],[-.125,1.66,.665],.027);
+  const eyeR=faceStroke([ .125,1.66,.665],[ .195,1.805,.685],[ .265,1.66,.665],.027);
+  const smile=faceStroke([-.19,1.49,.675],[0,1.375,.70],[.19,1.49,.675],.026);
   g.add(eyeL,eyeR,smile);
   g.userData.faceParts=[eyeL,eyeR,smile];
 
@@ -658,10 +662,10 @@ function tick(){
   const heroOut=smooth(localT(current,.075,.096));
   const cityIn=smooth(localT(current,.082,.11));cityRoot.visible=current>=.082;floor.visible=current>=.082;grid.visible=current>=.082;
   mascot.visible=current<.097;mascot.position.y=-.25+Math.sin(now*.0018)*.05+heroOut*.65;mascot.scale.setScalar(.96*(1-heroOut*.98));
-  heroHeadRig.rotation.y+=((pointer.x*.34)-heroHeadRig.rotation.y)*.08;
-  heroHeadRig.rotation.x+=((pointer.y*.20)-heroHeadRig.rotation.x)*.08;
-  mascot.rotation.y+=((pointer.x*.08)-mascot.rotation.y)*.045;
-  mascot.rotation.x+=((-pointer.y*.035)-mascot.rotation.x)*.045;
+  heroHeadRig.rotation.y+=((pointer.x*.62)-heroHeadRig.rotation.y)*.11;
+  heroHeadRig.rotation.x+=((-pointer.y*.34)-heroHeadRig.rotation.x)*.11;
+  mascot.rotation.y+=((pointer.x*.14)-mascot.rotation.y)*.055;
+  mascot.rotation.x+=((-pointer.y*.055)-mascot.rotation.x)*.055;
 
   sample(camKeys,current,desiredPos,'p');
   sample(camKeys,current,desiredLook,'l');
