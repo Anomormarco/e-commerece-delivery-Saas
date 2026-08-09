@@ -416,7 +416,10 @@ const headParts=[...mascot.children].filter(o=>o!==heroHeadRig&&o.position.y>1.1
 (mascot.userData.faceParts||[]).forEach(o=>{if(!headParts.includes(o))headParts.push(o)});
 headParts.forEach(o=>heroHeadRig.attach(o));
 const pointer={x:0,y:0};
-addEventListener('pointermove',e=>{pointer.x=(e.clientX/innerWidth-.5)*2;pointer.y=(e.clientY/innerHeight-.5)*2},{passive:true});
+addEventListener('pointermove',e=>{
+  pointer.x=(e.clientX/innerWidth-.5)*2;
+  pointer.y=(.5-e.clientY/innerHeight)*2;
+},{passive:true});
 
 const fallbackVan = buildFallbackVan();
 vehicleRoot.add(fallbackVan);
