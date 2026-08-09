@@ -5,6 +5,6 @@ import { storeSocket } from "./socket.js";
 startService({
   app: createStoreServiceApp(),
   serviceName: "store-service",
-  port: Number(process.env.STORE_SERVICE_PORT ?? 3102),
+  port: Number(process.env.PORT ?? process.env.STORE_SERVICE_PORT ?? 3102),
   onUpgrade: storeSocket.handleUpgrade,
 });

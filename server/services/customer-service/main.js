@@ -5,6 +5,6 @@ import { customerSocket } from "./socket.js";
 startService({
   app: createCustomerServiceApp(),
   serviceName: "customer-service",
-  port: Number(process.env.CUSTOMER_SERVICE_PORT ?? 3104),
+  port: Number(process.env.PORT ?? process.env.CUSTOMER_SERVICE_PORT ?? 3104),
   onUpgrade: customerSocket.handleUpgrade,
 });

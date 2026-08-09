@@ -5,6 +5,6 @@ import { courierSocket } from "./socket.js";
 startService({
   app: createCourierServiceApp(),
   serviceName: "courier-service",
-  port: Number(process.env.COURIER_SERVICE_PORT ?? 3103),
+  port: Number(process.env.PORT ?? process.env.COURIER_SERVICE_PORT ?? 3103),
   onUpgrade: courierSocket.handleUpgrade,
 });

@@ -5,6 +5,6 @@ import { adminSocket } from "./socket.js";
 startService({
   app: createAdminServiceApp(),
   serviceName: "admin-service",
-  port: Number(process.env.ADMIN_SERVICE_PORT ?? 3101),
+  port: Number(process.env.PORT ?? process.env.ADMIN_SERVICE_PORT ?? 3101),
   onUpgrade: adminSocket.handleUpgrade,
 });
