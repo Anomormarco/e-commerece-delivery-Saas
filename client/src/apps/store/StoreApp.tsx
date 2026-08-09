@@ -9,6 +9,11 @@ type StoreUser = {
   ownerName: string;
   username: string;
   password: string;
+  logoUrl?: string;
+  address?: string;
+  phone?: string;
+  storeType?: string;
+  searchableFeature?: string;
 };
 
 type AuthMode = "login" | "register";
@@ -50,6 +55,11 @@ const text = {
   signUp: "Бүртгүүлэх",
   storeName: "Дэлгүүрийн нэр",
   ownerName: "Эзэмшигчийн нэр",
+  logoUrl: "Logo URL",
+  address: "Хаяг",
+  phone: "Утасны дугаар",
+  storeType: "Дэлгүүрийн төрөл",
+  searchableFeature: "Хайгдах онцлог",
   username: "Нэвтрэх ID",
   password: "Нууц үг",
   confirmPassword: "Нууц үг давтах",
@@ -73,6 +83,11 @@ const text = {
   showPassword: "Нууц үг харуулах",
   storePlaceholder: "Дэлгүүрийн нэр оруулна уу",
   ownerPlaceholder: "Нэрээ оруулна уу",
+  logoPlaceholder: "https://...",
+  addressPlaceholder: "Дэлгүүрийн байршил",
+  phonePlaceholder: "99112233",
+  storeTypePlaceholder: "Жишээ: хүнс, эм, хувцас",
+  searchableFeaturePlaceholder: "Жишээ: organic, 24/7, premium",
   usernamePlaceholder: "Admin1",
   passwordPlaceholder: "Нууц үг оруулна уу",
   confirmPlaceholder: "Нууц үгээ давтан оруулна уу",
@@ -152,6 +167,11 @@ function StoreAuthPage({ onAuthenticated }: { onAuthenticated: (user: StoreUser)
   const [mode, setMode] = useState<AuthMode>("login");
   const [storeName, setStoreName] = useState("");
   const [ownerName, setOwnerName] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [address, setAddress] = useState("");
+  const [phone, setPhone] = useState("");
+  const [storeType, setStoreType] = useState("");
+  const [searchableFeature, setSearchableFeature] = useState("");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -183,7 +203,18 @@ function StoreAuthPage({ onAuthenticated }: { onAuthenticated: (user: StoreUser)
     window.setTimeout(() => {
       try {
         const trimmedUsername = username.trim();
-        if (!trimmedUsername || !password.trim() || (mode === "register" && (!storeName.trim() || !ownerName.trim()))) {
+        if (
+          !trimmedUsername
+          || !password.trim()
+          || (mode === "register" && (
+            !storeName.trim()
+            || !ownerName.trim()
+            || !address.trim()
+            || !phone.trim()
+            || !storeType.trim()
+            || !searchableFeature.trim()
+          ))
+        ) {
           throw new Error(text.required);
         }
         if (!isStoreLoginId(trimmedUsername)) {
@@ -211,12 +242,22 @@ function StoreAuthPage({ onAuthenticated }: { onAuthenticated: (user: StoreUser)
             ownerName: ownerName.trim(),
             username: trimmedUsername,
             password,
+            logoUrl: logoUrl.trim(),
+            address: address.trim(),
+            phone: phone.trim(),
+            storeType: storeType.trim(),
+            searchableFeature: searchableFeature.trim(),
           };
 
           writeUsers([...users, nextUser]);
           setMode("login");
           setStoreName("");
           setOwnerName("");
+          setLogoUrl("");
+          setAddress("");
+          setPhone("");
+          setStoreType("");
+          setSearchableFeature("");
           setPassword("");
           setConfirmPassword("");
           setSuccess(text.success);
@@ -262,6 +303,11 @@ function StoreAuthPage({ onAuthenticated }: { onAuthenticated: (user: StoreUser)
           <span>{text.heroKicker}</span>
           <h1>{text.heroTitle}</h1>
           <p>{text.heroCopy}</p>
+          <div className="store-auth-info-grid" aria-hidden="true">
+            <article><strong>01</strong><small>Marketplace дээр төрөл, онцлогоор хайгдана.</small></article>
+            <article><strong>02</strong><small>Захиалга, бараа, орлого нэг самбарт орно.</small></article>
+            <article><strong>03</strong><small>Courier assignment болон notification realtime.</small></article>
+          </div>
         </div>
       </section>
 
@@ -273,7 +319,7 @@ function StoreAuthPage({ onAuthenticated }: { onAuthenticated: (user: StoreUser)
 
         <form className="auth-form" onSubmit={handleSubmit}>
           {mode === "register" && (
-            <>
+            <div className="store-register-grid">
               <label>
                 {text.storeName}
                 <span className="auth-input-wrap">
@@ -289,7 +335,47 @@ function StoreAuthPage({ onAuthenticated }: { onAuthenticated: (user: StoreUser)
                   <input autoComplete="name" onChange={(event) => setOwnerName(event.target.value)} placeholder={text.ownerPlaceholder} required value={ownerName} />
                 </span>
               </label>
-            </>
+
+              <label>
+                {text.logoUrl}
+                <span className="auth-input-wrap">
+                  <AuthIcon type="store" />
+                  <input autoComplete="url" onChange={(event) => setLogoUrl(event.target.value)} placeholder={text.logoPlaceholder} value={logoUrl} />
+                </span>
+              </label>
+
+              <label>
+                {text.address}
+                <span className="auth-input-wrap">
+                  <AuthIcon type="name" />
+                  <input autoComplete="street-address" onChange={(event) => setAddress(event.target.value)} placeholder={text.addressPlaceholder} required value={address} />
+                </span>
+              </label>
+
+              <label>
+                {text.phone}
+                <span className="auth-input-wrap">
+                  <AuthIcon type="user" />
+                  <input autoComplete="tel" onChange={(event) => setPhone(event.target.value)} placeholder={text.phonePlaceholder} required value={phone} />
+                </span>
+              </label>
+
+              <label>
+                {text.storeType}
+                <span className="auth-input-wrap">
+                  <AuthIcon type="store" />
+                  <input onChange={(event) => setStoreType(event.target.value)} placeholder={text.storeTypePlaceholder} required value={storeType} />
+                </span>
+              </label>
+
+              <label>
+                {text.searchableFeature}
+                <span className="auth-input-wrap">
+                  <AuthIcon type="name" />
+                  <input onChange={(event) => setSearchableFeature(event.target.value)} placeholder={text.searchableFeaturePlaceholder} required value={searchableFeature} />
+                </span>
+              </label>
+            </div>
           )}
 
           <label>
