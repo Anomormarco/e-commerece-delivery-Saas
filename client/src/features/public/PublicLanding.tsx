@@ -272,6 +272,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [authOpen, setAuthOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", phone: "", login: "", password: "" });
   const [session, setSession] = useState<CustomerSession | null>(() => {
     const token = localStorage.getItem(tokenStorageKey);
@@ -471,18 +472,21 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     }
 
     setSection("market");
+    setCartOpen(false);
     onNavigateMarket?.();
   }
 
   function openContact() {
     setSection("contact");
     setMenuHidden(false);
+    setCartOpen(false);
     onNavigateContact?.();
   }
 
   function openCourier() {
     setSection("courier");
     setMenuHidden(false);
+    setCartOpen(false);
     onNavigateCourier?.();
   }
 
@@ -578,6 +582,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setSession(null);
     setTracking(null);
     setProfileOpen(false);
+    setCartOpen(false);
     setSection("home");
     onNavigateHome?.();
     setNotice("Гарлаа.");
@@ -585,6 +590,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
   function closeMarket() {
     setSection("home");
+    setCartOpen(false);
     onNavigateHome?.();
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -602,7 +608,16 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <button className={section === "courier" ? "active" : ""} onClick={openCourier} type="button">Хүргэлтийн ажилтан</button>
         <button className={section === "contact" ? "active" : ""} onClick={openContact} type="button">Холбоо барих</button>
         <div className="landing-nav-actions" aria-label="Хэрэглэгчийн үйлдлүүд">
-          <button type="button" aria-label="Сагс">
+          <button
+            className={cartOpen ? "active" : ""}
+            onClick={() => {
+              setProfileOpen(false);
+              setCartOpen((open) => !open);
+            }}
+            type="button"
+            aria-expanded={cartOpen}
+            aria-label="Сагс"
+          >
             <span aria-hidden="true">▣</span>
             {session && selectedItems.length > 0 ? <b>{selectedItems.length}</b> : null}
           </button>
@@ -630,6 +645,62 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         ) : (
           <button className="landing-login-button" onClick={() => setAuthOpen(true)} type="button">Нэвтрэх</button>
         )}
+
+        {cartOpen ? (
+          <section className="landing-cart-popover" aria-label="Сагс">
+            <header>
+              <div>
+                <span>Миний сагс</span>
+                <strong>{selectedItems.length ? `${selectedItems.length} бараа` : "Хоосон байна"}</strong>
+              </div>
+              <button onClick={() => setCartOpen(false)} type="button" aria-label="Сагс хаах">×</button>
+            </header>
+
+            {!session ? (
+              <div className="landing-cart-empty">
+                <strong>Эхлээд нэвтэрнэ үү</strong>
+                <p>Сагс үүсгэж, захиалга илгээхийн тулд хэрэглэгчээр нэвтэрнэ.</p>
+                <button onClick={() => { setAuthMode("login"); setAuthOpen(true); setCartOpen(false); }} type="button">Нэвтрэх</button>
+              </div>
+            ) : selectedItems.length ? (
+              <>
+                <div className="landing-cart-items">
+                  {selectedItems.map((item) => (
+                    <article key={item.id}>
+                      {"imageUrl" in item && item.imageUrl ? <img alt={item.name} src={item.imageUrl} /> : <span aria-hidden="true">{item.name.slice(0, 1)}</span>}
+                      <div>
+                        <strong>{item.name}</strong>
+                        <small>{formatMnt(item.priceMnt)} · {item.quantity} ш</small>
+                      </div>
+                      <div className="landing-cart-stepper">
+                        <button onClick={() => updateCart(item.id, -1)} type="button" aria-label="Хасах">−</button>
+                        <b>{item.quantity}</b>
+                        <button onClick={() => updateCart(item.id, 1)} type="button" aria-label="Нэмэх">+</button>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+
+                <div className="landing-cart-totals">
+                  <span><em>Барааны дүн</em><strong>{formatMnt(subtotal)}</strong></span>
+                  <span><em>Хүргэлт</em><strong>{formatMnt(deliveryFee)}</strong></span>
+                  <span><em>Нийт</em><strong>{formatMnt(subtotal + deliveryFee)}</strong></span>
+                </div>
+
+                <footer>
+                  <button onClick={() => setCart({})} type="button">Цэвэрлэх</button>
+                  <button onClick={openMarket} type="button">Захиалах</button>
+                </footer>
+              </>
+            ) : (
+              <div className="landing-cart-empty">
+                <strong>Сагс хоосон байна</strong>
+                <p>Маркет руу орж бараагаа сонгоход энд шууд харагдана.</p>
+                <button onClick={openMarket} type="button">Маркет үзэх</button>
+              </div>
+            )}
+          </section>
+        ) : null}
       </nav>
 
       {section === "market" ? (
