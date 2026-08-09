@@ -670,9 +670,9 @@ function tick(){
   const cityIn=smooth(localT(current,.082,.11));cityRoot.visible=current>=.082;floor.visible=current>=.082;grid.visible=current>=.082;
   mascot.visible=current<.097;mascot.position.y=-.25+Math.sin(now*.0018)*.05+heroOut*.65;mascot.scale.setScalar(.96*(1-heroOut*.98));
   heroHeadRig.rotation.y+=((pointer.x*.62)-heroHeadRig.rotation.y)*.11;
-  heroHeadRig.rotation.x+=((pointer.y*.34)-heroHeadRig.rotation.x)*.11;
+  heroHeadRig.rotation.x+=((-pointer.y*.34)-heroHeadRig.rotation.x)*.11;
   mascot.rotation.y+=((pointer.x*.14)-mascot.rotation.y)*.055;
-  mascot.rotation.x+=((pointer.y*.055)-mascot.rotation.x)*.055;
+  mascot.rotation.x+=((-pointer.y*.055)-mascot.rotation.x)*.055;
 
   sample(camKeys,current,desiredPos,'p');
   sample(camKeys,current,desiredLook,'l');
