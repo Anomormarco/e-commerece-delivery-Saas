@@ -12775,58 +12775,65 @@ h2 {
 .store-auth-page {
   --store-auth-secondary: var(--color-secondary);
   --store-auth-line: rgba(203, 213, 225, 0.2);
-  --store-auth-panel: rgba(15, 23, 42, 0.84);
-  --store-auth-field: rgba(30, 41, 59, 0.8);
-  grid-template-columns: minmax(0, 1fr) minmax(390px, 540px) !important;
+  --store-auth-panel: rgba(20, 27, 58, 0.9);
+  --store-auth-field: rgba(47, 61, 101, 0.86);
+  grid-template-columns: minmax(0, 1.18fr) minmax(390px, 0.82fr) !important;
   min-height: 100vh !important;
-  gap: clamp(28px, 5vw, 72px) !important;
-  padding: 112px min(7vw, 88px) 38px !important;
+  gap: 42px !important;
+  padding: 118px min(4.6vw, 72px) 44px !important;
   overflow-y: auto !important;
-  background: #080c12 !important;
+  background: #070c24 !important;
 }
 
 .store-auth-page::before {
-  width: 64% !important;
+  width: 63% !important;
   background:
-    linear-gradient(120deg, rgba(8, 12, 18, 0.9), rgba(8, 12, 18, 0.46)),
-    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.026) 0 12px, transparent 12px 30px),
-    radial-gradient(circle at 32% 48%, rgba(249, 115, 22, 0.17), transparent 28%) !important;
+    linear-gradient(90deg, rgba(7, 12, 36, 0.94), rgba(7, 12, 36, 0.62)),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 14px, transparent 14px 34px),
+    radial-gradient(circle at 32% 52%, rgba(249, 115, 22, 0.17), transparent 28%) !important;
 }
 
 .store-auth-page::after {
-  inset: 0 34% 0 0 !important;
-  opacity: 0.36 !important;
+  inset: 0 36% 0 0 !important;
+  opacity: 0.58 !important;
   background:
-    linear-gradient(112deg, rgba(8, 12, 18, 0.98), rgba(8, 12, 18, 0.32) 48%, rgba(8, 12, 18, 0.96)),
-    url("https://images.unsplash.com/photo-1601598851547-4302969d0614?auto=format&fit=crop&w=1400&q=80") center / cover !important;
+    linear-gradient(112deg, rgba(7, 12, 36, 0.98), rgba(7, 12, 36, 0.42) 48%, rgba(7, 12, 36, 0.94)),
+    url("https://images.unsplash.com/photo-1519608487953-e999c86e7455?auto=format&fit=crop&w=1400&q=80") center / cover !important;
 }
 
 .store-auth-page .auth-floating-nav {
   min-height: 56px !important;
   gap: 14px !important;
+  width: min(780px, calc(100% - 48px)) !important;
+  left: 50% !important;
+  right: auto !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
   border-radius: 18px !important;
-  padding: 8px 14px !important;
-  background: rgba(229, 231, 235, 0.92) !important;
+  padding: 8px 16px !important;
+  background: rgba(29, 27, 72, 0.86) !important;
+  transform: translateX(-50%) !important;
 }
 
 .store-auth-page .auth-floating-nav button {
   min-height: 36px !important;
   border-radius: 14px !important;
-  padding: 0 12px !important;
-  color: #111827 !important;
+  padding: 0 10px !important;
+  color: #dbeafe !important;
   font-size: 12px !important;
-  font-weight: 900 !important;
+  font-weight: 800 !important;
 }
 
 .store-auth-page .auth-floating-nav button.active {
-  border-color: var(--store-auth-secondary) !important;
-  color: #111827 !important;
-  background: rgba(249, 115, 22, 0.08) !important;
+  border-color: rgba(249, 115, 22, 0.72) !important;
+  color: white !important;
+  background: rgba(249, 115, 22, 0.18) !important;
 }
 
 .store-auth-page .auth-visual {
   min-height: calc(100vh - 170px) !important;
-  padding: 76px min(6vw, 86px) 48px min(7vw, 110px) !important;
+  display: grid !important;
+  align-items: center !important;
+  padding: 70px min(4vw, 64px) 48px min(4.6vw, 82px) !important;
 }
 
 .store-auth-page .auth-visual > div {
@@ -12842,12 +12849,12 @@ h2 {
 
 .store-auth-page .auth-visual h1 {
   max-width: 640px !important;
-  margin: 20px 0 16px !important;
+  margin: 20px 0 18px !important;
   color: white !important;
-  font-size: clamp(38px, 5vw, 68px) !important;
+  font-size: clamp(46px, 5.2vw, 74px) !important;
   font-weight: 950 !important;
-  line-height: 1.08 !important;
-  letter-spacing: 0 !important;
+  line-height: 1.32 !important;
+  letter-spacing: 0.08em !important;
 }
 
 .store-auth-page .auth-visual p {
@@ -12887,14 +12894,15 @@ h2 {
 }
 
 .store-auth-page .auth-panel {
-  gap: 14px !important;
-  width: min(500px, 100%) !important;
+  gap: 16px !important;
+  width: min(525px, 100%) !important;
   max-height: calc(100vh - 150px) !important;
   overflow-y: auto !important;
   border-color: var(--store-auth-line) !important;
-  border-radius: 24px !important;
-  padding: 28px !important;
+  border-radius: 26px !important;
+  padding: 34px 34px 26px !important;
   background: var(--store-auth-panel) !important;
+  align-self: center !important;
   scrollbar-width: thin;
 }
 
@@ -12904,14 +12912,16 @@ h2 {
 
 .store-auth-page .auth-copy h1 {
   color: white !important;
-  font-size: 21px !important;
-  font-weight: 900 !important;
+  font-size: 22px !important;
+  font-weight: 850 !important;
+  text-align: center !important;
 }
 
 .store-auth-page .auth-copy p {
   color: #cbd5e1 !important;
-  font-size: 13px !important;
+  font-size: 15px !important;
   line-height: 1.55 !important;
+  text-align: center !important;
 }
 
 .store-auth-page .auth-form {
@@ -12932,11 +12942,11 @@ h2 {
 }
 
 .store-auth-page .auth-input-wrap {
-  min-height: 46px !important;
+  min-height: 56px !important;
   grid-template-columns: 20px minmax(0, 1fr) auto !important;
-  border-color: var(--store-auth-line) !important;
-  border-radius: 14px !important;
-  padding: 0 14px !important;
+  border-color: rgba(148, 163, 184, 0.32) !important;
+  border-radius: 18px !important;
+  padding: 0 16px !important;
   background: var(--store-auth-field) !important;
 }
 
@@ -12946,11 +12956,11 @@ h2 {
 }
 
 .store-auth-page .auth-input-wrap input {
-  min-height: 44px !important;
+  min-height: 54px !important;
   padding: 0 8px !important;
   color: white !important;
-  font-size: 13px !important;
-  font-weight: 750 !important;
+  font-size: 16px !important;
+  font-weight: 650 !important;
 }
 
 .store-auth-page .auth-input-wrap input::placeholder {
@@ -12981,11 +12991,12 @@ h2 {
 }
 
 .store-auth-page .auth-submit {
-  min-height: 48px !important;
-  border-radius: 14px !important;
+  min-height: 60px !important;
+  border-radius: 18px !important;
   background: linear-gradient(180deg, var(--store-auth-secondary), #ea580c) !important;
-  font-size: 13px !important;
-  box-shadow: 0 10px 22px rgba(249, 115, 22, 0.2) !important;
+  font-size: 14px !important;
+  text-transform: uppercase !important;
+  box-shadow: 0 14px 30px rgba(249, 115, 22, 0.24) !important;
 }
 
 .store-auth-page .auth-secondary-action,
