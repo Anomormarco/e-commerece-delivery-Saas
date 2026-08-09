@@ -319,8 +319,15 @@ function buildMascot(){
   const visorMat = new THREE.MeshPhysicalMaterial({
     color:0x0c0d10, roughness:.12, metalness:.1, clearcoat:.9, clearcoatRoughness:.08
   });
-  const glowMat = new THREE.MeshBasicMaterial({
-    color:0xffffff,
+  const faceHaloMat = new THREE.MeshBasicMaterial({
+    color:0xf8fafc,
+    transparent:true,
+    opacity:.92,
+    depthTest:false,
+    depthWrite:false
+  });
+  const faceInkMat = new THREE.MeshBasicMaterial({
+    color:0x050608,
     depthTest:false,
     depthWrite:false
   });
@@ -338,12 +345,16 @@ function buildMascot(){
   visor.scale.set(1.05,.76,.50);
   g.add(visor);
 
-  // Smiling arc eyes (half-ring torus segments) + a smile arc, all glowing white
+  // Smiling arc eyes + mouth: black ink with a thin light outline so they stay visible on the visor.
   function faceStroke(start,control,end,r=.028){
     const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(...start),new THREE.Vector3(...control),new THREE.Vector3(...end));
-    const stroke = mesh(new THREE.TubeGeometry(curve,28,r,10,false),glowMat,[0,0,0]);
-    stroke.renderOrder = 20;
-    return stroke;
+    const group = new THREE.Group();
+    const halo = mesh(new THREE.TubeGeometry(curve,28,r*1.75,12,false),faceHaloMat,[0,0,.004]);
+    const ink = mesh(new THREE.TubeGeometry(curve,28,r,10,false),faceInkMat,[0,0,.012]);
+    halo.renderOrder = 19;
+    ink.renderOrder = 20;
+    group.add(halo,ink);
+    return group;
   }
   const eyeL=faceStroke([-.265,1.66,.665],[-.195,1.805,.685],[-.125,1.66,.665],.027);
   const eyeR=faceStroke([ .125,1.66,.665],[ .195,1.805,.685],[ .265,1.66,.665],.027);
@@ -361,15 +372,19 @@ function buildMascot(){
   // Neck joint
   g.add(mesh(new THREE.CylinderGeometry(.14,.17,.14,20), darkJointMat, [0,1.13,0]));
 
-  // Body: slimmer rounded chest tapering into the soft point seen in the reference.
-  const bodyShape = new THREE.Shape();
-  bodyShape.moveTo(0, .54);
-  bodyShape.bezierCurveTo(.42, .54, .52, .36, .49, .08);
-  bodyShape.bezierCurveTo(.45, -.26, .26, -.58, 0, -.76);
-  bodyShape.bezierCurveTo(-.26, -.58, -.45, -.26, -.49, .08);
-  bodyShape.bezierCurveTo(-.52, .36, -.42, .54, 0, .54);
-  const torso = mesh(new THREE.LatheGeometry(bodyShape.getPoints(32),48), shellMat, [0,.58,0]);
-  torso.scale.set(.82,1.03,.64);
+  // Body: slim but not pointy; the lower belly stays softly rounded instead of a sharp V.
+  const bodyProfile = [
+    new THREE.Vector2(.30,.54),
+    new THREE.Vector2(.47,.48),
+    new THREE.Vector2(.54,.22),
+    new THREE.Vector2(.50,-.12),
+    new THREE.Vector2(.39,-.45),
+    new THREE.Vector2(.25,-.66),
+    new THREE.Vector2(.12,-.74),
+    new THREE.Vector2(.04,-.70),
+  ];
+  const torso = mesh(new THREE.LatheGeometry(bodyProfile,56), shellMat, [0,.58,0]);
+  torso.scale.set(.92,1.0,.66);
   g.add(torso);
 
   // Chest port + status light
