@@ -103,6 +103,8 @@ const storePortalUrl = import.meta.env.VITE_SHOP_APP_URL ?? "http://127.0.0.1:51
 const tokenStorageKey = "deliverhub-customer-access-token";
 const customerStorageKey = "deliverhub-customer-profile";
 const wishlistStorageKey = "deliverhub-customer-wishlist";
+const storeOrdersStorageKey = "deliverhub-store-orders";
+const storeNotificationsStorageKey = "deliverhub-store-notifications";
 const storeUsersStorageKey = "deliverhub-store-users";
 const storeSessionStorageKey = "deliverhub-store-session";
 const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
@@ -321,6 +323,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [addressText, setAddressText] = useState("");
   const [addressLabel, setAddressLabel] = useState("Одоогийн байршил");
   const [notice, setNotice] = useState("");
+  const [paymentSuccess, setPaymentSuccess] = useState("");
   const [loading, setLoading] = useState(false);
   const [storesLoading, setStoresLoading] = useState(false);
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
@@ -573,6 +576,17 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setWishlistOpen(false);
   }
 
+  function appendJsonStorage<T>(key: string, item: T) {
+    try {
+      const raw = localStorage.getItem(key);
+      const current = raw ? (JSON.parse(raw) as T[]) : [];
+      localStorage.setItem(key, JSON.stringify([item, ...current]));
+      window.dispatchEvent(new StorageEvent("storage", { key, newValue: localStorage.getItem(key) }));
+    } catch {
+      localStorage.setItem(key, JSON.stringify([item]));
+    }
+  }
+
   function checkoutOrder() {
     if (!session) {
       setAuthMode("login");
@@ -594,17 +608,42 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
     const total = subtotal + deliveryFee;
     const orderNo = `DH-${Date.now().toString().slice(-8)}`;
+    const paymentLabel = paymentMethod === "stripe" ? "Stripe" : "QPay";
+    const district = addressSuggestions.join(" · ") || "Хаяг баталгаажиж байна";
+    appendJsonStorage(storeOrdersStorageKey, {
+      id: orderNo,
+      status: "Төлбөр амжилттай - дэлгүүр баталгаажуулна",
+      amountMnt: String(total),
+      district,
+      paymentMethod: paymentLabel,
+      customerName: session.customer.fullName,
+      customerPhone: session.customer.phone,
+      address: addressText.trim() || district,
+      items: selectedItems.map((item) => ({
+        name: item.name,
+        quantity: item.quantity,
+        amountMnt: item.priceMnt * item.quantity,
+      })),
+      createdAt: new Date().toISOString(),
+    });
+    appendJsonStorage(storeNotificationsStorageKey, {
+      id: `notif-${orderNo}`,
+      title: "Шинэ төлбөртэй захиалга",
+      body: `${paymentLabel}-ээр ${formatMnt(total)} төлөгдсөн. Хаяг: ${district}`,
+      readAt: null,
+      createdAt: new Date().toISOString(),
+    });
     setTracking({
       orderNo,
       storeName: selectedStore?.name ?? "DeliverHub market",
-      district: addressSuggestions.join(" · ") || "Хаяг баталгаажиж байна",
-      statusLabel: "Төлбөр хүлээгдэж байна",
+      district,
+      statusLabel: "Төлбөр амжилттай",
       totalMnt: String(total),
       timeline: [
         {
           state: "done",
-          title: paymentMethod === "stripe" ? "Stripe checkout үүссэн" : "QPay QR үүссэн",
-          description: `${formatMnt(total)} төлбөр баталгаажмагц дэлгүүрт захиалга очно.`,
+          title: `${paymentLabel} төлбөр амжилттай`,
+          description: `${formatMnt(total)} төлөгдөж дэлгүүрт notification очлоо.`,
           time: "Одоо",
         },
         {
@@ -626,9 +665,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         etaText: `${etaMinutes} минутын тооцоололтой`,
       },
     });
-    setNotice(paymentMethod === "stripe"
-      ? "Stripe checkout demo үүсгэлээ. Production дээр Stripe publishable/secret key холбоно."
-      : "QPay QR demo үүсгэлээ. Production дээр QPay merchant credential холбоно.");
+    setPaymentSuccess(`${paymentLabel}: төлбөр амжилттай хийгдлээ. Дэлгүүрт захиалга очлоо.`);
+    window.setTimeout(() => setPaymentSuccess(""), 3600);
+    setNotice("Захиалга дэлгүүрийн notification руу илгээгдлээ.");
     setCart({});
     setCartOpen(false);
     setSection("market");
@@ -804,6 +843,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
   return (
     <main className={`nomad-scroll-page ${section === "market" ? "is-market-route" : ""} ${section === "contact" ? "is-contact-route" : ""} ${section === "courier" ? "is-courier-route" : ""}`} id="hero">
+      {paymentSuccess ? <div className="landing-payment-success" role="status">{paymentSuccess}</div> : null}
       <nav className={`landing-commerce-nav ${menuHidden ? "is-hidden" : ""}`} aria-label="Landing navigation">
         <a className="landing-commerce-brand" href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>
           <BrandLogo showText size={32} />

@@ -32,6 +32,17 @@ type ProductItem = {
   description: string;
 };
 
+const localStoreOrdersKey = "deliverhub-store-orders";
+
+function readLocalOrders(): StoreOrder[] {
+  try {
+    const raw = localStorage.getItem(localStoreOrdersKey);
+    return raw ? (JSON.parse(raw) as StoreOrder[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 const text = {
   storeName: "\u041D\u043E\u043C\u0438\u043D \u041C\u0430\u0440\u043A\u0435\u0442",
   open: "\u041D\u044D\u044D\u043B\u0442\u0442\u044D\u0439",
@@ -125,12 +136,43 @@ export function StorePage({ onLogout }: { onLogout?: () => void }) {
   const [notice, setNotice] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState("");
   const [products, setProducts] = useState<ProductItem[]>(initialProducts);
+  const [localOrders, setLocalOrders] = useState<StoreOrder[]>(readLocalOrders);
 
   useEffect(() => {
     localStorage.setItem("deliverhub-store-theme", themeMode);
   }, [themeMode]);
 
+  useEffect(() => {
+    function refreshLocalOrders(event?: Event) {
+      if (event instanceof StorageEvent && event.key && event.key !== localStoreOrdersKey) return;
+      setLocalOrders(readLocalOrders());
+    }
+
+    window.addEventListener("storage", refreshLocalOrders);
+    window.addEventListener("focus", refreshLocalOrders);
+    return () => {
+      window.removeEventListener("storage", refreshLocalOrders);
+      window.removeEventListener("focus", refreshLocalOrders);
+    };
+  }, []);
+
   function runAction(label: string, target: string) {
+    const nextStatus = label === text.confirm
+      ? "Дэлгүүр хүлээж авлаа - унаанд тавихад бэлэн"
+      : label === text.callCourier
+        ? "Унаанд тавилаа - courier assignment хүлээгдэж байна"
+        : label === text.reject
+          ? "Татгалзсан"
+          : null;
+
+    if (nextStatus) {
+      setLocalOrders((current) => {
+        const nextOrders = current.map((order) => (order.id === target ? { ...order, status: nextStatus } : order));
+        localStorage.setItem(localStoreOrdersKey, JSON.stringify(nextOrders));
+        return nextOrders;
+      });
+    }
+
     setNotice(`${label}: ${target} - ${text.actionDone}`);
     window.setTimeout(() => setNotice(null), 2200);
   }
@@ -292,7 +334,8 @@ export function StorePage({ onLogout }: { onLogout?: () => void }) {
   }
 
   function renderOverview(data: StoreDashboard) {
-    const pendingOrders = data.orders.filter((order) => order.status !== "DELIVERED").length || data.orders.length;
+    const orders = [...localOrders, ...data.orders.filter((order) => !localOrders.some((localOrder) => localOrder.id === order.id))];
+    const pendingOrders = orders.filter((order) => order.status !== "DELIVERED").length || orders.length;
 
     return (
       <section className="store-dash-overview">
@@ -307,10 +350,10 @@ export function StorePage({ onLogout }: { onLogout?: () => void }) {
           <article className="store-dash-card store-mobile-recent">
             <div className="store-dash-card-head">
               <h2>{text.recentDeliveries}</h2>
-              <span>{data.orders.slice(0, 3).length}</span>
+              <span>{orders.slice(0, 3).length}</span>
             </div>
             <div className="store-mobile-delivery-list">
-              {data.orders.slice(0, 3).map((order, index) => (
+              {orders.slice(0, 3).map((order, index) => (
                 <button key={order.id} onClick={() => runAction(text.callCourier, order.id)} type="button">
                   <span className={`store-mobile-state-dot state-${index}`} aria-hidden="true" />
                   <div>
@@ -403,7 +446,7 @@ export function StorePage({ onLogout }: { onLogout?: () => void }) {
             {dashboard.data && (
               <>
                 <section className="store-dash-stats">
-                  <article><span>{text.todayOrders}</span><strong>{dashboard.data.orders.length}</strong><em>+12%</em></article>
+                  <article><span>{text.todayOrders}</span><strong>{localOrders.length + dashboard.data.orders.length}</strong><em>+12%</em></article>
                   <article><span>{text.revenue}</span><strong>{dashboard.data.activeOrder?.amountMnt ?? "0"} MNT</strong><em>+18%</em></article>
                   <article><span>{text.activeDelivery}</span><strong>{dashboard.data.activeOrder ? "1" : "0"}</strong><em>+5%</em></article>
                   <article><span>{text.stock}</span><strong>{products.length}</strong><em>+4%</em></article>
@@ -412,7 +455,7 @@ export function StorePage({ onLogout }: { onLogout?: () => void }) {
                 {notice && <div className="store-dash-notice">{notice}</div>}
 
                 {activeTab === "overview" && renderOverview(dashboard.data)}
-                {activeTab === "orders" && renderOrders(dashboard.data.orders)}
+                {activeTab === "orders" && renderOrders([...localOrders, ...dashboard.data.orders.filter((order) => !localOrders.some((localOrder) => localOrder.id === order.id))])}
                 {activeTab === "products" && renderProducts()}
                 {activeTab === "reports" && renderSimple(text.reportTitle)}
                 {activeTab === "settings" && renderSimple(text.settingsTitle)}

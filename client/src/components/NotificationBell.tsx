@@ -22,6 +22,8 @@ const text = {
   allRead: "Уншсан",
 };
 
+const localNotificationKey = "deliverhub-store-notifications";
+
 function markInboxRead(inbox: NotificationInbox | null): NotificationInbox | null {
   if (!inbox) return inbox;
   const readAt = new Date().toISOString();
@@ -36,16 +38,47 @@ function markInboxRead(inbox: NotificationInbox | null): NotificationInbox | nul
 export function NotificationBell({ className = "" }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const [localInbox, setLocalInbox] = useState<NotificationInbox | null>(null);
+  const [localItems, setLocalItems] = useState<NotificationItem[]>(() => {
+    try {
+      const raw = localStorage.getItem(localNotificationKey);
+      return raw ? (JSON.parse(raw) as NotificationItem[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const inbox = useRealtimeResource<NotificationInbox>("/notifications", ["notifications.updated"]);
   const visibleInbox = localInbox ?? inbox.data;
-  const unreadCount = visibleInbox?.unreadCount ?? 0;
-  const items = visibleInbox?.items ?? [];
+  const items = [...localItems, ...(visibleInbox?.items ?? [])];
+  const unreadCount = localItems.filter((item) => !item.readAt).length + (visibleInbox?.unreadCount ?? 0);
 
   useEffect(() => {
     setLocalInbox(inbox.data);
   }, [inbox.data]);
 
+  useEffect(() => {
+    function refreshLocalItems(event?: Event) {
+      if (event instanceof StorageEvent && event.key && event.key !== localNotificationKey) return;
+      try {
+        const raw = localStorage.getItem(localNotificationKey);
+        setLocalItems(raw ? (JSON.parse(raw) as NotificationItem[]) : []);
+      } catch {
+        setLocalItems([]);
+      }
+    }
+
+    window.addEventListener("storage", refreshLocalItems);
+    window.addEventListener("focus", refreshLocalItems);
+    return () => {
+      window.removeEventListener("storage", refreshLocalItems);
+      window.removeEventListener("focus", refreshLocalItems);
+    };
+  }, []);
+
   async function markRead() {
+    const readAt = new Date().toISOString();
+    const nextLocalItems = localItems.map((item) => (item.readAt ? item : { ...item, readAt }));
+    setLocalItems(nextLocalItems);
+    localStorage.setItem(localNotificationKey, JSON.stringify(nextLocalItems));
     setLocalInbox((current) => markInboxRead(current ?? inbox.data));
     const nextInbox = await postJson<NotificationInbox>("/notifications/read").catch(() => null);
 
