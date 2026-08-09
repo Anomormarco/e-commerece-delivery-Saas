@@ -918,13 +918,15 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       {section === "partner" ? (
         <section className="landing-partner-page" aria-label="Байгууллага бүртгэх">
           <div className="landing-partner-copy">
-            <span>STORE PARTNER</span>
-            <h2>Манай платформтой хамтран борлуулалтаа хүргэлттэй болго.</h2>
-            <p>DeliverHub нь дэлгүүрийн захиалга, бараа, хүргэлт, орлого, notification-ийг нэг самбарт нэгтгэж өдөр тутмын ажиллагааг хөнгөн болгоно.</p>
             <div>
-              <article><strong>Шууд marketplace</strong><small>Дэлгүүрийн төрөл, онцлогоор хайгдаж хэрэглэгчдэд харагдана.</small></article>
-              <article><strong>Хүргэлтийн урсгал</strong><small>Захиалгаас courier assignment хүртэл нэг workflow.</small></article>
-              <article><strong>Realtime хяналт</strong><small>Захиалга, notification, хүргэлтийн төлөв шууд шинэчлэгдэнэ.</small></article>
+              <span>STORE PARTNER</span>
+              <h2>Байгууллагаа DeliverHub-т холбо.</h2>
+              <p>Дэлгүүрийн бараа, захиалга, хүргэлт, орлого, notification бүгд нэг урсгалд орж marketplace дээр хэрэглэгчдэд шууд харагдана.</p>
+            </div>
+            <div className="landing-partner-metrics">
+              <article><strong>01</strong><small>Marketplace дээр дэлгүүрийн төрөл, онцлогоор хайгдана.</small></article>
+              <article><strong>02</strong><small>Захиалгаас courier assignment хүртэл нэг workflow.</small></article>
+              <article><strong>03</strong><small>Realtime notification, төлөв, орлогын мэдээлэл нэг дор.</small></article>
             </div>
           </div>
 
@@ -939,9 +941,28 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                 <button className={partnerAuthMode === "register" ? "active" : ""} onClick={() => setPartnerAuthMode("register")} type="button">Бүртгүүлэх</button>
               </div>
             </header>
-            <button className="landing-partner-open-auth" onClick={() => setPartnerAuthOpen(true)} type="button">
-              {partnerAuthMode === "login" ? "Нэвтрэх form нээх" : "Бүртгэлийн form нээх"}
-            </button>
+            <form className="landing-partner-form" onSubmit={submitPartnerAuth}>
+              {partnerAuthMode === "register" ? (
+                <div className="landing-partner-form-grid">
+                  <input value={partnerForm.storeName} onChange={(event) => setPartnerForm({ ...partnerForm, storeName: event.target.value })} placeholder="Дэлгүүрийн нэр" />
+                  <input value={partnerForm.logoUrl} onChange={(event) => setPartnerForm({ ...partnerForm, logoUrl: event.target.value })} placeholder="Logo URL" />
+                  <input value={partnerForm.address} onChange={(event) => setPartnerForm({ ...partnerForm, address: event.target.value })} placeholder="Хаяг" />
+                  <input value={partnerForm.phone} onChange={(event) => setPartnerForm({ ...partnerForm, phone: event.target.value })} placeholder="Утасны дугаар" />
+                  <input value={partnerForm.storeType} onChange={(event) => setPartnerForm({ ...partnerForm, storeType: event.target.value })} placeholder="Дэлгүүрийн төрөл" />
+                  <input value={partnerForm.searchableFeature} onChange={(event) => setPartnerForm({ ...partnerForm, searchableFeature: event.target.value })} placeholder="Хайгдах онцлог" />
+                  <input value={partnerForm.ownerName} onChange={(event) => setPartnerForm({ ...partnerForm, ownerName: event.target.value })} placeholder="Хариуцсан хүний нэр" />
+                </div>
+              ) : null}
+              <input value={partnerForm.username} onChange={(event) => setPartnerForm({ ...partnerForm, username: event.target.value })} placeholder="Нэвтрэх ID эсвэл Gmail" />
+              <input value={partnerForm.password} onChange={(event) => setPartnerForm({ ...partnerForm, password: event.target.value })} placeholder="Нууц үг" type="password" />
+              {partnerAuthMode === "register" ? (
+                <input value={partnerForm.confirmPassword} onChange={(event) => setPartnerForm({ ...partnerForm, confirmPassword: event.target.value })} placeholder="Нууц үг давтах" type="password" />
+              ) : null}
+              <button className="landing-auth-submit" type="submit">
+                {partnerAuthMode === "login" ? "Нэвтрэх" : "Бүртгэл үүсгэх"}
+              </button>
+              {notice ? <p>{notice}</p> : null}
+            </form>
           </aside>
         </section>
       ) : null}
