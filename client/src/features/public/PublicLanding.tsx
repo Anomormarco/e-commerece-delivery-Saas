@@ -3,8 +3,9 @@ import type { FormEvent } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 
 type AuthMode = "login" | "register";
+type PartnerAuthMode = "login" | "register";
 type DeliveryType = "bike" | "car" | "foot";
-type LandingSection = "home" | "market" | "contact" | "courier";
+type LandingSection = "home" | "market" | "contact" | "courier" | "partner";
 
 type PublicLandingProps = {
   page?: LandingSection;
@@ -12,6 +13,7 @@ type PublicLandingProps = {
   onNavigateMarket?: () => void;
   onNavigateContact?: () => void;
   onNavigateCourier?: () => void;
+  onNavigatePartner?: () => void;
 };
 
 type Product = {
@@ -96,8 +98,11 @@ type StoreDirectoryResponse = {
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:3000/api";
 const customerRealtimeUrl = import.meta.env.VITE_CUSTOMER_REALTIME_URL ?? "ws://127.0.0.1:3104/realtime";
 const employeePortalUrl = import.meta.env.VITE_EMPLOYEE_PORTAL_URL ?? "http://127.0.0.1:5176";
+const storePortalUrl = import.meta.env.VITE_SHOP_APP_URL ?? "http://127.0.0.1:5175";
 const tokenStorageKey = "deliverhub-customer-access-token";
 const customerStorageKey = "deliverhub-customer-profile";
+const storeUsersStorageKey = "deliverhub-store-users";
+const storeSessionStorageKey = "deliverhub-store-session";
 const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
 
 const initialProducts: Product[] = [
@@ -266,7 +271,7 @@ async function apiGet<T>(path: string, token: string): Promise<T> {
   return payload as T;
 }
 
-export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket, onNavigateContact, onNavigateCourier }: PublicLandingProps = {}) {
+export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket, onNavigateContact, onNavigateCourier, onNavigatePartner }: PublicLandingProps = {}) {
   const [section, setSection] = useState<LandingSection>(page);
   const [menuHidden, setMenuHidden] = useState(false);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
@@ -274,6 +279,20 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [profileOpen, setProfileOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", phone: "", login: "", password: "" });
+  const [partnerAuthOpen, setPartnerAuthOpen] = useState(false);
+  const [partnerAuthMode, setPartnerAuthMode] = useState<PartnerAuthMode>("register");
+  const [partnerForm, setPartnerForm] = useState({
+    storeName: "",
+    ownerName: "",
+    username: "",
+    password: "",
+    confirmPassword: "",
+    logoUrl: "",
+    address: "",
+    phone: "",
+    storeType: "",
+    searchableFeature: "",
+  });
   const [session, setSession] = useState<CustomerSession | null>(() => {
     const token = localStorage.getItem(tokenStorageKey);
     const customer = localStorage.getItem(customerStorageKey);
@@ -483,6 +502,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     onNavigateContact?.();
   }
 
+  function openPartner() {
+    setSection("partner");
+    setMenuHidden(false);
+    setCartOpen(false);
+    onNavigatePartner?.();
+  }
+
   function openCourier() {
     setSection("courier");
     setMenuHidden(false);
@@ -576,6 +602,74 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     }
   }
 
+  function readStoreUsers() {
+    try {
+      const raw = localStorage.getItem(storeUsersStorageKey);
+      return raw ? (JSON.parse(raw) as Array<{ id: string; storeName: string; ownerName: string; username: string; password: string }>) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function submitPartnerAuth(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setNotice("");
+
+    try {
+      const username = partnerForm.username.trim();
+      const password = partnerForm.password.trim();
+      const users = readStoreUsers();
+      const existingUser = users.find((user) => user.username.toLowerCase() === username.toLowerCase());
+
+      if (!username || !password) throw new Error("Нэвтрэх ID/Gmail болон нууц үгээ оруулна уу.");
+
+      if (partnerAuthMode === "login") {
+        if (!existingUser) throw new Error("Дэлгүүрийн бүртгэл олдсонгүй.");
+        if (existingUser.password !== password) throw new Error("Нууц үг буруу байна.");
+        localStorage.setItem(storeSessionStorageKey, existingUser.id);
+        window.location.href = storePortalUrl;
+        return;
+      }
+
+      if (!partnerForm.storeName.trim() || !partnerForm.ownerName.trim() || !partnerForm.address.trim() || !partnerForm.phone.trim() || !partnerForm.storeType.trim() || !partnerForm.searchableFeature.trim()) {
+        throw new Error("Дэлгүүрийн нэр, хаяг, утас, төрөл, хайлтын онцлогоо бүрэн бөглөнө үү.");
+      }
+
+      if (!/^\+?\d{8,15}$/.test(partnerForm.phone.replace(/[^\d+]/g, ""))) {
+        throw new Error("Утасны дугаараа 8-15 оронтой зөв оруулна уу.");
+      }
+
+      if (!isStrongPassword(password)) {
+        throw new Error("Нууц үг 8+ тэмдэгттэй, том/жижиг үсэг, тоо, тусгай тэмдэгттэй байх ёстой.");
+      }
+
+      if (password !== partnerForm.confirmPassword.trim()) {
+        throw new Error("Нууц үг таарахгүй байна.");
+      }
+
+      if (existingUser) throw new Error("Энэ нэвтрэх ID/Gmail бүртгэлтэй байна.");
+
+      const nextUser = {
+        id: crypto.randomUUID(),
+        storeName: partnerForm.storeName.trim(),
+        ownerName: partnerForm.ownerName.trim(),
+        username,
+        password,
+        logoUrl: partnerForm.logoUrl.trim(),
+        address: partnerForm.address.trim(),
+        phone: partnerForm.phone.trim(),
+        storeType: partnerForm.storeType.trim(),
+        searchableFeature: partnerForm.searchableFeature.trim(),
+      };
+
+      localStorage.setItem(storeUsersStorageKey, JSON.stringify([...users, nextUser]));
+      localStorage.setItem(storeSessionStorageKey, nextUser.id);
+      window.location.href = storePortalUrl;
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Байгууллагын бүртгэлд алдаа гарлаа.");
+    }
+  }
+
   function logout() {
     localStorage.removeItem(tokenStorageKey);
     localStorage.removeItem(customerStorageKey);
@@ -606,6 +700,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <a className={section === "home" ? "active" : ""} href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>Нүүр</a>
         <button className={section === "market" ? "active" : ""} onClick={openMarket} type="button">Маркет</button>
         <button className={section === "courier" ? "active" : ""} onClick={openCourier} type="button">Хүргэлтийн ажилтан</button>
+        <button className={section === "partner" ? "active" : ""} onClick={openPartner} type="button">Байгууллага бүртгэх</button>
         <button className={section === "contact" ? "active" : ""} onClick={openContact} type="button">Холбоо барих</button>
         <div className="landing-nav-actions" aria-label="Хэрэглэгчийн үйлдлүүд">
           <button
@@ -818,6 +913,72 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           </section>
         </section>
       </div>
+      ) : null}
+
+      {section === "partner" ? (
+        <section className="landing-partner-page" aria-label="Байгууллага бүртгэх">
+          <div className="landing-partner-copy">
+            <span>STORE PARTNER</span>
+            <h2>Манай платформтой хамтран борлуулалтаа хүргэлттэй болго.</h2>
+            <p>DeliverHub нь дэлгүүрийн захиалга, бараа, хүргэлт, орлого, notification-ийг нэг самбарт нэгтгэж өдөр тутмын ажиллагааг хөнгөн болгоно.</p>
+            <div>
+              <article><strong>Шууд marketplace</strong><small>Дэлгүүрийн төрөл, онцлогоор хайгдаж хэрэглэгчдэд харагдана.</small></article>
+              <article><strong>Хүргэлтийн урсгал</strong><small>Захиалгаас courier assignment хүртэл нэг workflow.</small></article>
+              <article><strong>Realtime хяналт</strong><small>Захиалга, notification, хүргэлтийн төлөв шууд шинэчлэгдэнэ.</small></article>
+            </div>
+          </div>
+
+          <aside className="landing-partner-auth">
+            <header>
+              <div>
+                <span>Дэлгүүрийн эрх</span>
+                <strong>{partnerAuthMode === "login" ? "Нэвтрэх" : "Бүртгэл үүсгэх"}</strong>
+              </div>
+              <div>
+                <button className={partnerAuthMode === "login" ? "active" : ""} onClick={() => setPartnerAuthMode("login")} type="button">Нэвтрэх</button>
+                <button className={partnerAuthMode === "register" ? "active" : ""} onClick={() => setPartnerAuthMode("register")} type="button">Бүртгүүлэх</button>
+              </div>
+            </header>
+            <button className="landing-partner-open-auth" onClick={() => setPartnerAuthOpen(true)} type="button">
+              {partnerAuthMode === "login" ? "Нэвтрэх form нээх" : "Бүртгэлийн form нээх"}
+            </button>
+          </aside>
+        </section>
+      ) : null}
+
+      {partnerAuthOpen ? (
+        <div className="landing-auth-modal landing-partner-modal" role="dialog" aria-modal="true">
+          <form onSubmit={submitPartnerAuth}>
+            <header>
+              <h2>{partnerAuthMode === "login" ? "Дэлгүүр нэвтрэх" : "Дэлгүүр бүртгүүлэх"}</h2>
+              <button onClick={() => setPartnerAuthOpen(false)} type="button">×</button>
+            </header>
+            <div className="landing-auth-tabs">
+              <button className={partnerAuthMode === "login" ? "active" : ""} onClick={() => setPartnerAuthMode("login")} type="button">Нэвтрэх</button>
+              <button className={partnerAuthMode === "register" ? "active" : ""} onClick={() => setPartnerAuthMode("register")} type="button">Бүртгүүлэх</button>
+            </div>
+            {partnerAuthMode === "register" ? (
+              <>
+                <input value={partnerForm.storeName} onChange={(event) => setPartnerForm({ ...partnerForm, storeName: event.target.value })} placeholder="Дэлгүүрийн нэр" />
+                <input value={partnerForm.logoUrl} onChange={(event) => setPartnerForm({ ...partnerForm, logoUrl: event.target.value })} placeholder="Logo URL" />
+                <input value={partnerForm.address} onChange={(event) => setPartnerForm({ ...partnerForm, address: event.target.value })} placeholder="Хаяг" />
+                <input value={partnerForm.phone} onChange={(event) => setPartnerForm({ ...partnerForm, phone: event.target.value })} placeholder="Утасны дугаар" />
+                <input value={partnerForm.storeType} onChange={(event) => setPartnerForm({ ...partnerForm, storeType: event.target.value })} placeholder="Дэлгүүрийн төрөл" />
+                <input value={partnerForm.searchableFeature} onChange={(event) => setPartnerForm({ ...partnerForm, searchableFeature: event.target.value })} placeholder="Filter-ээр хайгдах онцлог" />
+                <input value={partnerForm.ownerName} onChange={(event) => setPartnerForm({ ...partnerForm, ownerName: event.target.value })} placeholder="Хариуцсан хүний нэр" />
+              </>
+            ) : null}
+            <input value={partnerForm.username} onChange={(event) => setPartnerForm({ ...partnerForm, username: event.target.value })} placeholder="Нэвтрэх ID эсвэл Gmail" />
+            <input value={partnerForm.password} onChange={(event) => setPartnerForm({ ...partnerForm, password: event.target.value })} placeholder="Нууц үг" type="password" />
+            {partnerAuthMode === "register" ? (
+              <input value={partnerForm.confirmPassword} onChange={(event) => setPartnerForm({ ...partnerForm, confirmPassword: event.target.value })} placeholder="Нууц үг давтах" type="password" />
+            ) : null}
+            <button className="landing-auth-submit" type="submit">
+              {partnerAuthMode === "login" ? "Нэвтрэх" : "Бүртгэл үүсгэх"}
+            </button>
+            {notice ? <p>{notice}</p> : null}
+          </form>
+        </div>
       ) : null}
 
       {authOpen ? (
