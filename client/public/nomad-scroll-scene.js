@@ -317,17 +317,10 @@ function buildMascot(){
     color:0xf3f5f8, roughness:.22, metalness:.05, clearcoat:.6, clearcoatRoughness:.25
   });
   const visorMat = new THREE.MeshPhysicalMaterial({
-    color:0x0c0d10, roughness:.12, metalness:.1, clearcoat:.9, clearcoatRoughness:.08
-  });
-  const faceHaloMat = new THREE.MeshBasicMaterial({
-    color:0xf8fafc,
-    transparent:true,
-    opacity:.92,
-    depthTest:false,
-    depthWrite:false
+    color:0xf1f5f9, roughness:.18, metalness:.04, clearcoat:.9, clearcoatRoughness:.08
   });
   const faceInkMat = new THREE.MeshBasicMaterial({
-    color:0x050608,
+    color:0x020306,
     depthTest:false,
     depthWrite:false
   });
@@ -337,37 +330,33 @@ function buildMascot(){
   });
 
   // Head: rounded helmet shell + flattened dark visor on the front.
-  const head = mesh(new THREE.SphereGeometry(.66,48,36), shellMat, [0,1.66,0]);
+  const head = mesh(new THREE.SphereGeometry(.58,48,36), shellMat, [0,1.61,0]);
   head.scale.set(1.04,.96,.94);
   g.add(head);
 
-  const visor = mesh(new THREE.SphereGeometry(.50,40,28), visorMat, [0,1.64,.32]);
-  visor.scale.set(1.05,.76,.50);
+  const visor = mesh(new THREE.SphereGeometry(.43,40,28), visorMat, [0,1.59,.29]);
+  visor.scale.set(1.06,.76,.48);
   g.add(visor);
 
-  // Smiling arc eyes + mouth: black ink with a thin light outline so they stay visible on the visor.
+  // Smiling arc eyes + mouth in pure black ink.
   function faceStroke(start,control,end,r=.028){
     const curve=new THREE.QuadraticBezierCurve3(new THREE.Vector3(...start),new THREE.Vector3(...control),new THREE.Vector3(...end));
-    const group = new THREE.Group();
-    const halo = mesh(new THREE.TubeGeometry(curve,28,r*1.75,12,false),faceHaloMat,[0,0,.004]);
-    const ink = mesh(new THREE.TubeGeometry(curve,28,r,10,false),faceInkMat,[0,0,.012]);
-    halo.renderOrder = 19;
-    ink.renderOrder = 20;
-    group.add(halo,ink);
-    return group;
+    const stroke = mesh(new THREE.TubeGeometry(curve,28,r,10,false),faceInkMat,[0,0,0]);
+    stroke.renderOrder = 20;
+    return stroke;
   }
-  const eyeL=faceStroke([-.265,1.66,.665],[-.195,1.805,.685],[-.125,1.66,.665],.027);
-  const eyeR=faceStroke([ .125,1.66,.665],[ .195,1.805,.685],[ .265,1.66,.665],.027);
-  const smile=faceStroke([-.19,1.49,.675],[0,1.375,.70],[.19,1.49,.675],.026);
+  const eyeL=faceStroke([-.23,1.61,.575],[-.17,1.72,.595],[-.11,1.61,.575],.024);
+  const eyeR=faceStroke([ .11,1.61,.575],[ .17,1.72,.595],[ .23,1.61,.575],.024);
+  const smile=faceStroke([-.16,1.47,.59],[0,1.375,.615],[.16,1.47,.59],.024);
   g.add(eyeL,eyeR,smile);
   g.userData.faceParts=[eyeL,eyeR,smile];
 
   // Ear pods
-  const earL = mesh(new THREE.CapsuleGeometry(.11,.22,6,14), shellMat, [-.66,1.64,.02], [0,0,Math.PI/2]);
-  const earR = mesh(new THREE.CapsuleGeometry(.11,.22,6,14), shellMat, [ .66,1.64,.02], [0,0,Math.PI/2]);
+  const earL = mesh(new THREE.CapsuleGeometry(.10,.20,6,14), shellMat, [-.58,1.59,.02], [0,0,Math.PI/2]);
+  const earR = mesh(new THREE.CapsuleGeometry(.10,.20,6,14), shellMat, [ .58,1.59,.02], [0,0,Math.PI/2]);
   g.add(earL,earR);
-  g.add(mesh(new THREE.TorusGeometry(.15,.028,10,24), darkJointMat, [-.735,1.64,.02], [0,Math.PI/2,0]));
-  g.add(mesh(new THREE.TorusGeometry(.15,.028,10,24), darkJointMat, [ .735,1.64,.02], [0,Math.PI/2,0]));
+  g.add(mesh(new THREE.TorusGeometry(.135,.026,10,24), darkJointMat, [-.645,1.59,.02], [0,Math.PI/2,0]));
+  g.add(mesh(new THREE.TorusGeometry(.135,.026,10,24), darkJointMat, [ .645,1.59,.02], [0,Math.PI/2,0]));
 
   // Neck joint
   g.add(mesh(new THREE.CylinderGeometry(.14,.17,.14,20), darkJointMat, [0,1.13,0]));
@@ -422,8 +411,8 @@ const mascot = buildMascot();
 scene.add(mascot);
 // A real head pivot so the hero robot can follow the pointer without turning its body.
 mascot.updateMatrixWorld(true);
-const heroHeadRig=new THREE.Group();heroHeadRig.position.set(0,1.55,0);mascot.add(heroHeadRig);
-const headParts=[...mascot.children].filter(o=>o!==heroHeadRig&&o.position.y>1.22);
+const heroHeadRig=new THREE.Group();heroHeadRig.position.set(0,1.52,0);mascot.add(heroHeadRig);
+const headParts=[...mascot.children].filter(o=>o!==heroHeadRig&&o.position.y>1.18);
 (mascot.userData.faceParts||[]).forEach(o=>{if(!headParts.includes(o))headParts.push(o)});
 headParts.forEach(o=>heroHeadRig.attach(o));
 const pointer={x:0,y:0};
