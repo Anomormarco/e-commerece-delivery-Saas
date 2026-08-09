@@ -1,0 +1,17 @@
+.git
+.agents
+.codex
+backups
+node_modules
+client/node_modules
+server/node_modules
+server/services/*/node_modules
+dist
+client/dist
+coverage
+*.log
+*.err.log
+.env
+.env.*
+!.env.example
+npm-debug.log*

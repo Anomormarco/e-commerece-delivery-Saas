@@ -1,0 +1,19 @@
+{
+  "name": "@deliverhub/api-gateway",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch main.js",
+    "start": "node main.js",
+    "build": "node --check main.js && node --check app.js && node --check middlewares/auth.middleware.js && node --check middlewares/error-handler.middleware.js && node --check middlewares/rate-limit.middleware.js",
+    "db:validate": "node ../../src/scripts/prisma-service.js validate --schema ../../prisma/schema.prisma",
+    "db:studio": "node ../../src/scripts/prisma-studio.js"
+  },
+  "dependencies": {
+    "@deliverhub/server-platform": "0.1.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.0.0"
+  }
+}

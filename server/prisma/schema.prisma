@@ -1,0 +1,945 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum TenantStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  GRACE_PERIOD
+  SUSPENDED
+  CANCELLED
+}
+
+enum ActorRole {
+  PLATFORM_ADMIN
+  SHOP_ADMIN
+  STORE_ADMIN
+  DELIVERY_EMPLOYEE
+  CUSTOMER
+}
+
+enum VerificationStatus {
+  REGISTERED
+  IDENTITY_PENDING
+  IDENTITY_VERIFIED
+  FACE_PENDING
+  FACE_VERIFIED
+  ADMIN_REVIEW
+  ACTIVE
+  REJECTED
+  SUSPENDED
+  REVERIFICATION_REQUIRED
+}
+
+enum OrderStatus {
+  DRAFT
+  PAYMENT_PENDING
+  PAID
+  CONFIRMED
+  PREPARING
+  READY_FOR_PICKUP
+  COURIER_ASSIGNED
+  COURIER_ARRIVING
+  PICKUP_VERIFICATION
+  PICKED_UP
+  IN_TRANSIT
+  ARRIVING
+  DELIVERED
+  CUSTOMER_CONFIRMED
+  COMPLETED
+  PAYMENT_FAILED
+  CANCELLED
+  PICKUP_REJECTED
+  DELIVERY_FAILED
+  RETURN_REQUESTED
+  RETURNING
+  RETURNED
+  DISPUTED
+  REFUNDED
+}
+
+enum AssignmentStatus {
+  OFFERED
+  ACCEPTED
+  REJECTED
+  ARRIVING_PICKUP
+  PICKUP_VERIFICATION
+  PICKED_UP
+  IN_TRANSIT
+  ARRIVING_DROPOFF
+  DELIVERED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+}
+
+enum LedgerEntryType {
+  DEBIT
+  CREDIT
+}
+
+enum WalletTransactionStatus {
+  EXPECTED
+  PENDING
+  AVAILABLE
+  PAYOUT_REQUESTED
+  PAID_OUT
+  CANCELLED
+}
+
+enum PayoutStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PAID
+  CANCELLED
+}
+
+enum NotificationStatus {
+  PENDING
+  SENT
+  FAILED
+  READ
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED
+  REJECTED
+}
+
+model Tenant {
+  id                  String               @id @default(cuid())
+  name                String
+  slug                String               @unique
+  status              TenantStatus         @default(TRIALING)
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  members             TenantMember[]
+  stores               Store[]
+  branches            Branch[]
+  warehouses          Warehouse[]
+  products            Product[]
+  customers           Customer[]
+  orders              Order[]
+  deliveryAssignments DeliveryAssignment[]
+  subscriptions       Subscription[]
+  auditLogs           AuditLog[]
+  ledgerAccounts      LedgerAccount[]
+
+  @@map("tenants")
+}
+
+model User {
+  id                       String                    @id @default(cuid())
+  email                    String?                   @unique
+  phone                    String?                   @unique
+  passwordHash             String?
+  fullName                 String
+  status                   UserStatus                @default(ACTIVE)
+  createdAt                DateTime                  @default(now())
+  updatedAt                DateTime                  @updatedAt
+  tenantMemberships        TenantMember[]
+  userRoles                UserRole[]
+  sessions                 Session[]
+  trustedDevices           TrustedDevice[]
+  identityProfile          IdentityProfile?
+  deliveryEmployee         DeliveryEmployee?
+  customer                 Customer?
+  faceVerificationSessions FaceVerificationSession[]
+  createdAuditLogs         AuditLog[]                @relation("AuditActor")
+  orderStatusChanges       OrderStatusHistory[]      @relation("OrderStatusChangedBy")
+  reviewedVerifications    FaceVerificationSession[] @relation("FaceReviewedBy")
+
+  @@map("users")
+}
+
+model TenantMember {
+  id        String    @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      ActorRole
+  isOwner   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId, role])
+  @@index([tenantId])
+  @@map("tenant_members")
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  code        ActorRole        @unique
+  name        String
+  permissions RolePermission[]
+  userRoles   UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(cuid())
+  code            String           @unique
+  description     String?
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId   String
+  roleId   String
+  tenantId String?
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([tenantId])
+  @@map("user_roles")
+}
+
+model Session {
+  id          String    @id @default(cuid())
+  userId      String
+  refreshHash String
+  ipAddress   String?
+  userAgent   String?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+  revokedAt   DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model TrustedDevice {
+  id         String   @id @default(cuid())
+  userId     String
+  deviceId   String
+  deviceName String?
+  lastSeenAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, deviceId])
+  @@map("trusted_devices")
+}
+
+model SubscriptionPlan {
+  id               String         @id @default(cuid())
+  code             String         @unique
+  name             String
+  monthlyPriceMnt  BigInt
+  maxShopUsers     Int?
+  maxStoreUsers     Int?
+  maxCouriers      Int?
+  maxMonthlyOrders Int?
+  features         Json
+  isActive         Boolean        @default(true)
+  subscriptions    Subscription[]
+
+  @@map("subscription_plans")
+}
+
+model Subscription {
+  id        String           @id @default(cuid())
+  tenantId  String
+  planId    String
+  status    TenantStatus     @default(TRIALING)
+  startsAt  DateTime
+  endsAt    DateTime?
+  createdAt DateTime         @default(now())
+  tenant    Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  plan      SubscriptionPlan @relation(fields: [planId], references: [id])
+
+  @@index([tenantId])
+  @@map("subscriptions")
+}
+
+model IdentityProfile {
+  id           String                        @id @default(cuid())
+  userId       String                        @unique
+  registryHash String?                       @unique
+  legalName    String?
+  dateOfBirth  DateTime?
+  status       VerificationStatus            @default(REGISTERED)
+  createdAt    DateTime                      @default(now())
+  updatedAt    DateTime                      @updatedAt
+  user         User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sessions     IdentityVerificationSession[]
+
+  @@map("identity_profiles")
+}
+
+model IdentityVerificationSession {
+  id                String             @id @default(cuid())
+  identityProfileId String
+  provider          String
+  providerReference String?
+  status            VerificationStatus
+  result            Json?
+  verifiedAt        DateTime?
+  createdAt         DateTime           @default(now())
+  identityProfile   IdentityProfile    @relation(fields: [identityProfileId], references: [id], onDelete: Cascade)
+
+  @@index([identityProfileId])
+  @@map("identity_verification_sessions")
+}
+
+model BiometricConsent {
+  id          String    @id @default(cuid())
+  userId      String
+  consentText String
+  consentedAt DateTime  @default(now())
+  revokedAt   DateTime?
+
+  @@index([userId])
+  @@map("biometric_consents")
+}
+
+model FaceVerificationSession {
+  id                String             @id @default(cuid())
+  userId            String
+  provider          String
+  providerReference String?
+  status            VerificationStatus
+  livenessResult    Json?
+  faceMatchScore    Decimal?           @db.Decimal(5, 4)
+  reviewedById      String?
+  verifiedAt        DateTime?
+  createdAt         DateTime           @default(now())
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy        User?              @relation("FaceReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([userId])
+  @@map("face_verification_sessions")
+}
+
+model Store {
+  id          String    @id @default(cuid())
+  tenantId    String
+  name        String
+  slug        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  tenant      Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branches    Branch[]
+  products    Product[]
+  orders      Order[]
+
+  @@index([tenantId])
+  @@map("stores")
+}
+
+model Branch {
+  id         String      @id @default(cuid())
+  tenantId   String
+  storeId     String
+  name       String
+  address    String
+  latitude   Decimal?    @db.Decimal(10, 7)
+  longitude  Decimal?    @db.Decimal(10, 7)
+  tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  warehouses Warehouse[]
+  orders     Order[]
+
+  @@index([tenantId])
+  @@map("branches")
+}
+
+model Warehouse {
+  id        String          @id @default(cuid())
+  tenantId  String
+  branchId  String
+  name      String
+  tenant    Tenant          @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  branch    Branch          @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  inventory InventoryItem[]
+
+  @@index([tenantId])
+  @@map("warehouses")
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  tenantId String
+  name     String
+  slug     String
+  products Product[]
+
+  @@unique([tenantId, slug])
+  @@map("categories")
+}
+
+model Product {
+  id          String           @id @default(cuid())
+  tenantId    String
+  storeId      String
+  categoryId  String?
+  name        String
+  description String?
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  store        Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  category    Category?        @relation(fields: [categoryId], references: [id])
+  variants    ProductVariant[]
+  media       ProductMedia[]
+
+  @@index([tenantId])
+  @@map("products")
+}
+
+model ProductVariant {
+  id             String          @id @default(cuid())
+  productId      String
+  sku            String
+  name           String
+  priceMnt       BigInt
+  weightGrams    Int?
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  inventoryItems InventoryItem[]
+  orderItems     OrderItem[]
+
+  @@unique([productId, sku])
+  @@map("product_variants")
+}
+
+model ProductMedia {
+  id        String  @id @default(cuid())
+  productId String
+  url       String
+  altText   String?
+  sortOrder Int     @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("product_media")
+}
+
+model InventoryItem {
+  id          String              @id @default(cuid())
+  warehouseId String
+  variantId   String
+  quantity    Int                 @default(0)
+  reserved    Int                 @default(0)
+  warehouse   Warehouse           @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  variant     ProductVariant      @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  movements   InventoryMovement[]
+
+  @@unique([warehouseId, variantId])
+  @@map("inventory_items")
+}
+
+model InventoryMovement {
+  id              String        @id @default(cuid())
+  inventoryItemId String
+  delta           Int
+  reason          String
+  referenceType   String?
+  referenceId     String?
+  createdAt       DateTime      @default(now())
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  @@index([referenceType, referenceId])
+  @@map("inventory_movements")
+}
+
+model Customer {
+  id        String            @id @default(cuid())
+  tenantId  String
+  userId    String?           @unique
+  fullName  String
+  phone     String
+  email     String?
+  createdAt DateTime          @default(now())
+  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User?             @relation(fields: [userId], references: [id])
+  addresses CustomerAddress[]
+  carts     Cart[]
+  orders    Order[]
+
+  @@index([tenantId])
+  @@map("customers")
+}
+
+model CustomerAddress {
+  id         String   @id @default(cuid())
+  customerId String
+  label      String
+  address    String
+  latitude   Decimal? @db.Decimal(10, 7)
+  longitude  Decimal? @db.Decimal(10, 7)
+  isDefault  Boolean  @default(false)
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  orders     Order[]
+
+  @@map("customer_addresses")
+}
+
+model Cart {
+  id         String     @id @default(cuid())
+  tenantId   String
+  customerId String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  items      CartItem[]
+
+  @@index([tenantId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String @id @default(cuid())
+  cartId    String
+  variantId String
+  quantity  Int
+  cart      Cart   @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@map("cart_items")
+}
+
+model Order {
+  id                  String               @id @default(cuid())
+  tenantId            String
+  storeId              String
+  branchId            String?
+  customerId          String
+  customerAddressId   String?
+  status              OrderStatus          @default(DRAFT)
+  subtotalMnt         BigInt
+  deliveryFeeMnt      BigInt               @default(0)
+  serviceFeeMnt       BigInt               @default(0)
+  totalMnt            BigInt
+  deliveryOtpHash     String?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  store                Store                 @relation(fields: [storeId], references: [id])
+  branch              Branch?              @relation(fields: [branchId], references: [id])
+  customer            Customer             @relation(fields: [customerId], references: [id])
+  customerAddress     CustomerAddress?     @relation(fields: [customerAddressId], references: [id])
+  items               OrderItem[]
+  statusHistory       OrderStatusHistory[]
+  deliveryAssignments DeliveryAssignment[]
+  paymentInvoices     PaymentInvoice[]
+  disputes            Dispute[]
+
+  @@index([tenantId, status])
+  @@map("orders")
+}
+
+model OrderItem {
+  id           String         @id @default(cuid())
+  orderId      String
+  variantId    String
+  productName  String
+  quantity     Int
+  unitPriceMnt BigInt
+  totalMnt     BigInt
+  order        Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant      ProductVariant @relation(fields: [variantId], references: [id])
+
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id          String      @id @default(cuid())
+  orderId     String
+  status      OrderStatus
+  note        String?
+  evidence    Json?
+  changedById String?
+  createdAt   DateTime    @default(now())
+  order       Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  changedBy   User?       @relation("OrderStatusChangedBy", fields: [changedById], references: [id])
+
+  @@index([orderId])
+  @@map("order_status_history")
+}
+
+model DeliveryEmployee {
+  id                 String               @id @default(cuid())
+  userId             String               @unique
+  tenantId           String
+  verificationStatus VerificationStatus   @default(REGISTERED)
+  online             Boolean              @default(false)
+  vehicleType        String?
+  vehiclePlate       String?
+  rating             Decimal?             @db.Decimal(3, 2)
+  user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  assignments        DeliveryAssignment[]
+  wallet             CourierWallet?
+  bankAccounts       BankAccount[]
+
+  @@index([tenantId])
+  @@map("delivery_employees")
+}
+
+model DeliveryZone {
+  id       String                @id @default(cuid())
+  tenantId String
+  name     String
+  polygon  Json
+  isActive Boolean               @default(true)
+  rules    DeliveryPricingRule[]
+
+  @@index([tenantId])
+  @@map("delivery_zones")
+}
+
+model DeliveryPricingRule {
+  id          String       @id @default(cuid())
+  zoneId      String
+  baseFeeMnt  BigInt
+  perKmFeeMnt BigInt
+  minFeeMnt   BigInt
+  version     String
+  isActive    Boolean      @default(true)
+  zone        DeliveryZone @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+
+  @@map("delivery_pricing_rules")
+}
+
+model DeliveryQuote {
+  id                       String   @id @default(cuid())
+  tenantId                 String
+  pickupLatitude           Decimal  @db.Decimal(10, 7)
+  pickupLongitude          Decimal  @db.Decimal(10, 7)
+  dropoffLatitude          Decimal  @db.Decimal(10, 7)
+  dropoffLongitude         Decimal  @db.Decimal(10, 7)
+  routeDistanceMeters      Int
+  estimatedDurationSeconds Int
+  totalFeeMnt              BigInt
+  pricingRuleVersion       String
+  expiresAt                DateTime
+  createdAt                DateTime @default(now())
+
+  @@index([tenantId])
+  @@map("delivery_quotes")
+}
+
+model DeliveryAssignment {
+  id                 String              @id @default(cuid())
+  tenantId           String
+  orderId            String
+  employeeId         String?
+  status             AssignmentStatus    @default(OFFERED)
+  acceptedAt         DateTime?
+  pickedUpAt         DateTime?
+  deliveredAt        DateTime?
+  createdAt          DateTime            @default(now())
+  tenant             Tenant              @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  order              Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  employee           DeliveryEmployee?   @relation(fields: [employeeId], references: [id])
+  pickupVerification PickupVerification?
+  handoverEvidence   HandoverEvidence?
+  trackingSessions   TrackingSession[]
+  deliveryAttempts   DeliveryAttempt[]
+  walletTransactions WalletTransaction[]
+
+  @@index([tenantId, status])
+  @@map("delivery_assignments")
+}
+
+model PickupVerification {
+  id              String             @id @default(cuid())
+  assignmentId    String             @unique
+  qrTokenHash     String
+  faceSessionId   String?
+  packagePhotoUrl String?
+  sealNumber      String?
+  latitude        Decimal?           @db.Decimal(10, 7)
+  longitude       Decimal?           @db.Decimal(10, 7)
+  verifiedAt      DateTime?
+  evidence        Json?
+  assignment      DeliveryAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@map("pickup_verifications")
+}
+
+model HandoverEvidence {
+  id           String             @id @default(cuid())
+  assignmentId String             @unique
+  otpHash      String?
+  signatureUrl String?
+  photoUrl     String?
+  confirmedAt  DateTime?
+  assignment   DeliveryAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@map("handover_evidence")
+}
+
+model TrackingSession {
+  id           String             @id @default(cuid())
+  assignmentId String
+  startedAt    DateTime           @default(now())
+  endedAt      DateTime?
+  assignment   DeliveryAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  locations    LocationPoint[]
+
+  @@map("tracking_sessions")
+}
+
+model LocationPoint {
+  id                String          @id @default(cuid())
+  trackingSessionId String
+  latitude          Decimal         @db.Decimal(10, 7)
+  longitude         Decimal         @db.Decimal(10, 7)
+  accuracyMeters    Decimal?        @db.Decimal(8, 2)
+  recordedAt        DateTime        @default(now())
+  trackingSession   TrackingSession @relation(fields: [trackingSessionId], references: [id], onDelete: Cascade)
+
+  @@index([trackingSessionId, recordedAt])
+  @@map("location_points")
+}
+
+model DeliveryAttempt {
+  id           String             @id @default(cuid())
+  assignmentId String
+  reason       String
+  note         String?
+  attemptedAt  DateTime           @default(now())
+  assignment   DeliveryAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@map("delivery_attempts")
+}
+
+model PaymentInvoice {
+  id                String               @id @default(cuid())
+  tenantId          String
+  orderId           String
+  provider          String
+  providerInvoiceId String?              @unique
+  amountMnt         BigInt
+  status            PaymentStatus        @default(PENDING)
+  callbackPayload   Json?
+  expiresAt         DateTime?
+  paidAt            DateTime?
+  createdAt         DateTime             @default(now())
+  order             Order                @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  transactions      PaymentTransaction[]
+
+  @@index([tenantId, status])
+  @@map("payment_invoices")
+}
+
+model PaymentTransaction {
+  id                    String         @id @default(cuid())
+  invoiceId             String
+  providerTransactionId String?        @unique
+  amountMnt             BigInt
+  status                PaymentStatus
+  idempotencyKey        String         @unique
+  rawPayload            Json?
+  createdAt             DateTime       @default(now())
+  invoice               PaymentInvoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@map("payment_transactions")
+}
+
+model Refund {
+  id        String        @id @default(cuid())
+  tenantId  String
+  orderId   String
+  amountMnt BigInt
+  reason    String
+  status    PaymentStatus @default(PENDING)
+  createdAt DateTime      @default(now())
+
+  @@index([tenantId])
+  @@map("refunds")
+}
+
+model LedgerAccount {
+  id       String        @id @default(cuid())
+  tenantId String
+  code     String
+  name     String
+  tenant   Tenant        @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  entries  LedgerEntry[]
+
+  @@unique([tenantId, code])
+  @@map("ledger_accounts")
+}
+
+model LedgerEntry {
+  id            String          @id @default(cuid())
+  accountId     String
+  type          LedgerEntryType
+  amountMnt     BigInt
+  currency      String          @default("MNT")
+  referenceType String?
+  referenceId   String?
+  createdAt     DateTime        @default(now())
+  account       LedgerAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([referenceType, referenceId])
+  @@map("ledger_entries")
+}
+
+model CourierWallet {
+  id           String              @id @default(cuid())
+  employeeId   String              @unique
+  balanceMnt   BigInt              @default(0)
+  employee     DeliveryEmployee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  transactions WalletTransaction[]
+
+  @@map("courier_wallets")
+}
+
+model WalletTransaction {
+  id           String                  @id @default(cuid())
+  walletId     String
+  assignmentId String?
+  amountMnt    BigInt
+  status       WalletTransactionStatus
+  note         String?
+  createdAt    DateTime                @default(now())
+  wallet       CourierWallet           @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  assignment   DeliveryAssignment?     @relation(fields: [assignmentId], references: [id])
+
+  @@index([walletId, status])
+  @@map("wallet_transactions")
+}
+
+model BankAccount {
+  id          String           @id @default(cuid())
+  employeeId  String
+  bankName    String
+  accountName String
+  accountNo   String
+  isDefault   Boolean          @default(false)
+  employee    DeliveryEmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  payouts     PayoutRequest[]
+
+  @@map("bank_accounts")
+}
+
+model PayoutRequest {
+  id            String       @id @default(cuid())
+  bankAccountId String
+  amountMnt     BigInt
+  status        PayoutStatus @default(REQUESTED)
+  requestedAt   DateTime     @default(now())
+  reviewedAt    DateTime?
+  bankAccount   BankAccount  @relation(fields: [bankAccountId], references: [id])
+
+  @@map("payout_requests")
+}
+
+model Notification {
+  id        String             @id @default(cuid())
+  tenantId  String?
+  userId    String?
+  title     String
+  body      String
+  channel   String
+  status    NotificationStatus @default(PENDING)
+  createdAt DateTime           @default(now())
+  readAt    DateTime?
+
+  @@index([tenantId, userId])
+  @@map("notifications")
+}
+
+model Dispute {
+  id         String        @id @default(cuid())
+  tenantId   String
+  orderId    String
+  customerId String?
+  status     DisputeStatus @default(OPEN)
+  reason     String
+  resolution String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  order      Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+  @@map("disputes")
+}
+
+model Attachment {
+  id        String   @id @default(cuid())
+  tenantId  String?
+  ownerType String
+  ownerId   String
+  url       String
+  mimeType  String
+  sizeBytes Int?
+  createdAt DateTime @default(now())
+
+  @@index([ownerType, ownerId])
+  @@map("attachments")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  tenantId   String?
+  actorId    String?
+  action     String
+  entityType String
+  entityId   String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+  tenant     Tenant?  @relation(fields: [tenantId], references: [id])
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_logs")
+}
+
+model RiskEvent {
+  id         String    @id @default(cuid())
+  tenantId   String?
+  actorId    String?
+  riskType   String
+  severity   String
+  metadata   Json?
+  resolvedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([tenantId, severity])
+  @@map("risk_events")
+}
+

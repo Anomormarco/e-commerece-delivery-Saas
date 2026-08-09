@@ -1,0 +1,31 @@
+{
+  "name": "@deliverhub/server-platform",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    "./auth/credentials": "./platform/auth/credentials.js",
+    "./cache/memory-cache": "./platform/cache/memory-cache.js",
+    "./database/prisma": "./database/prisma.js",
+    "./http/create-service-app": "./platform/http/create-service-app.js",
+    "./http/jwt": "./platform/http/jwt.js",
+    "./messaging/event-bus": "./platform/messaging/event-bus.js",
+    "./notifications/notification-center": "./platform/notifications/notification-center.js",
+    "./observability/logger": "./platform/observability/logger.js",
+    "./observability/metrics": "./platform/observability/metrics.js",
+    "./realtime/websocket": "./platform/realtime/websocket.js",
+    "./redis/client": "./platform/redis/client.js",
+    "./http/request-context": "./platform/http/request-context.js",
+    "./runtime/start-service": "./platform/runtime/start-service.js"
+  },
+  "scripts": {
+    "build": "node --check database/prisma.js && node --check platform/auth/credentials.js && node --check platform/cache/memory-cache.js && node --check platform/http/create-service-app.js && node --check platform/http/jwt.js && node --check platform/http/request-context.js && node --check platform/messaging/event-bus.js && node --check platform/notifications/notification-center.js && node --check platform/observability/logger.js && node --check platform/observability/metrics.js && node --check platform/redis/client.js && node --check platform/realtime/websocket.js && node --check platform/runtime/start-service.js && node --check scripts/prisma-service.js && node --check scripts/prisma-studio.js"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^6.19.3",
+    "@prisma/client": "^6.0.0",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1",
+    "pg": "^8.22.0"
+  }
+}

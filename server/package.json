@@ -1,0 +1,52 @@
+{
+  "name": "@deliverhub/api",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node src/scripts/dev-all.js",
+    "backup": "node src/scripts/backup-source.js manual",
+    "backup:restore": "node src/scripts/restore-source.js",
+    "docker:build:gateway": "docker build -f services/gateway/Dockerfile -t deliverhub/api-gateway ..",
+    "docker:build:admin": "docker build -f services/admin-service/Dockerfile -t deliverhub/admin-service ..",
+    "docker:build:store": "docker build -f services/store-service/Dockerfile -t deliverhub/store-service ..",
+    "docker:build:courier": "docker build -f services/courier-service/Dockerfile -t deliverhub/courier-service ..",
+    "docker:build:customer": "docker build -f services/customer-service/Dockerfile -t deliverhub/customer-service ..",
+    "docker:build": "npm run docker:build:gateway && npm run docker:build:admin && npm run docker:build:store && npm run docker:build:courier && npm run docker:build:customer",
+    "dev:gateway": "npm run dev --workspace @deliverhub/api-gateway",
+    "dev:admin": "npm run dev --workspace @deliverhub/admin-service",
+    "dev:store": "npm run dev --workspace @deliverhub/store-service",
+    "dev:courier": "npm run dev --workspace @deliverhub/courier-service",
+    "dev:customer": "npm run dev --workspace @deliverhub/customer-service",
+    "start": "npm run start --workspace @deliverhub/api-gateway",
+    "start:gateway": "npm run start --workspace @deliverhub/api-gateway",
+    "start:admin": "npm run start --workspace @deliverhub/admin-service",
+    "start:store": "npm run start --workspace @deliverhub/store-service",
+    "start:courier": "npm run start --workspace @deliverhub/courier-service",
+    "start:customer": "npm run start --workspace @deliverhub/customer-service",
+    "build": "npm run build --workspace @deliverhub/server-platform && npm run build --workspace @deliverhub/api-gateway && npm run build --workspace @deliverhub/admin-service && npm run build --workspace @deliverhub/store-service && npm run build --workspace @deliverhub/courier-service && npm run build --workspace @deliverhub/customer-service && node --check prisma/seed.js && node --check src/scripts/dev-all.js && node --check src/scripts/backup-source.js && node --check src/scripts/restore-source.js",
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:studio": "node src/scripts/prisma-studio.js",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "node prisma/seed.js",
+    "db:seed:demo-stores": "node prisma/seed-demo-stores.js"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^6.19.3",
+    "@prisma/client": "^6.0.0",
+    "dotenv": "^16.6.1",
+    "express": "^5.2.1",
+    "pg": "^8.22.0"
+  },
+  "devDependencies": {
+    "prisma": "^6.0.0"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  }
+
+
+
+}

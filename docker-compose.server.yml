@@ -1,0 +1,144 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: deliverhub
+      POSTGRES_USER: deliverhub
+      POSTGRES_PASSWORD: deliverhub
+    ports:
+      - "5432:5432"
+    volumes:
+      - deliverhub-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U deliverhub -d deliverhub"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  migrate:
+    build:
+      context: .
+      dockerfile: server/services/admin-service/Dockerfile
+    command: ["node", "../../src/scripts/prisma-service.js", "db", "push", "--schema", "../../prisma/schema.prisma"]
+    environment:
+      DATABASE_URL: postgresql://deliverhub:deliverhub@postgres:5432/deliverhub?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  gateway:
+    build:
+      context: .
+      dockerfile: server/services/gateway/Dockerfile
+    environment:
+      PORT: 3000
+      ADMIN_SERVICE_URL: http://admin-api:3101
+      STORE_SERVICE_URL: http://store-api:3102
+      COURIER_SERVICE_URL: http://courier-api:3103
+      CUSTOMER_SERVICE_URL: http://customer-api:3104
+      INTERNAL_EVENT_SECRET: deliverhub-local-events
+    ports:
+      - "3000:3000"
+    depends_on:
+      admin-api:
+        condition: service_started
+      store-api:
+        condition: service_started
+      courier-api:
+        condition: service_started
+      customer-api:
+        condition: service_started
+
+  admin-api:
+    build:
+      context: .
+      dockerfile: server/services/admin-service/Dockerfile
+    environment:
+      ADMIN_SERVICE_PORT: 3101
+      DATABASE_URL: postgresql://deliverhub:deliverhub@postgres:5432/deliverhub?sslmode=disable
+      INTERNAL_EVENT_SECRET: deliverhub-local-events
+      MQ_EVENT_ENDPOINTS: http://admin-api:3101/internal/events,http://store-api:3102/internal/events,http://courier-api:3103/internal/events,http://customer-api:3104/internal/events
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    ports:
+      - "3101:3101"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  store-api:
+    build:
+      context: .
+      dockerfile: server/services/store-service/Dockerfile
+    environment:
+      STORE_SERVICE_PORT: 3102
+      DATABASE_URL: postgresql://deliverhub:deliverhub@postgres:5432/deliverhub?sslmode=disable
+      INTERNAL_EVENT_SECRET: deliverhub-local-events
+      MQ_EVENT_ENDPOINTS: http://admin-api:3101/internal/events,http://store-api:3102/internal/events,http://courier-api:3103/internal/events,http://customer-api:3104/internal/events
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    ports:
+      - "3102:3102"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  courier-api:
+    build:
+      context: .
+      dockerfile: server/services/courier-service/Dockerfile
+    environment:
+      COURIER_SERVICE_PORT: 3103
+      DATABASE_URL: postgresql://deliverhub:deliverhub@postgres:5432/deliverhub?sslmode=disable
+      INTERNAL_EVENT_SECRET: deliverhub-local-events
+      MQ_EVENT_ENDPOINTS: http://admin-api:3101/internal/events,http://store-api:3102/internal/events,http://courier-api:3103/internal/events,http://customer-api:3104/internal/events
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    ports:
+      - "3103:3103"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+  customer-api:
+    build:
+      context: .
+      dockerfile: server/services/customer-service/Dockerfile
+    environment:
+      CUSTOMER_SERVICE_PORT: 3104
+      DATABASE_URL: postgresql://deliverhub:deliverhub@postgres:5432/deliverhub?sslmode=disable
+      INTERNAL_EVENT_SECRET: deliverhub-local-events
+      MQ_EVENT_ENDPOINTS: http://admin-api:3101/internal/events,http://store-api:3102/internal/events,http://courier-api:3103/internal/events,http://customer-api:3104/internal/events
+      RABBITMQ_URL: amqp://rabbitmq:5672
+    ports:
+      - "3104:3104"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  deliverhub-postgres:

@@ -1,10 +1,43 @@
 # Identity-Verified Multi-Tenant E-Commerce Delivery SaaS Platform
 
+## Runtime URL And Endpoint Map
+
+This project must not run the role UIs as one React Router-style screen switcher. Each actor has a separate frontend URL and talks to its own backend service port.
+
+### Frontend apps
+
+| App | Local URL | Client command | Backend target |
+|---|---|---|---|
+| Public landing | `http://127.0.0.1:5173` | `npm run dev:public --workspace client` | Gateway health/info only |
+| Platform admin | `http://127.0.0.1:5174` | `npm run dev:admin --workspace client` | `http://127.0.0.1:3101/api/admin` |
+| Store owner | `http://127.0.0.1:5175` | `npm run dev:store --workspace client` | `http://127.0.0.1:3102/api/store` |
+| Delivery employee | `http://127.0.0.1:5176` | `npm run dev:courier --workspace client` | `http://127.0.0.1:3103/api/courier` |
+| Customer | `http://127.0.0.1:5177` | `npm run dev:customer --workspace client` | `http://127.0.0.1:3104/api/customer` |
+
+### Backend services
+
+| Service | Local URL | Service command | Health | Current endpoints |
+|---|---|---|---|---|
+| API gateway | `http://127.0.0.1:3000` | `npm run dev:gateway --workspace server` | `GET /health`, `GET /api/health` | Composes all service routes for compatibility |
+| Admin service | `http://127.0.0.1:3101` | `npm run dev:admin --workspace server` | `GET /health` | `GET /api/admin/dashboard` |
+| Store service | `http://127.0.0.1:3102` | `npm run dev:store --workspace server` | `GET /health` | `GET /api/store/dashboard` |
+| Courier service | `http://127.0.0.1:3103` | `npm run dev:courier --workspace server` | `GET /health` | `GET /api/courier/dashboard` |
+| Customer service | `http://127.0.0.1:3104` | `npm run dev:customer --workspace server` | `GET /health` | `GET /api/customer/orders/current/tracking` |
+
+### Frontend-to-backend calls
+
+| Frontend app | Fetch base URL | Page fetch path | Final request URL |
+|---|---|---|---|
+| Platform admin | `http://127.0.0.1:3101/api/admin` | `/dashboard` | `http://127.0.0.1:3101/api/admin/dashboard` |
+| Store owner | `http://127.0.0.1:3102/api/store` | `/dashboard` | `http://127.0.0.1:3102/api/store/dashboard` |
+| Delivery employee | `http://127.0.0.1:3103/api/courier` | `/dashboard` | `http://127.0.0.1:3103/api/courier/dashboard` |
+| Customer | `http://127.0.0.1:3104/api/customer` | `/orders/current/tracking` | `http://127.0.0.1:3104/api/customer/orders/current/tracking` |
+
 ## Тойм
 
 Энэхүү платформ нь дараах боломжуудыг нэг дор нэгтгэсэн олон-tenant (multi-tenant) SaaS систем юм:
 
-- Shop-ууд бараа, захиалгаа удирдах
+- Store-ууд бараа, захиалгаа удирдах
 - Баталгаажсан хүргэлтийн ажилтан (courier) бараа хүлээн авах
 - Хэрэглэгч захиалгаа real-time хянах
 - Төлбөр хийх (QPay)
@@ -18,7 +51,7 @@
 | Нүүр танилт (Face verification) | Камерын өмнө байгаа хүн баталгаажсан эзэмшигч мөн эсэхийг шалгана |
 | QR / OTP | Аль барааг хэн, хэзээ хүлээн авсныг баталгаажуулна |
 | GPS | Хүргэлтийн явц, байршлыг тогтооно |
-| Payment ledger | Хэрэглэгчийн төлбөрөөс shop болон courier-д ногдох дүнг тооцно |
+| Payment ledger | Хэрэглэгчийн төлбөрөөс store болон courier-д ногдох дүнг тооцно |
 
 > **Чухал:** Ганц нүүрний зураг авах нь бараа алдагдахаас хамгаалах хангалттай баталгаа биш. Дээрх аргуудыг нийлүүлж **chain of custody** (барааны хариуцлага хэнээс хэнд шилжсэнийг нотлох систем) болгох шаардлагатай.
 
@@ -30,12 +63,12 @@
 
 | Role | Эрх, зориулалт |
 |---|---|
-| **Platform Admin** | SaaS, shop/tenant, subscription, төлбөр, маргаан, системийн тохиргоо |
-| **Shop Admin** | Бараа, захиалга, салбар, ажилтан, хүргэлт, тайлан удирдах |
+| **Platform Admin** | SaaS, store/tenant, subscription, төлбөр, маргаан, системийн тохиргоо |
+| **Store Admin** | Бараа, захиалга, салбар, ажилтан, хүргэлт, тайлан удирдах |
 | **Delivery Employee** | Баталгаажуулалт, хүргэлт авах, GPS, хүргэлт дуусгах, орлого/данс |
 | **Customer** | Бараа захиалах, төлбөр хийх, хүргэлт хянах, бараа хүлээн авах |
 
-**Дараагийн хувилбарт** Shop Admin-ийг дараах байдлаар салгаж болно: `Shop Owner`, `Shop Manager`, `Warehouse Staff`. MVP-д 4 actor хангалттай.
+**Дараагийн хувилбарт** Store Admin-ийг дараах байдлаар салгаж болно: `Store Owner`, `Store Manager`, `Warehouse Staff`. MVP-д 4 actor хангалттай.
 
 ### Permission-ийн үндсэн жагсаалт
 
@@ -45,12 +78,12 @@ platform.subscriptions.manage
 platform.disputes.manage
 platform.audit.view
 
-shop.products.manage
-shop.orders.manage
-shop.employees.manage
-shop.assignments.manage
-shop.reports.view
-shop.settings.manage
+store.products.manage
+store.orders.manage
+store.employees.manage
+store.assignments.manage
+store.reports.view
+store.settings.manage
 
 delivery.jobs.view
 delivery.jobs.accept
@@ -71,9 +104,9 @@ customer.disputes.create
 
 ## 2. Multi-tenant SaaS загвар
 
-- Shop бүр тусдаа **tenant** байна.
+- Store бүр тусдаа **tenant** байна.
 - Tenant-д хамаарах бүх өгөгдөлд `tenant_id` байна: Products, Warehouses, Employees, Orders, Deliveries, Payments, Wallet transactions, Reports, Audit logs.
-- Нэг shop нөгөө shop-ийн захиалга, хэрэглэгч, ажилтан, санхүүгийн мэдээллийг **ямар ч нөхцөлд харах ёсгүй**.
+- Нэг store нөгөө store-ийн захиалга, хэрэглэгч, ажилтан, санхүүгийн мэдээллийг **ямар ч нөхцөлд харах ёсгүй**.
 
 ---
 
@@ -87,7 +120,7 @@ customer.disputes.create
 4. Ажилтан камер ашиглан нүүрний liveness шалгалт хийнэ.
 5. Identity зураг болон live нүүрийг 1:1 face verification-оор харьцуулна.
 6. Банкны дансаа бүртгүүлнэ.
-7. Shop Admin ажилтныг review хийгээд идэвхжүүлнэ.
+7. Store Admin ажилтныг review хийгээд идэвхжүүлнэ.
 8. Ажилтны статус `VERIFIED` болно.
 
 **Ажилтны verification төлөв (happy path):**
@@ -149,7 +182,7 @@ location
 ### Нүүр таних үеүүд
 - Анхны employee onboarding
 - Шинэ төхөөрөмжөөс нэвтрэх
-- Shop-оос өндөр үнэтэй бараа авах
+- Store-оос өндөр үнэтэй бараа авах
 - Сэжигтэй үйлдэл илэрсэн
 - Тодорхой хугацааны дараах re-verification
 
@@ -184,17 +217,17 @@ location
 
 Энэ бол системийн хамгийн чухал security workflow.
 
-1. Shop ажилтан захиалгыг бэлдэнэ.
+1. Store ажилтан захиалгыг бэлдэнэ.
 2. Захиалгыг хүргэлтийн ажилтанд assign хийнэ.
 3. Delivery Employee web app дээр ажлын санал ирнэ.
 4. Ажилтан хүргэлтийг accept хийнэ.
-5. Shop-д очиход GPS geofence шалгана.
-6. Shop захиалгын нэг удаагийн QR код харуулна.
+5. Store-д очиход GPS geofence шалгана.
+6. Store захиалгын нэг удаагийн QR код харуулна.
 7. Хүргэлтийн ажилтан QR-г уншуулна.
 8. Эрсдэлийн дүрмээр нүүр/liveness баталгаажуулалт хийнэ.
-9. Shop-ийн ажилтан барааны багц, serial/seal кодыг батална.
+9. Store-ийн ажилтан барааны багц, serial/seal кодыг батална.
 10. Хоёр тал digital handover confirmation хийнэ.
-11. Барааны хариуцлага shop-оос courier руу шилжинэ.
+11. Барааны хариуцлага store-оос courier руу шилжинэ.
 12. Захиалга `PICKED_UP` төлөвт орно.
 13. GPS tracking эхэлнэ.
 
@@ -202,7 +235,7 @@ location
 
 ```
 Employee identity
-Shop/warehouse
+Store/warehouse
 Order болон package ID
 QR verification
 Face verification result
@@ -211,7 +244,7 @@ GPS координат
 Device
 Package зураг
 Seal/serial number
-Shop талын баталгаажуулалт
+Store талын баталгаажуулалт
 Audit event
 ```
 
@@ -297,7 +330,7 @@ REFUNDED
 - Reception/guard-д өгөх зөвшөөрөл
 - Safe-drop зураг
 - Дахин хүргэх
-- Shop руу буцаах
+- Store руу буцаах
 
 ---
 
@@ -330,7 +363,7 @@ Delivery fee =
 
 ### Шаардлагатай дүрэм
 
-- Shop-ийн pickup координат тодорхой байна.
+- Store-ийн pickup координат тодорхой байна.
 - Customer address-ийг газрын зураг дээр pin-ээр батална.
 - Routing service авто замын бодит маршрутыг тооцно (шулуун шугамын зайгаар үнэ бодохгүй).
 - Тооцоолсон үнэ checkout дээр хэрэглэгчид харагдана.
@@ -408,7 +441,7 @@ EXPECTED
 
 | Зүйл | Дүн |
 |---|---|
-| Shop payable | 95,000₮ |
+| Store payable | 95,000₮ |
 | Courier earning | 6,500₮ |
 | Platform delivery fee | 1,500₮ |
 | Platform service fee | 2,000₮ |
@@ -455,11 +488,11 @@ EXPECTED
 
 ---
 
-## 11. Shop Admin UI
+## 11. Store Admin UI
 
 ### Page-ууд
 
-Dashboard · Products · Categories · Inventory · Warehouses/branches · Orders · Order details · Dispatch board · Delivery live map · Delivery history · Employees · Employee verification review · Customers · Pricing rules · Delivery zones · Payments · Settlements · Refunds · Reports · Audit logs · Shop settings · Subscription and billing · Integration/API settings · Notification templates · Disputes and returns
+Dashboard · Products · Categories · Inventory · Warehouses/branches · Orders · Order details · Dispatch board · Delivery live map · Delivery history · Employees · Employee verification review · Customers · Pricing rules · Delivery zones · Payments · Settlements · Refunds · Reports · Audit logs · Store settings · Subscription and billing · Integration/API settings · Notification templates · Disputes and returns
 
 ### Dashboard KPI
 
@@ -479,7 +512,7 @@ Dashboard · Products · Categories · Inventory · Warehouses/branches · Order
 
 ### Page-ууд
 
-Landing page · Shop/catalog · Product detail · Cart · Checkout · Address and map pin · Delivery quote · QPay payment · Payment result · My orders · Order detail · Live delivery tracking · Delivery confirmation · Rating/review · Returns and disputes · Notifications · Saved addresses · Profile · Privacy settings
+Landing page · Store/catalog · Product detail · Cart · Checkout · Address and map pin · Delivery quote · QPay payment · Payment result · My orders · Order detail · Live delivery tracking · Delivery confirmation · Rating/review · Returns and disputes · Notifications · Saved addresses · Profile · Privacy settings
 
 ### Tracking page-ийн агуулга
 
@@ -498,7 +531,7 @@ Landing page · Shop/catalog · Product detail · Cart · Checkout · Address an
 
 ## 13. Platform Admin UI
 
-Platform overview · Tenant/shop management · Tenant detail · Subscription plans · Active subscriptions · Platform users · Identity verification monitoring · Payment monitoring · Settlement/payout monitoring · Disputes · Fraud/risk alerts · System audit · Integration health · Feature flags · Global settings · Support management · Usage analytics · System reports
+Platform overview · Tenant/store management · Tenant detail · Subscription plans · Active subscriptions · Platform users · Identity verification monitoring · Payment monitoring · Settlement/payout monitoring · Disputes · Fraud/risk alerts · System audit · Integration health · Feature flags · Global settings · Support management · Usage analytics · System reports
 
 ---
 
@@ -506,7 +539,7 @@ Platform overview · Tenant/shop management · Tenant detail · Subscription pla
 
 | | Starter | Growth | Enterprise |
 |---|---|---|---|
-| Shop users | 5 | 30 | Custom |
+| Store users | 5 | 30 | Custom |
 | Couriers | 10 | 100 | Custom |
 | Monthly orders | 500 | 10,000 | Custom |
 | Location history | 30 хоног | 180 хоног | Custom |
@@ -531,7 +564,7 @@ Platform overview · Tenant/shop management · Tenant detail · Subscription pla
 TRIALING → ACTIVE → PAST_DUE → GRACE_PERIOD → SUSPENDED → CANCELLED
 ```
 
-> Subscription дууссан үед shop-ийн өгөгдлийг устгахгүй. Шинэ захиалга болон зарим үйлдлийг хаагаад read-only grace period өгнө.
+> Subscription дууссан үед store-ийн өгөгдлийг устгахгүй. Шинэ захиалга болон зарим үйлдлийг хаагаад read-only grace period өгнө.
 
 ---
 
@@ -568,7 +601,7 @@ TRIALING → ACTIVE → PAST_DUE → GRACE_PERIOD → SUSPENDED → CANCELLED
 
 | ID | Requirement |
 |---|---|
-| FR-ORD-001 | Shop бүтээгдэхүүн, inventory удирдана |
+| FR-ORD-001 | Store бүтээгдэхүүн, inventory удирдана |
 | FR-ORD-002 | Customer cart болон checkout ашиглана |
 | FR-ORD-003 | Order status history immutable байна |
 | FR-ORD-004 | Inventory payment амжилттай үед баталгаажна |
@@ -668,7 +701,7 @@ TRIALING → ACTIVE → PAST_DUE → GRACE_PERIOD → SUSPENDED → CANCELLED
 
 MVP-д **TypeScript modular monolith** хамгийн оновчтой:
 
-- Next.js — customer/shop/employee applications
+- Next.js — customer/store/employee applications
 - NestJS — API
 - PostgreSQL + PostGIS
 - Prisma ORM
@@ -701,7 +734,7 @@ tenants, subscription_plans, subscriptions, users, tenant_members, roles, permis
 identity_profiles, identity_verification_sessions, biometric_consents,
 face_verification_sessions, trusted_devices
 
-shops, branches, warehouses, products, product_variants,
+stores, branches, warehouses, products, product_variants,
 inventory_items, inventory_movements
 
 customers, customer_addresses, orders, order_items, order_status_history
@@ -729,7 +762,7 @@ notifications, disputes, attachments, audit_logs, risk_events
 - Multi-tenant SaaS
 - 4 actor
 - Authentication
-- Shop/catalog
+- Store/catalog
 - Product/order
 - Basic subscription
 - Audit log

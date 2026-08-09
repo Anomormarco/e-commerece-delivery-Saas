@@ -1,0 +1,51 @@
+{
+  "name": "deliverhub",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "client",
+    "server",
+    "server/src",
+    "server/services/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace client",
+    "dev:server": "npm run dev --workspace @deliverhub/api",
+    "backup:source": "npm run backup --workspace @deliverhub/api",
+    "restore:source": "npm run backup:restore --workspace @deliverhub/api --",
+    "docker:server:build": "docker compose -f docker-compose.server.yml build",
+    "docker:server:up": "docker compose -f docker-compose.server.yml up",
+    "docker:server:down": "docker compose -f docker-compose.server.yml down",
+    "build": "npm run build --workspace client",
+    "build:server": "npm run build --workspace @deliverhub/api",
+    "preview": "npm run preview --workspace client",
+    "db:generate": "npm run db:generate --workspace @deliverhub/api",
+    "db:validate": "npm run db:validate --workspace @deliverhub/api",
+    "db:studio": "npm run db:studio --workspace @deliverhub/api",
+    "db:push": "npm run db:push --workspace @deliverhub/api",
+    "db:migrate": "npm run db:migrate --workspace @deliverhub/api"
+  },
+  "description": "",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Anomormarco/e-commerece-delivery-Saas.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Anomormarco/e-commerece-delivery-Saas/issues"
+  },
+  "homepage": "https://github.com/Anomormarco/e-commerece-delivery-Saas#readme",
+  "dependencies": {
+    "amqplib": "^2.0.1",
+    "express": "^5.2.1",
+    "nodemon": "^3.1.14"
+  },
+  "prisma": {
+    "schema": "server/prisma/schema.prisma"
+  }
+}
