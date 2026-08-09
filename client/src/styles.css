@@ -1254,13 +1254,24 @@ h3 {
 }
 
 .nomad-scroll-page #spline-hero {
-  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  display: block;
+  pointer-events: none;
 }
 
 .nomad-scroll-page #spline-hero spline-viewer {
   display: block;
   width: 100%;
   height: 100%;
+  transform: translateX(18%) scale(1.08);
+  transform-origin: center right;
+}
+
+.nomad-scroll-page #stage {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .landing-commerce-nav {

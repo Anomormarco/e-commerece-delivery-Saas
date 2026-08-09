@@ -328,6 +328,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   useEffect(() => {
     if (section !== "home") return;
 
+    if (!document.querySelector('script[data-deliverhub-spline-viewer="true"]')) {
+      const viewerScript = document.createElement("script");
+      viewerScript.type = "module";
+      viewerScript.src = "https://unpkg.com/@splinetool/viewer/build/spline-viewer.js";
+      viewerScript.dataset.deliverhubSplineViewer = "true";
+      document.body.appendChild(viewerScript);
+    }
+
     const timer = window.setTimeout(() => {
       const wrap = document.getElementById("canvas-wrap");
       if (!wrap || wrap.querySelector("canvas")) return;
