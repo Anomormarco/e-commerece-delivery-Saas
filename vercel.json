@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build:public --workspace @deliverhub/client",
-  "outputDirectory": "client/dist/public",
+  "buildCommand": "npm run build:vercel-public --workspace @deliverhub/client",
+  "outputDirectory": "client/dist",
   "rewrites": [
     {
       "source": "/(.*)",

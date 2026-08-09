@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build:public",
-  "outputDirectory": "dist/public",
+  "buildCommand": "npm run build:vercel-public",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/(.*)",
