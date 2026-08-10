@@ -188,6 +188,53 @@ function productImageFor(product: Pick<Product, "name" | "category" | "imageUrl"
     ?? "https://images.unsplash.com/photo-1601593768798-4b7e50ad14c8?auto=format&fit=crop&w=800&q=80";
 }
 
+const marketTemplates = [
+  { category: "Хүнс", stores: ["Номин Супермаркет", "Fresh Mart", "Good Price Market", "Оргил Хүнс", "Minii Delguur"], products: [["Цагаан будаа", "rice bag"], ["Гурил", "flour"], ["Сүү", "milk bottle"], ["Өндөг", "eggs carton"], ["Алим", "apples"], ["Төмс", "potatoes"], ["Лууван", "carrots"], ["Үхрийн мах", "beef meat"], ["Тахианы мах", "chicken breast"], ["Бяслаг", "cheese"]] },
+  { category: "24/7 дэлгүүр", stores: ["CU Mongolia", "GS25 Mongolia", "Quick Stop", "City Express", "Night Mart"], products: [["Сэндвич", "sandwich"], ["Кимбап", "kimbap"], ["Рамен", "instant ramen"], ["Ус", "water bottle"], ["Кола", "cola can"], ["Чипс", "potato chips"], ["Шоколад", "chocolate bar"], ["Зайрмаг", "ice cream"], ["Салат", "fresh salad"], ["Бэлэн хоол", "ready meal"]] },
+  { category: "Гэр ахуй", stores: ["Home Plaza", "Ger Ahuin Tuv", "Cozy Home", "Kitchen House", "Houseware Hub"], products: [["Тавагны сет", "dinnerware"], ["Аяга", "mug"], ["Хайруулын таваг", "frying pan"], ["Сав суулга", "cookware"], ["Хутганы сет", "kitchen knife"], ["Алчуур", "towel"], ["Орны даавуу", "bed sheets"], ["Дэр", "pillow"], ["Сагс", "storage basket"], ["Цэвэрлэгээний багц", "cleaning supplies"]] },
+  { category: "Цахилгаан бараа", stores: ["Tech Hub", "Digital Mall", "Phone Center", "Smart Store", "Electro Shop"], products: [["Чихэвч", "headphones"], ["Speaker", "bluetooth speaker"], ["Phone case", "phone case"], ["Цэнэглэгч", "phone charger"], ["Power bank", "power bank"], ["Keyboard", "keyboard"], ["Mouse", "computer mouse"], ["Web camera", "webcam"], ["Smart watch", "smart watch"], ["Desk lamp", "desk lamp"]] },
+  { category: "Эмийн сан", stores: ["Pharma Plus", "Monos Express", "Health Care", "Vitamin House", "Apteka 24"], products: [["Витамин C", "vitamin c"], ["Витамин D", "vitamin d"], ["Дархлаа дэмжигч", "supplements"], ["Гар ариутгагч", "hand sanitizer"], ["Маск", "medical mask"], ["Шархны наалт", "bandage"], ["Даралт хэмжигч", "blood pressure monitor"], ["Халуун хэмжигч", "thermometer"], ["Нүдний дусаалга", "eye drops"], ["Омега 3", "omega 3"]] },
+  { category: "Гоо сайхан", stores: ["Beauty Box", "Glow Market", "Skin Lab", "Cosmo Shop", "Makeup Studio"], products: [["Уруулын будаг", "lipstick"], ["Mascara", "mascara"], ["Суурь крем", "foundation makeup"], ["Нүүр цэвэрлэгч", "facial cleanser"], ["Чийгшүүлэгч", "moisturizer"], ["Үнэртэй ус", "perfume"], ["Шампунь", "shampoo"], ["Нүүрний маск", "face mask skincare"], ["Хумсны будаг", "nail polish"], ["Serum", "face serum"]] },
+  { category: "Ном, бичиг хэрэг", stores: ["Book Nest", "Аз Хур Ном", "Stationery Pro", "Student Shop", "Paper House"], products: [["Уран зохиолын ном", "novel books"], ["Хүүхдийн ном", "children book"], ["Дэвтэр", "notebook"], ["Бал", "pen"], ["Харандаа", "pencils"], ["Файл хавтас", "file folder"], ["A4 цаас", "printer paper"], ["Marker", "markers"], ["Зургийн дэвтэр", "sketchbook"], ["Календарь", "calendar"]] },
+  { category: "Спорт бараа", stores: ["Sport Zone", "Fit Market", "Outdoor Pro", "Bike House", "Active Gear"], products: [["Гүйлтийн пүүз", "running shoes"], ["Иогийн дэвсгэр", "yoga mat"], ["Дамббелл", "dumbbells"], ["Усны сав", "sports water bottle"], ["Хөл бөмбөг", "football ball"], ["Сагсан бөмбөг", "basketball"], ["Дугуйн дуулга", "bike helmet"], ["Спорт цүнх", "gym bag"], ["Майхан", "camping tent"], ["Уулын гутал", "hiking boots"]] },
+  { category: "Хүүхдийн бараа", stores: ["Baby World", "Kids Planet", "Toy Land", "Little Star", "Mother Care"], products: [["Живх", "diapers"], ["Baby wipes", "baby wipes"], ["Угж", "baby bottle"], ["Хүүхдийн тоглоом", "baby toys"], ["Puzzle", "kids puzzle"], ["Lego set", "building blocks"], ["Хүүхдийн хувцас", "baby clothes"], ["Тэрэг", "baby stroller"], ["Зөөлөн тоглоом", "plush toy"], ["Сүүн тэжээл", "baby formula"]] },
+  { category: "Амьтны бараа", stores: ["Pet Care", "Happy Pet", "Dog & Cat", "Pet Food Market", "Animal House"], products: [["Нохойн хоол", "dog food"], ["Муурын хоол", "cat food"], ["Амьтны тоглоом", "pet toys"], ["Оосор", "dog leash"], ["Муурын элс", "cat litter"], ["Амьтны шампунь", "pet shampoo"], ["Үүр", "pet bed"], ["Аквариум", "aquarium"], ["Загасны хоол", "fish food"], ["Тэжээлийн аяга", "pet bowl"]] },
+];
+
+const productQualifiers = ["шинэ", "премиум", "гэр бүлийн", "өдөр тутмын", "органик"];
+
+function buildDemoMarketStores(): StoreDirectoryItem[] {
+  return marketTemplates.flatMap((template, templateIndex) =>
+    template.stores.map((storeName, storeIndex) => {
+      const id = `demo-${templateIndex + 1}-${storeIndex + 1}`;
+      const products = Array.from({ length: 50 }, (_, index) => {
+        const [baseName, keyword] = template.products[index % template.products.length];
+        const qualifier = productQualifiers[Math.floor(index / template.products.length) % productQualifiers.length];
+        return {
+          id: `${id}-product-${index + 1}`,
+          name: `${baseName} ${qualifier}`,
+          category: template.category,
+          priceMnt: String(1800 + (index + 1) * 420 + templateIndex * 500 + storeIndex * 300),
+          weightGrams: 180 + (index % 12) * 150,
+          imageUrl: `https://source.unsplash.com/900x650/?${encodeURIComponent(`${keyword} product`)}&sig=${id}-${index + 1}`,
+        };
+      });
+
+      return {
+        id,
+        name: storeName,
+        description: `${template.category} - 50 бараатай онлайн дэлгүүр`,
+        address: `Улаанбаатар, ${["Сүхбаатар", "Баянзүрх", "Хан-Уул", "Баянгол", "Чингэлтэй"][storeIndex]} дүүрэг`,
+        coverUrl: products[0]?.imageUrl ?? "",
+        productCount: products.length,
+        orderCount: 20 + templateIndex * 7 + storeIndex * 3,
+        categories: [template.category],
+        products,
+      };
+    }),
+  );
+}
+
 const initialProducts: Product[] = [
   {
     id: "rice-5kg",
@@ -517,7 +564,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       try {
         const params = new URLSearchParams({
           page: "1",
-          pageSize: "24",
+          pageSize: "50",
           ...(storeSearch.trim() ? { search: storeSearch.trim() } : {}),
         });
         const result = await apiGet<StoreDirectoryResponse>(`/customer/stores?${params.toString()}`, token);
@@ -539,10 +586,16 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     };
   }, [section, session?.token, storeSearch]);
 
-  const selectedStore = stores.find((store) => store.id === selectedStoreId) ?? stores[0];
+  const demoMarketStores = useMemo(buildDemoMarketStores, []);
+  const marketStoreDirectory = useMemo(() => {
+    const realStoreNames = new Set(stores.map((store) => store.name.toLowerCase()));
+    const supplementalStores = demoMarketStores.filter((store) => !realStoreNames.has(store.name.toLowerCase()));
+    return stores.length >= 50 ? stores : [...stores, ...supplementalStores].slice(0, 50);
+  }, [demoMarketStores, stores]);
+  const selectedStore = marketStoreDirectory.find((store) => store.id === selectedStoreId) ?? marketStoreDirectory[0];
   const filteredStores = useMemo(() => {
     const normalizedSearch = storeSearch.trim().toLowerCase();
-    return stores.filter((store) => (
+    return marketStoreDirectory.filter((store) => (
       (storeFilter === "Бүгд" || store.categories.includes(storeFilter))
       && (
         !normalizedSearch
@@ -552,7 +605,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         || store.categories.some((category) => category.toLowerCase().includes(normalizedSearch))
       )
     ));
-  }, [storeFilter, storeSearch, stores]);
+  }, [marketStoreDirectory, storeFilter, storeSearch]);
   const showStoreResults = Boolean(storeSearch.trim()) || storeFilter !== "Бүгд";
   const allMarketProducts = useMemo(() => (
     selectedStore?.products.length
@@ -597,8 +650,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const deliveryFee = Math.round(activeDelivery.base + km * activeDelivery.perKm + weightKg * activeDelivery.perKg);
   const etaMinutes = Math.max(12, Math.round((km / activeDelivery.speedKmh) * 60 + 10));
   const storeCategories = useMemo(
-    () => ["Бүгд", ...new Set(stores.flatMap((store) => store.categories).filter(Boolean))],
-    [stores],
+    () => ["Бүгд", ...new Set(marketStoreDirectory.flatMap((store) => store.categories).filter(Boolean))],
+    [marketStoreDirectory],
   );
   const addressSuggestions = [
     addressLabel,

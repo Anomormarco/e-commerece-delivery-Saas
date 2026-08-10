@@ -2,34 +2,138 @@ import { prisma, disconnectPrisma } from "../src/database/prisma.js";
 
 const tenantSlug = "deliverhub-public";
 const imageBase = "https://source.unsplash.com/900x650/?";
+const productsPerStore = 50;
 
-const storeConfigs = [
-  { slug: "fresh-mart", name: "Fresh Mart", type: "Хүнсний дэлгүүр", categorySlug: "grocery", address: "Сүхбаатар дүүрэг, 1-р хороо, Central Tower", keywords: ["grocery", "vegetables", "fruit", "rice", "milk"] },
-  { slug: "pharma-plus", name: "Pharma Plus", type: "Эмийн сан", categorySlug: "pharmacy", address: "Баянзүрх дүүрэг, 13-р хороолол, Peace Mall", keywords: ["pharmacy", "vitamin", "medicine", "health", "skincare"] },
-  { slug: "tech-hub", name: "Tech Hub", type: "Цахилгаан бараа", categorySlug: "electronics", address: "Хан-Уул дүүрэг, Зайсан, Tech Plaza", keywords: ["electronics", "headphones", "laptop", "phone", "camera"] },
-  { slug: "golden-bakery", name: "Golden Bakery", type: "Талх нарийн боов", categorySlug: "bakery", address: "Чингэлтэй дүүрэг, 5-р хороо, Bakery Street", keywords: ["bakery", "bread", "cake", "pastry", "cookie"] },
-  { slug: "coffee-corner", name: "Coffee Corner", type: "Кофе, ундаа", categorySlug: "coffee-drinks", address: "Сүхбаатар дүүрэг, Seoul Street, Coffee block", keywords: ["coffee", "tea", "juice", "smoothie", "drink"] },
-  { slug: "pet-care", name: "Pet Care", type: "Амьтны дэлгүүр", categorySlug: "pet-care", address: "Баянгол дүүрэг, 3-р хороо, Pet Center", keywords: ["pet food", "cat", "dog", "pet toy", "aquarium"] },
-  { slug: "beauty-box", name: "Beauty Box", type: "Гоо сайхан", categorySlug: "beauty", address: "Хан-Уул дүүрэг, River Garden, Beauty Hall", keywords: ["beauty", "cosmetics", "perfume", "makeup", "shampoo"] },
-  { slug: "book-nest", name: "Book Nest", type: "Ном, бичиг хэрэг", categorySlug: "books-stationery", address: "Сүхбаатар дүүрэг, Их сургуулийн гудамж", keywords: ["books", "stationery", "notebook", "pen", "library"] },
-  { slug: "baby-world", name: "Baby World", type: "Хүүхдийн бараа", categorySlug: "baby-products", address: "Баянзүрх дүүрэг, Нарны зам, Baby center", keywords: ["baby", "toys", "diaper", "baby clothes", "kids"] },
-  { slug: "sport-zone", name: "Sport Zone", type: "Спорт бараа", categorySlug: "sports", address: "Хан-Уул дүүрэг, Stadium road, Sport center", keywords: ["sports", "shoes", "fitness", "football", "bicycle"] },
+const categories = [
+  {
+    slug: "grocery",
+    name: "Хүнс",
+    stores: ["Номин Супермаркет", "Fresh Mart", "Good Price Market", "Оргил Хүнс", "Minii Delguur"],
+    products: [
+      ["Цагаан будаа 5кг", "rice bag"], ["Гурил 2кг", "flour"], ["Сүү 1л", "milk bottle"], ["Өндөг 10ш", "eggs carton"], ["Тараг", "yogurt"],
+      ["Алим", "apples"], ["Гадил", "bananas"], ["Төмс", "potatoes"], ["Сонгино", "onions"], ["Лууван", "carrots"],
+      ["Үхрийн мах", "beef meat"], ["Тахианы мах", "chicken breast"], ["Загас", "fresh fish"], ["Цөцгийн тос", "butter"], ["Бяслаг", "cheese"],
+    ],
+  },
+  {
+    slug: "convenience",
+    name: "24/7 дэлгүүр",
+    stores: ["CU Mongolia", "GS25 Mongolia", "Quick Stop", "City Express", "Night Mart"],
+    products: [
+      ["Сэндвич", "sandwich"], ["Кимбап", "kimbap"], ["Рамен", "instant ramen"], ["Ус 500мл", "water bottle"], ["Кола", "cola can"],
+      ["Энергийн ундаа", "energy drink"], ["Чипс", "potato chips"], ["Шоколад", "chocolate bar"], ["Зайрмаг", "ice cream"], ["Кофе лаазтай", "canned coffee"],
+      ["Салат", "fresh salad"], ["Бэлэн хоол", "ready meal"], ["Жигнэмэг", "cookies"], ["Бохь", "chewing gum"], ["Цаасан аяга", "paper cups"],
+    ],
+  },
+  {
+    slug: "home-goods",
+    name: "Гэр ахуй",
+    stores: ["Home Plaza", "Ger Ahuin Tuv", "Cozy Home", "Kitchen House", "Houseware Hub"],
+    products: [
+      ["Тавагны сет", "dinnerware"], ["Аяга", "mug"], ["Хайруулын таваг", "frying pan"], ["Сав суулга", "cookware"], ["Хутганы сет", "kitchen knife"],
+      ["Алчуур", "towel"], ["Орны даавуу", "bed sheets"], ["Дэр", "pillow"], ["Хөнжил", "blanket"], ["Хувцасны өлгүүр", "clothes hanger"],
+      ["Сагс", "storage basket"], ["Хогийн сав", "trash bin"], ["Шүүр", "broom"], ["Цэвэрлэгээний багц", "cleaning supplies"], ["Лаа", "scented candle"],
+    ],
+  },
+  {
+    slug: "electronics",
+    name: "Цахилгаан бараа",
+    stores: ["Tech Hub", "Digital Mall", "Phone Center", "Smart Store", "Electro Shop"],
+    products: [
+      ["Чихэвч", "headphones"], ["Bluetooth speaker", "bluetooth speaker"], ["Гар утасны case", "phone case"], ["Цэнэглэгч", "phone charger"], ["Power bank", "power bank"],
+      ["Keyboard", "keyboard"], ["Mouse", "computer mouse"], ["Laptop stand", "laptop stand"], ["Web camera", "webcam"], ["USB cable", "usb cable"],
+      ["Smart watch", "smart watch"], ["Router", "wifi router"], ["Memory card", "memory card"], ["Tripod", "camera tripod"], ["Desk lamp", "desk lamp"],
+    ],
+  },
+  {
+    slug: "pharmacy",
+    name: "Эмийн сан",
+    stores: ["Pharma Plus", "Monos Express", "Health Care", "Vitamin House", "Apteka 24"],
+    products: [
+      ["Витамин C", "vitamin c"], ["Витамин D", "vitamin d"], ["Дархлаа дэмжигч", "supplements"], ["Гар ариутгагч", "hand sanitizer"], ["Маск", "medical mask"],
+      ["Шархны наалт", "bandage"], ["Даралт хэмжигч", "blood pressure monitor"], ["Халуун хэмжигч", "thermometer"], ["Хүүхдийн сироп", "children medicine"], ["Нүдний дусаалга", "eye drops"],
+      ["Арьс арчилгаа", "skincare pharmacy"], ["Нарны тос", "sunscreen"], ["Эмийн хайрцаг", "pill organizer"], ["Уураг", "protein powder"], ["Омега 3", "omega 3"],
+    ],
+  },
+  {
+    slug: "beauty",
+    name: "Гоо сайхан",
+    stores: ["Beauty Box", "Glow Market", "Skin Lab", "Cosmo Shop", "Makeup Studio"],
+    products: [
+      ["Уруулын будаг", "lipstick"], ["Сормуусны будаг", "mascara"], ["Суурь крем", "foundation makeup"], ["Нүүр цэвэрлэгч", "facial cleanser"], ["Чийгшүүлэгч тос", "moisturizer"],
+      ["Үнэртэй ус", "perfume"], ["Шампунь", "shampoo"], ["Ангижруулагч", "conditioner"], ["Нүүрний маск", "face mask skincare"], ["Нарны тос", "sunscreen cosmetics"],
+      ["Хумсны будаг", "nail polish"], ["Makeup brush", "makeup brushes"], ["Serum", "face serum"], ["Body lotion", "body lotion"], ["Hair oil", "hair oil"],
+    ],
+  },
+  {
+    slug: "books-stationery",
+    name: "Ном, бичиг хэрэг",
+    stores: ["Book Nest", "Аз Хур Ном", "Stationery Pro", "Student Shop", "Paper House"],
+    products: [
+      ["Уран зохиолын ном", "novel books"], ["Хүүхдийн ном", "children book"], ["Тэмдэглэлийн дэвтэр", "notebook"], ["Бал", "pen"], ["Харандаа", "pencils"],
+      ["Файл хавтас", "file folder"], ["A4 цаас", "printer paper"], ["Marker", "markers"], ["Наадаг цаас", "sticky notes"], ["Үүргэвч", "school backpack"],
+      ["Зургийн дэвтэр", "sketchbook"], ["Усан будаг", "watercolor paint"], ["Шугам", "ruler"], ["Тооны машин", "calculator"], ["Календарь", "calendar"],
+    ],
+  },
+  {
+    slug: "sports",
+    name: "Спорт бараа",
+    stores: ["Sport Zone", "Fit Market", "Outdoor Pro", "Bike House", "Active Gear"],
+    products: [
+      ["Гүйлтийн пүүз", "running shoes"], ["Иогийн дэвсгэр", "yoga mat"], ["Дамббелл", "dumbbells"], ["Усны сав", "sports water bottle"], ["Хөл бөмбөг", "football ball"],
+      ["Сагсан бөмбөг", "basketball"], ["Дугуйн дуулга", "bike helmet"], ["Фитнес бээлий", "fitness gloves"], ["Спорт цүнх", "gym bag"], ["Resistance band", "resistance bands"],
+      ["Майхан", "camping tent"], ["Аяны сандал", "camping chair"], ["Уулын гутал", "hiking boots"], ["Нүдний шил", "sports sunglasses"], ["Дугуйн гэрэл", "bike light"],
+    ],
+  },
+  {
+    slug: "kids-baby",
+    name: "Хүүхдийн бараа",
+    stores: ["Baby World", "Kids Planet", "Toy Land", "Little Star", "Mother Care"],
+    products: [
+      ["Живх", "diapers"], ["Baby wipes", "baby wipes"], ["Угж", "baby bottle"], ["Хүүхдийн тоглоом", "baby toys"], ["Puzzle", "kids puzzle"],
+      ["Lego set", "building blocks"], ["Хүүхдийн хувцас", "baby clothes"], ["Хүүхдийн гутал", "kids shoes"], ["Тэрэг", "baby stroller"], ["Хүүхдийн сандал", "baby chair"],
+      ["Зөөлөн тоглоом", "plush toy"], ["Сургалтын ном", "kids learning book"], ["Хүүхдийн шампунь", "baby shampoo"], ["Сүүн тэжээл", "baby formula"], ["Унтлагын хувцас", "kids pajamas"],
+    ],
+  },
+  {
+    slug: "pet-care",
+    name: "Амьтны бараа",
+    stores: ["Pet Care", "Happy Pet", "Dog & Cat", "Pet Food Market", "Animal House"],
+    products: [
+      ["Нохойн хоол", "dog food"], ["Муурын хоол", "cat food"], ["Амьтны тоглоом", "pet toys"], ["Оосор", "dog leash"], ["Муурын элс", "cat litter"],
+      ["Амьтны шампунь", "pet shampoo"], ["Үүр", "pet bed"], ["Аквариум", "aquarium"], ["Загасны хоол", "fish food"], ["Тэжээлийн аяга", "pet bowl"],
+      ["Сам", "pet brush"], ["Амттан", "pet treats"], ["Тээврийн цүнх", "pet carrier"], ["Хумс авагч", "pet nail clipper"], ["Шувууны хоол", "bird food"],
+    ],
+  },
 ];
 
-const productSuffixes = [
-  "стандарт", "премиум", "гэр бүлийн", "мини", "том савлагаа", "органик", "шинэ", "өдөр тутмын", "сонгодог", "тусгай",
-  "хөнгөн", "бат бөх", "аялалын", "мэргэжлийн", "хэмнэлттэй", "шинэчлэгдсэн", "комбо", "супер", "ногоон", "хүүхдийн",
-];
+const productQualifiers = ["шинэ", "премиум", "гэр бүлийн", "өдөр тутмын", "органик", "хэмнэлттэй", "том савлагаа", "мини", "сонгодог", "комбо"];
 
-function productName(store, index) {
-  const keyword = store.keywords[index % store.keywords.length];
-  const suffix = productSuffixes[index % productSuffixes.length];
-  return `${store.type} ${keyword} ${suffix} ${index + 1}`;
+const storeConfigs = categories.flatMap((category, categoryIndex) =>
+  category.stores.map((name, storeIndex) => ({
+    slug: `${category.slug}-${storeIndex + 1}`,
+    name,
+    type: category.name,
+    categorySlug: category.slug,
+    address: `Улаанбаатар, ${["Сүхбаатар", "Баянзүрх", "Хан-Уул", "Баянгол", "Чингэлтэй"][storeIndex % 5]} дүүрэг, ${name} салбар`,
+    products: category.products,
+    latitude: 47.89 + categoryIndex * 0.004 + storeIndex * 0.001,
+    longitude: 106.86 + categoryIndex * 0.005 + storeIndex * 0.001,
+  })),
+);
+
+function productTemplate(store, index) {
+  const [baseName, keyword] = store.products[index % store.products.length];
+  const qualifier = productQualifiers[Math.floor(index / store.products.length) % productQualifiers.length];
+  return {
+    name: `${baseName} ${qualifier}`,
+    keyword,
+  };
 }
 
 function productImage(store, index) {
-  const keyword = encodeURIComponent(store.keywords[index % store.keywords.length]);
-  return `${imageBase}${keyword},product&sig=${store.slug}-${index}`;
+  const { keyword } = productTemplate(store, index);
+  return `${imageBase}${encodeURIComponent(`${keyword} product`)}&sig=${store.slug}-${index + 1}`;
 }
 
 async function main() {
@@ -46,14 +150,14 @@ async function main() {
       update: {
         tenantId: tenant.id,
         name: config.name,
-        description: `${config.type} - 100 бараатай demo маркет`,
+        description: `${config.type} - 50 бараатай онлайн дэлгүүр`,
         isActive: true,
       },
       create: {
         tenantId: tenant.id,
         name: config.name,
         slug: config.slug,
-        description: `${config.type} - 100 бараатай demo маркет`,
+        description: `${config.type} - 50 бараатай онлайн дэлгүүр`,
         isActive: true,
       },
     });
@@ -63,8 +167,8 @@ async function main() {
       update: {
         name: "Үндсэн салбар",
         address: config.address,
-        latitude: 47.91 + storeIndex * 0.003,
-        longitude: 106.9 + storeIndex * 0.004,
+        latitude: config.latitude,
+        longitude: config.longitude,
       },
       create: {
         id: `${config.slug}-main-branch`,
@@ -72,8 +176,8 @@ async function main() {
         storeId: store.id,
         name: "Үндсэн салбар",
         address: config.address,
-        latitude: 47.91 + storeIndex * 0.003,
-        longitude: 106.9 + storeIndex * 0.004,
+        latitude: config.latitude,
+        longitude: config.longitude,
       },
     });
 
@@ -103,24 +207,25 @@ async function main() {
       },
     });
 
-    for (let index = 0; index < 100; index += 1) {
-      const sku = `${config.slug.toUpperCase().slice(0, 4)}-${String(index + 1).padStart(3, "0")}`;
-      const name = productName(config, index);
+    for (let index = 0; index < productsPerStore; index += 1) {
+      const { name } = productTemplate(config, index);
+      const productId = `${config.slug}-product-${index + 1}`;
+      const sku = `${config.slug.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8)}-${String(index + 1).padStart(3, "0")}`;
       const product = await prisma.product.upsert({
-        where: { id: `${config.slug}-product-${index + 1}` },
+        where: { id: productId },
         update: {
           name,
-          description: `${config.name} маркетийн ${config.type.toLowerCase()} бараа.`,
+          description: `${config.name} дэлгүүрийн ${config.type.toLowerCase()} ангиллын бараа.`,
           categoryId: category.id,
           isActive: true,
         },
         create: {
-          id: `${config.slug}-product-${index + 1}`,
+          id: productId,
           tenantId: tenant.id,
           storeId: store.id,
           categoryId: category.id,
           name,
-          description: `${config.name} маркетийн ${config.type.toLowerCase()} бараа.`,
+          description: `${config.name} дэлгүүрийн ${config.type.toLowerCase()} ангиллын бараа.`,
           isActive: true,
         },
       });
@@ -129,15 +234,15 @@ async function main() {
         where: { productId_sku: { productId: product.id, sku } },
         update: {
           name,
-          priceMnt: BigInt(2500 + (index + 1) * 450 + storeIndex * 900),
-          weightGrams: 250 + (index % 12) * 180,
+          priceMnt: BigInt(1800 + (index + 1) * 390 + storeIndex * 250),
+          weightGrams: 180 + (index % 14) * 160,
         },
         create: {
           productId: product.id,
           sku,
           name,
-          priceMnt: BigInt(2500 + (index + 1) * 450 + storeIndex * 900),
-          weightGrams: 250 + (index % 12) * 180,
+          priceMnt: BigInt(1800 + (index + 1) * 390 + storeIndex * 250),
+          weightGrams: 180 + (index % 14) * 160,
         },
       });
 
@@ -153,18 +258,18 @@ async function main() {
 
       await prisma.inventoryItem.upsert({
         where: { warehouseId_variantId: { warehouseId: warehouse.id, variantId: variant.id } },
-        update: { quantity: 35 + (index % 60), reserved: index % 5 },
+        update: { quantity: 30 + (index % 70), reserved: index % 4 },
         create: {
           warehouseId: warehouse.id,
           variantId: variant.id,
-          quantity: 35 + (index % 60),
-          reserved: index % 5,
+          quantity: 30 + (index % 70),
+          reserved: index % 4,
         },
       });
     }
   }
 
-  console.log(`Seeded ${storeConfigs.length} stores and ${storeConfigs.length * 100} products.`);
+  console.log(`Seeded ${storeConfigs.length} stores and ${storeConfigs.length * productsPerStore} products.`);
 }
 
 main()

@@ -428,7 +428,7 @@ export async function listCustomerStores(userId, input = {}) {
 
   const search = String(input.search ?? "").trim();
   const page = Math.max(1, Number.parseInt(String(input.page ?? "1"), 10) || 1);
-  const pageSize = Math.min(24, Math.max(4, Number.parseInt(String(input.pageSize ?? "6"), 10) || 6));
+  const pageSize = Math.min(50, Math.max(4, Number.parseInt(String(input.pageSize ?? "50"), 10) || 50));
   const where = {
     isActive: true,
     ...(search
@@ -455,7 +455,7 @@ export async function listCustomerStores(userId, input = {}) {
         branches: { take: 1 },
         products: {
           where: { isActive: true },
-          take: 6,
+          take: 50,
           include: {
             category: true,
             variants: { take: 1 },
