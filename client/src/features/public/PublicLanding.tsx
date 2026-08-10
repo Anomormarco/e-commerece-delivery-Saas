@@ -141,85 +141,19 @@ function storeBrandFor(name: string) {
     ?? { logoUrl: "", initials: name.trim().slice(0, 2).toUpperCase() || "DH" };
 }
 
-const productImages = [
-  {
-    match: ["будаа", "rice"],
-    url: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    match: ["мах", "meat", "beef"],
-    url: "https://images.unsplash.com/photo-1603048297172-c92544798d5a?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    match: ["талх", "bread", "bakery"],
-    url: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    match: ["сүү", "milk", "dairy"],
-    url: "https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    match: ["хүнс", "grocery", "food"],
-    url: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    match: ["эм", "pharma", "medicine"],
-    url: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    match: ["кофе", "coffee"],
-    url: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    match: ["гоо", "beauty", "cosmetic"],
-    url: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    match: ["ном", "book"],
-    url: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=80",
-  },
-  {
-    match: ["спорт", "sport"],
-    url: "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=800&q=80",
-  },
-];
-
 function productImageFor(product: Pick<Product, "name" | "category" | "imageUrl">) {
   if (product.imageUrl) return product.imageUrl;
-  const searchable = `${product.name} ${product.category}`.toLowerCase();
-  return productImages.find((image) => image.match.some((keyword) => searchable.includes(keyword)))?.url
-    ?? productIllustrationFor(product);
+  return productPhotoUrl(keywordForProduct(product), product.name);
 }
 
-function productIllustrationFor(product: Pick<Product, "name" | "category">) {
-  const paletteByCategory: Record<string, [string, string, string]> = {
-    "Хүнс": ["#16a34a", "#dcfce7", "#f97316"],
-    "24/7 дэлгүүр": ["#2563eb", "#dbeafe", "#facc15"],
-    "Гэр ахуй": ["#0f766e", "#ccfbf1", "#f8fafc"],
-    "Цахилгаан бараа": ["#4f46e5", "#e0e7ff", "#22d3ee"],
-    "Эмийн сан": ["#dc2626", "#fee2e2", "#ffffff"],
-    "Гоо сайхан": ["#be185d", "#fce7f3", "#f9a8d4"],
-    "Ном, бичиг хэрэг": ["#7c2d12", "#ffedd5", "#f97316"],
-    "Спорт бараа": ["#15803d", "#dcfce7", "#84cc16"],
-    "Хүүхдийн бараа": ["#7c3aed", "#ede9fe", "#facc15"],
-    "Амьтны бараа": ["#92400e", "#fef3c7", "#f59e0b"],
-  };
-  const [primary, surface, accent] = paletteByCategory[product.category] ?? ["#0f172a", "#e2e8f0", "#f97316"];
-  const seed = Array.from(product.name).reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const angle = (seed % 28) - 14;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="650" viewBox="0 0 900 650">
-    <rect width="900" height="650" rx="48" fill="${surface}"/>
-    <circle cx="720" cy="126" r="96" fill="${accent}" opacity=".22"/>
-    <circle cx="168" cy="510" r="118" fill="${primary}" opacity=".13"/>
-    <g transform="translate(450 326) rotate(${angle})">
-      <rect x="-168" y="-132" width="336" height="264" rx="34" fill="#fff" stroke="${primary}" stroke-width="18"/>
-      <rect x="-112" y="-88" width="224" height="176" rx="26" fill="${primary}" opacity=".88"/>
-      <circle cx="-54" cy="-28" r="30" fill="${surface}"/>
-      <circle cx="46" cy="18" r="44" fill="${accent}"/>
-      <rect x="-96" y="68" width="192" height="22" rx="11" fill="${surface}"/>
-    </g>
-  </svg>`;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+function productPhotoUrl(keyword: string, seed: string) {
+  const query = encodeURIComponent(`${keyword} product photo ${seed}`);
+  return `https://tse4.mm.bing.net/th?q=${query}&w=900&h=650&c=7&rs=1&p=0`;
+}
+
+function productPlaceholderUrl(product: Pick<Product, "name" | "category">) {
+  const label = encodeURIComponent(product.name.replace(/\s+/g, " ").trim());
+  return `https://placehold.co/900x650/png?text=${label}`;
 }
 
 const marketTemplates = [
@@ -234,6 +168,28 @@ const marketTemplates = [
   { category: "Хүүхдийн бараа", stores: ["Baby World", "Kids Planet", "Toy Land", "Little Star", "Mother Care"], products: [["Живх", "diapers"], ["Baby wipes", "baby wipes"], ["Угж", "baby bottle"], ["Хүүхдийн тоглоом", "baby toys"], ["Puzzle", "kids puzzle"], ["Lego set", "building blocks"], ["Хүүхдийн хувцас", "baby clothes"], ["Тэрэг", "baby stroller"], ["Зөөлөн тоглоом", "plush toy"], ["Сүүн тэжээл", "baby formula"]] },
   { category: "Амьтны бараа", stores: ["Pet Care", "Happy Pet", "Dog & Cat", "Pet Food Market", "Animal House"], products: [["Нохойн хоол", "dog food"], ["Муурын хоол", "cat food"], ["Амьтны тоглоом", "pet toys"], ["Оосор", "dog leash"], ["Муурын элс", "cat litter"], ["Амьтны шампунь", "pet shampoo"], ["Үүр", "pet bed"], ["Аквариум", "aquarium"], ["Загасны хоол", "fish food"], ["Тэжээлийн аяга", "pet bowl"]] },
 ];
+
+function keywordForProduct(product: Pick<Product, "name" | "category">) {
+  const searchable = `${product.name} ${product.category}`.toLowerCase();
+  const matchedProduct = marketTemplates
+    .flatMap((template) => template.products)
+    .find(([baseName, keyword]) => searchable.includes(baseName.toLowerCase()) || searchable.includes(keyword.toLowerCase()));
+  if (matchedProduct) return matchedProduct[1];
+
+  const categoryKeywords: Record<string, string> = {
+    "Хүнс": "grocery product",
+    "24/7 дэлгүүр": "convenience store food",
+    "Гэр ахуй": "household product",
+    "Цахилгаан бараа": "electronics product",
+    "Эмийн сан": "pharmacy product",
+    "Гоо сайхан": "beauty product",
+    "Ном, бичиг хэрэг": "books stationery",
+    "Спорт бараа": "sports gear",
+    "Хүүхдийн бараа": "baby product",
+    "Амьтны бараа": "pet product",
+  };
+  return categoryKeywords[product.category] ?? "product";
+}
 
 function productNameVariant(category: string, baseName: string, index: number) {
   const variantsByCategory: Record<string, string[]> = {
@@ -257,7 +213,7 @@ function buildDemoMarketStores(): StoreDirectoryItem[] {
     template.stores.map((storeName, storeIndex) => {
       const id = `demo-${templateIndex + 1}-${storeIndex + 1}`;
       const products = Array.from({ length: 50 }, (_, index) => {
-        const [baseName] = template.products[index % template.products.length];
+        const [baseName, keyword] = template.products[index % template.products.length];
         const name = productNameVariant(template.category, baseName, index);
         return {
           id: `${id}-product-${index + 1}`,
@@ -265,7 +221,7 @@ function buildDemoMarketStores(): StoreDirectoryItem[] {
           category: template.category,
           priceMnt: String(1800 + (index + 1) * 420 + templateIndex * 500 + storeIndex * 300),
           weightGrams: 180 + (index % 12) * 150,
-          imageUrl: productIllustrationFor({ name, category: template.category }),
+          imageUrl: productPhotoUrl(keyword, `${id}-${index + 1}`),
         };
       });
 
@@ -672,7 +628,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           weightGrams: product.weightGrams,
           stockCount: 100,
           description: `${store.name} - ${product.category.toLowerCase()} ангилал.`,
-          imageUrl: product.imageUrl ?? "",
+          imageUrl: productPhotoUrl(keywordForProduct(product), product.id),
           storeId: store.id,
           storeName: store.name,
         })).filter((product) => (
@@ -1313,7 +1269,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                             alt={product.name}
                             src={productImageFor(product)}
                             onError={(event) => {
-                              event.currentTarget.src = productIllustrationFor(product);
+                              event.currentTarget.src = productPlaceholderUrl(product);
                             }}
                           />
                           <span>{product.category}</span>

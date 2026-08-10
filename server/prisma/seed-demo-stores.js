@@ -142,24 +142,9 @@ function productTemplate(store, index) {
 }
 
 function productImage(store, index) {
-  const { name } = productTemplate(store, index);
-  const paletteByCategory = {
-    "Хүнс": ["#16a34a", "#dcfce7", "#f97316"],
-    "24/7 дэлгүүр": ["#2563eb", "#dbeafe", "#facc15"],
-    "Гэр ахуй": ["#0f766e", "#ccfbf1", "#f8fafc"],
-    "Цахилгаан бараа": ["#4f46e5", "#e0e7ff", "#22d3ee"],
-    "Эмийн сан": ["#dc2626", "#fee2e2", "#ffffff"],
-    "Гоо сайхан": ["#be185d", "#fce7f3", "#f9a8d4"],
-    "Ном, бичиг хэрэг": ["#7c2d12", "#ffedd5", "#f97316"],
-    "Спорт бараа": ["#15803d", "#dcfce7", "#84cc16"],
-    "Хүүхдийн бараа": ["#7c3aed", "#ede9fe", "#facc15"],
-    "Амьтны бараа": ["#92400e", "#fef3c7", "#f59e0b"],
-  };
-  const [primary, surface, accent] = paletteByCategory[store.type] ?? ["#0f172a", "#e2e8f0", "#f97316"];
-  const seed = Array.from(name).reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  const angle = (seed % 28) - 14;
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="650" viewBox="0 0 900 650"><rect width="900" height="650" rx="48" fill="${surface}"/><circle cx="720" cy="126" r="96" fill="${accent}" opacity=".22"/><circle cx="168" cy="510" r="118" fill="${primary}" opacity=".13"/><g transform="translate(450 326) rotate(${angle})"><rect x="-168" y="-132" width="336" height="264" rx="34" fill="#fff" stroke="${primary}" stroke-width="18"/><rect x="-112" y="-88" width="224" height="176" rx="26" fill="${primary}" opacity=".88"/><circle cx="-54" cy="-28" r="30" fill="${surface}"/><circle cx="46" cy="18" r="44" fill="${accent}"/><rect x="-96" y="68" width="192" height="22" rx="11" fill="${surface}"/></g></svg>`;
-  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  const { keyword } = productTemplate(store, index);
+  const query = encodeURIComponent(`${keyword} product photo ${store.slug}-${index + 1}`);
+  return `https://tse4.mm.bing.net/th?q=${query}&w=900&h=650&c=7&rs=1&p=0`;
 }
 
 async function main() {
