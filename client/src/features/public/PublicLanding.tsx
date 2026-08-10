@@ -138,6 +138,56 @@ function storeBrandFor(name: string) {
     ?? { logoUrl: "", initials: name.trim().slice(0, 2).toUpperCase() || "DH" };
 }
 
+const productImages = [
+  {
+    match: ["будаа", "rice"],
+    url: "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    match: ["мах", "meat", "beef"],
+    url: "https://images.unsplash.com/photo-1603048297172-c92544798d5a?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    match: ["талх", "bread", "bakery"],
+    url: "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    match: ["сүү", "milk", "dairy"],
+    url: "https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    match: ["хүнс", "grocery", "food"],
+    url: "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    match: ["эм", "pharma", "medicine"],
+    url: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    match: ["кофе", "coffee"],
+    url: "https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    match: ["гоо", "beauty", "cosmetic"],
+    url: "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    match: ["ном", "book"],
+    url: "https://images.unsplash.com/photo-1512820790803-83ca734da794?auto=format&fit=crop&w=800&q=80",
+  },
+  {
+    match: ["спорт", "sport"],
+    url: "https://images.unsplash.com/photo-1517649763962-0c623066013b?auto=format&fit=crop&w=800&q=80",
+  },
+];
+
+function productImageFor(product: Pick<Product, "name" | "category" | "imageUrl">) {
+  if (product.imageUrl) return product.imageUrl;
+  const searchable = `${product.name} ${product.category}`.toLowerCase();
+  return productImages.find((image) => image.match.some((keyword) => searchable.includes(keyword)))?.url
+    ?? "https://images.unsplash.com/photo-1601593768798-4b7e50ad14c8?auto=format&fit=crop&w=800&q=80";
+}
+
 const initialProducts: Product[] = [
   {
     id: "rice-5kg",
@@ -974,7 +1024,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                 <div className="landing-cart-items">
                   {selectedItems.map((item) => (
                     <article key={item.id}>
-                      {"imageUrl" in item && item.imageUrl ? <img alt={item.name} src={item.imageUrl} /> : <span aria-hidden="true">{item.name.slice(0, 1)}</span>}
+                      <img alt={item.name} src={productImageFor(item)} />
                       <div>
                         <strong>{item.name}</strong>
                         <small>{formatMnt(item.priceMnt)} · {item.quantity} ш</small>
@@ -1033,7 +1083,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               <div className="landing-cart-items">
                 {wishlistItems.map((item) => (
                   <article key={item.id}>
-                    {item.imageUrl ? <img alt={item.name} src={item.imageUrl} /> : <span aria-hidden="true">{item.name.slice(0, 1)}</span>}
+                    <img alt={item.name} src={productImageFor(item)} />
                     <div>
                       <strong>{item.name}</strong>
                       <small>{item.category} · {formatMnt(item.priceMnt)}</small>
@@ -1156,13 +1206,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                   >
                     {wishlist.includes(product.id) ? "♥" : "♡"}
                   </button>
-                  {"imageUrl" in product && product.imageUrl ? (
-                    <img alt={product.name} src={product.imageUrl} />
-                  ) : (
-                    <div className="landing-product-image-fallback" aria-hidden="true">
-                      <span>{product.name.slice(0, 1)}</span>
-                    </div>
-                  )}
+                  <img alt={product.name} src={productImageFor(product)} />
                   <span>{product.category}</span>
                   <h3>{product.name}</h3>
                   <p>{product.description}</p>
