@@ -3821,21 +3821,21 @@ h3 {
 }
 
 .market-page .landing-product-grid {
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px;
   overflow: visible;
 }
 
 .market-page .landing-product-grid article {
   position: relative;
   display: grid;
-  grid-template-rows: 178px auto auto auto 1fr;
-  gap: 8px;
-  min-height: 390px;
+  grid-template-rows: 142px auto auto auto 1fr;
+  gap: 7px;
+  min-height: 330px;
   overflow: hidden;
   border: 1px solid rgba(86, 111, 143, 0.38);
-  border-radius: 18px;
-  padding: 0 14px 16px;
+  border-radius: 16px;
+  padding: 0 12px 14px;
   background: linear-gradient(180deg, #172336 0%, #142033 100%);
   box-shadow: 0 14px 32px rgba(7, 12, 20, 0.24);
 }
@@ -3843,9 +3843,9 @@ h3 {
 .market-page .landing-product-grid article > img,
 .market-page .landing-product-image-fallback {
   width: 100%;
-  height: 178px;
-  margin: 0 -14px;
-  width: calc(100% + 28px);
+  height: 142px;
+  margin: 0 -12px;
+  width: calc(100% + 24px);
   border-radius: 0;
   object-fit: cover;
   background: #e8edf5;
@@ -3872,10 +3872,10 @@ h3 {
 .market-page .landing-product-grid article > span {
   width: fit-content;
   border-radius: 999px;
-  padding: 4px 8px;
+  padding: 3px 7px;
   background: rgba(226, 232, 240, 0.16);
   color: #f8fafc;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 900;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -3883,7 +3883,7 @@ h3 {
 
 .market-page .landing-product-grid h3 {
   color: #ffffff;
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.22;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.28);
 }
@@ -3892,7 +3892,7 @@ h3 {
   position: relative;
   width: fit-content;
   color: #ffffff;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 950;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.26);
 }
@@ -3901,8 +3901,8 @@ h3 {
   content: "";
   position: absolute;
   left: 0;
-  bottom: -7px;
-  width: 24px;
+  bottom: -6px;
+  width: 22px;
   height: 3px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.78);
@@ -3916,7 +3916,7 @@ h3 {
   display: grid;
   grid-template-columns: minmax(0, auto) 1fr;
   align-items: center;
-  gap: 9px 8px;
+  gap: 8px 7px;
   width: 100%;
   min-width: 0;
   align-self: end;
@@ -3925,11 +3925,11 @@ h3 {
 
 .market-page .landing-product-stepper {
   display: none;
-  grid-template-columns: 30px 28px 30px;
+  grid-template-columns: 26px 24px 26px;
   align-items: center;
   justify-content: start;
   width: fit-content;
-  padding: 4px;
+  padding: 3px;
   border-radius: 999px;
   background: rgba(226, 232, 240, 0.14);
   border: 1px solid rgba(226, 232, 240, 0.12);
@@ -3941,19 +3941,19 @@ h3 {
 
 .market-page .landing-product-grid .landing-product-qty {
   min-width: 0;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   border: 0;
   border-radius: 999px;
   background: rgba(226, 232, 240, 0.18);
   color: white;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 950;
 }
 
 .market-page .landing-product-grid .landing-product-stepper b {
   color: white;
-  font-size: 13px;
+  font-size: 12px;
   text-align: center;
 }
 
@@ -3962,16 +3962,16 @@ h3 {
   align-items: center;
   justify-content: center;
   width: fit-content;
-  min-width: 132px;
-  height: 38px;
-  padding: 0 14px;
+  min-width: 112px;
+  height: 34px;
+  padding: 0 12px;
   border: 0;
   border-radius: 999px;
   background: linear-gradient(135deg, #ff9800, #ff6a00);
   color: white;
   box-shadow: 0 12px 26px rgba(249, 115, 22, 0.24);
   overflow: hidden;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 950;
 }
 
@@ -3984,7 +3984,7 @@ h3 {
 
 .market-page .landing-product-cart-count {
   color: #e8eef8;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 850;
   white-space: nowrap;
 }
@@ -3995,24 +3995,24 @@ h3 {
   align-items: center;
   justify-content: center;
   width: fit-content;
-  min-width: 116px;
-  height: 38px;
+  min-width: 96px;
+  height: 34px;
   border: 0;
   border-radius: 999px;
   background: #f8fafc;
   color: #07152a;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 950;
 }
 
 .market-page .landing-product-grid .landing-product-wish {
   position: absolute;
-  top: 12px;
-  right: 12px;
+  top: 10px;
+  right: 10px;
   z-index: 2;
   display: grid;
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   place-items: center;
   border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 999px;
@@ -4025,8 +4025,8 @@ h3 {
 .market-page .landing-product-grid .landing-product-wish span {
   position: relative;
   display: block;
-  width: 12px;
-  height: 17px;
+  width: 10px;
+  height: 14px;
   border: 2px solid currentColor;
   border-bottom: 0;
   border-radius: 3px 3px 0 0;
@@ -4036,9 +4036,9 @@ h3 {
   content: "";
   position: absolute;
   left: 50%;
-  bottom: -6px;
-  width: 9px;
-  height: 9px;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
   border-right: 2px solid currentColor;
   border-bottom: 2px solid currentColor;
   background: inherit;
@@ -4143,25 +4143,28 @@ h3 {
 
 .market-store-feed {
   display: grid;
-  gap: 22px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+  gap: 28px;
 }
 
 .market-store-section {
   display: grid;
-  gap: 14px;
+  min-width: 0;
+  gap: 12px;
   border: 1px solid #243044;
-  border-radius: 24px;
-  padding: 16px;
+  border-radius: 20px;
+  padding: 14px;
   background: #111827;
 }
 
 .market-store-section > header {
   display: grid;
-  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-columns: 44px minmax(0, 1fr);
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   border-bottom: 1px solid #243044;
-  padding-bottom: 14px;
+  padding-bottom: 12px;
 }
 
 .market-store-section > header div {
@@ -4174,7 +4177,7 @@ h3 {
 .market-store-section > header small {
   overflow: hidden;
   color: #9db6d8;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 850;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -4183,7 +4186,7 @@ h3 {
 .market-store-section > header strong {
   overflow: hidden;
   color: white;
-  font-size: 20px;
+  font-size: 17px;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -11970,6 +11973,11 @@ h2 {
   .market-page .landing-product-grid {
     grid-template-columns: 1fr;
     overflow: visible;
+  }
+
+  .market-store-feed {
+    grid-template-columns: 1fr;
+    gap: 18px;
   }
 
   .landing-location-box {
