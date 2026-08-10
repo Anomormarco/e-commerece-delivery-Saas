@@ -251,7 +251,7 @@ const initialProducts: Product[] = [
     priceMnt: 28000,
     weightGrams: 5000,
     stockCount: 45,
-    description: "Өдөр тутмын хэрэглээгээ хурдан, найдвартай хүргүүлээрэй.",
+    description: "Хэрэгтэй бараагаа хурдан, найдвартай хүргүүлээрэй.",
   },
   {
     id: "meat-1kg",
@@ -288,7 +288,7 @@ const initialProducts: Product[] = [
 const deliveryOptions: Array<{ id: DeliveryType; label: string; copy: string; base: number; perKm: number; perKg: number; speedKmh: number }> = [
   { id: "bike", label: "Мопед/дугуй", copy: "Хамгийн хурдан сонголт", base: 2500, perKm: 900, perKg: 140, speedKmh: 18 },
   { id: "car", label: "Машин", copy: "Том захиалгад найдвартай", base: 4200, perKm: 1200, perKg: 110, speedKmh: 28 },
-  { id: "foot", label: "Явган", copy: "Ойрын хүргэлтэд хэмнэлттэй", base: 1800, perKm: 700, perKg: 180, speedKmh: 4 },
+  { id: "foot", label: "Явган", copy: "Ойрын хүргэлтэд тохиромжтой", base: 1800, perKm: 700, perKg: 180, speedKmh: 4 },
 ];
 
 const copies = [
@@ -337,6 +337,7 @@ function cleanProductName(value: string) {
   return fixMojibake(value)
     .replace(/\b(premium)\b/gi, "")
     .replace(/(^|\s)(премиум)(?=\s|$)/gi, " ")
+    .replace(/(^|\s)(гэр бүлийн|өдөр тутмын|өдрийн|органик|хэмнэлттэй)(?=\s|$)/gi, " ")
     .replace(/\s+(шинэ|шинэхэн|shine|new)$/i, "")
     .replace(/\s{2,}/g, " ")
     .trim();
@@ -755,6 +756,15 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       const maxQuantity = product?.stockCount ?? 0;
       const nextQuantity = Math.min(maxQuantity, Math.max(0, (current[productId] ?? 0) + delta));
       return { ...current, [productId]: nextQuantity };
+    });
+  }
+
+  function addProductToCart(productId: string) {
+    setCart((current) => {
+      const product = allMarketProducts.find((item) => item.id === productId);
+      const maxQuantity = product?.stockCount ?? 0;
+      if (maxQuantity <= 0) return current;
+      return { ...current, [productId]: Math.max(1, current[productId] ?? 0) };
     });
   }
 
@@ -1312,7 +1322,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                             <button className="landing-product-qty" onClick={() => updateCart(product.id, 1)} type="button" disabled={product.stockCount <= 0}>+</button>
                             <button
                               className="landing-product-add"
-                              onClick={() => updateCart(product.id, 1)}
+                              onClick={() => addProductToCart(product.id)}
                               type="button"
                               disabled={product.stockCount <= 0}
                               aria-label={`${product.name} сагсанд нэмэх`}
