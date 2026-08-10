@@ -1158,44 +1158,56 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               </div>
             ) : selectedItems.length ? (
               <>
-                <div className="landing-cart-items">
-                  {selectedItems.map((item) => (
-                    <article key={item.id}>
-                      <img alt={item.name} src={productImageFor(item)} />
-                      <div>
-                        <strong>{item.name}</strong>
-                        <small>{formatMnt(item.priceMnt)} · {item.quantity} ш</small>
-                      </div>
-                      <div className="landing-cart-stepper">
-                        <button onClick={() => updateCart(item.id, -1)} type="button" aria-label="Хасах">−</button>
-                        <b>{item.quantity}</b>
-                        <button onClick={() => updateCart(item.id, 1)} type="button" aria-label="Нэмэх">+</button>
-                      </div>
-                    </article>
-                  ))}
-                </div>
+                <div className="landing-cart-checkout">
+                  <div className="landing-cart-items">
+                    {selectedItems.map((item) => (
+                      <article key={item.id}>
+                        <img alt={item.name} src={productImageFor(item)} />
+                        <div>
+                          <small>{item.category}</small>
+                          <strong>{item.name}</strong>
+                          <small>{formatMnt(item.priceMnt)} · {item.quantity} ш</small>
+                        </div>
+                        <div className="landing-cart-stepper">
+                          <button onClick={() => updateCart(item.id, -1)} type="button" aria-label="Хасах">−</button>
+                          <b>{item.quantity}</b>
+                          <button onClick={() => updateCart(item.id, 1)} type="button" aria-label="Нэмэх">+</button>
+                        </div>
+                        <div className="landing-cart-line-total">
+                          <span>Нийт үнэ</span>
+                          <strong>{formatMnt(item.priceMnt * item.quantity)}</strong>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
 
-                <div className="landing-cart-totals">
-                  <span><em>Барааны дүн</em><strong>{formatMnt(subtotal)}</strong></span>
-                  <span><em>Хүргэлт</em><strong>{formatMnt(deliveryFee)}</strong></span>
-                  <span><em>Нийт</em><strong>{formatMnt(subtotal + deliveryFee)}</strong></span>
-                </div>
+                  <aside className="landing-cart-summary">
+                    <h2>Төлбөрийн хэсэг</h2>
+                    <div className="landing-cart-totals">
+                      <span><em>Барааны тоо</em><strong>{cartItemCount}</strong></span>
+                      <span><em>Барааны дүн</em><strong>{formatMnt(subtotal)}</strong></span>
+                      <span><em>Хүргэлт</em><strong>{formatMnt(deliveryFee)}</strong></span>
+                      <span><em>Нийт төлөх дүн</em><strong>{formatMnt(subtotal + deliveryFee)}</strong></span>
+                    </div>
 
-                <div className="landing-payment-methods" aria-label="Төлбөрийн арга">
-                  <button className={paymentMethod === "qpay" ? "active" : ""} onClick={() => setPaymentMethod("qpay")} type="button">
-                    <span>QR</span>
-                    <strong>QPay</strong>
-                  </button>
-                  <button className={paymentMethod === "stripe" ? "active" : ""} onClick={() => setPaymentMethod("stripe")} type="button">
-                    <span>Card</span>
-                    <strong>Stripe</strong>
-                  </button>
-                </div>
+                    <div className="landing-payment-methods" aria-label="Төлбөрийн арга">
+                      <button className={paymentMethod === "qpay" ? "active" : ""} onClick={() => setPaymentMethod("qpay")} type="button">
+                        <span>QR</span>
+                        <strong>QPay</strong>
+                      </button>
+                      <button className={paymentMethod === "stripe" ? "active" : ""} onClick={() => setPaymentMethod("stripe")} type="button">
+                        <span>Card</span>
+                        <strong>Stripe</strong>
+                      </button>
+                    </div>
 
-                <footer>
-                  <button onClick={() => setCart({})} type="button">Цэвэрлэх</button>
-                  <button onClick={checkoutOrder} type="button">{paymentMethod === "stripe" ? "Картаар баталгаажуулах" : "QPay-ээр захиалах"}</button>
-                </footer>
+                    <p>Захиалга баталгаажих үед дэлгүүрт мэдэгдэл очиж, хүргэлтийн явц идэвхжинэ.</p>
+                    <footer>
+                      <button onClick={() => setCart({})} type="button">Цэвэрлэх</button>
+                      <button onClick={checkoutOrder} type="button">{paymentMethod === "stripe" ? "Картаар баталгаажуулах" : "QPay-ээр захиалах"}</button>
+                    </footer>
+                  </aside>
+                </div>
               </>
             ) : (
               <div className="landing-cart-empty">
