@@ -1538,7 +1538,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         ))}
         <div className="landing-hero-shade" />
         <div className="landing-hero-copy">
-          <h1>Монгол дахь албан ёсны чөлөөт хүргэлтийн нэгдсэн платформ</h1>
+          <h1>Монголын албан ёсны цахим худалдаа, чөлөөт хүргэлтийн нэгдсэн платформ</h1>
         </div>
       </section>
 
