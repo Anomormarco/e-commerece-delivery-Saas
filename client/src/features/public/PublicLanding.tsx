@@ -1194,13 +1194,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         ) : (
           <button className="landing-login-button" onClick={() => setAuthOpen(true)} type="button">Нэвтрэх</button>
         )}
+      </nav>
 
-        {cartOpen ? (
-          <div className="landing-cart-backdrop" aria-hidden="true" onClick={() => setCartOpen(false)} />
-        ) : null}
+      {cartOpen ? (
+        <div className="landing-cart-backdrop" aria-hidden="true" onClick={() => setCartOpen(false)} />
+      ) : null}
 
-        {cartOpen ? (
-          <section className="landing-cart-popover" aria-label="Сагс" aria-modal="true" ref={cartPanelRef} role="dialog" tabIndex={-1}>
+      {cartOpen ? (
+        <section className="landing-cart-popover" aria-label="Сагс" aria-modal="true" ref={cartPanelRef} role="dialog" tabIndex={-1}>
             <header>
               <div>
                 <span>Миний сагс</span>
@@ -1276,11 +1277,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                 <button onClick={openMarket} type="button">Захиалж эхлэх</button>
               </div>
             )}
-          </section>
-        ) : null}
+        </section>
+      ) : null}
 
-        {wishlistOpen ? (
-          <section className="landing-cart-popover landing-wishlist-popover" aria-label="Wishlist">
+      {wishlistOpen ? (
+        <section className="landing-cart-popover landing-wishlist-popover" aria-label="Wishlist">
             <header>
               <div>
                 <span>Сонгосон бараа</span>
@@ -1311,9 +1312,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                 <button onClick={openMarket} type="button">Сонголт хийх</button>
               </div>
             )}
-          </section>
-        ) : null}
-      </nav>
+        </section>
+      ) : null}
 
       {section === "market" ? (
       <div className="landing-shop-panel market-page is-open">
@@ -1617,7 +1617,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           <h1>Монголын албан ёсны цахим худалдаа, чөлөөт хүргэлтийн нэгдсэн платформ</h1>
         </div>
         <div className="landing-hero-footer-text">
-          <span>Гэртээ захиалаад хүргүүлээд аваарай</span>
+          <span>Хүссэнээ захиалаад, гэртээ хүргүүлэн аваарай</span>
         </div>
       </section>
 
