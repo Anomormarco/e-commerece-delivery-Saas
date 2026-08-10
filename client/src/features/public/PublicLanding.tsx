@@ -1302,7 +1302,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           />
                           <span>{product.category}</span>
                           <h3>{product.name}</h3>
-                          <p>{product.description}</p>
                           <strong>{formatMnt(product.priceMnt)}</strong>
                           <em className={product.stockCount <= 0 ? "is-empty" : product.stockCount <= 12 ? "is-low" : ""}>
                             Үлдэгдэл: {product.stockCount} ш
