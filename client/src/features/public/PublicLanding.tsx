@@ -160,24 +160,24 @@ const deliveryOptions: Array<{ id: DeliveryType; label: string; copy: string; ba
 
 const copies = [
   {
-    kicker: "01 - ХУРДАН ХҮРГЭЛТ",
-    title: "DeliverHub-ийг сонгоод хотын хамгийн ойрын маркетийг гэртээ авчраарай.",
-    body: "Захиалга бүр ил тод явцтай, courier-ийн байршил бодит хугацаанд харагдаж, хүлээлт багасна.",
+    kicker: "ХУРДАН",
+    title: "Маркет гэрт тань.",
+    body: "",
   },
   {
-    kicker: "02 - УХААЛАГ ЗАХИАЛГА",
-    title: "Бараагаа сонго, хүргэлтээ тохируул, үлдсэнийг DeliverHub даана.",
-    body: "Үнэ, зай, хугацаа бүгд урьдчилж тооцогдоно. Хэрэглэгч илүү итгэлтэй, бизнес илүү хурдан борлуулна.",
+    kicker: "АМАР",
+    title: "Сонгоод захиал.",
+    body: "",
   },
   {
-    kicker: "03 - ИЛ ТОД ЯВЦ",
-    title: "Захиалга хаана явааг асуух шаардлагагүй.",
-    body: "Баталгаажсан мөчөөс амжилттай хүргэгдэх хүртэл бүх төлөв нэг дэлгэц дээр шинэчлэгдэнэ.",
+    kicker: "ИЛ ТОД",
+    title: "Явцаа шууд хар.",
+    body: "",
   },
   {
-    kicker: "04 - БИЗНЕСИЙН ӨСӨЛТ",
-    title: "Дэлгүүр, хүргэлт, хэрэглэгчийг нэг платформ дээр холбо.",
-    body: "DeliverHub таны борлуулалтын урсгалыг цэгцэлж, захиалга бүрийг илүү хурдан хаахад тусална.",
+    kicker: "ӨСӨЛТ",
+    title: "Бизнесээ өсгө.",
+    body: "",
   },
 ];
 
@@ -1020,7 +1020,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       <div className="landing-shop-panel market-page is-open">
         <header className="market-top-header">
           <div>
-            <h2>Ойрын маркетуудаас шууд захиалаарай</h2>
+            <h2>Маркет таны гарт</h2>
           </div>
           <label>
             <span>⌕</span>
@@ -1146,13 +1146,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           <div className="landing-partner-copy">
             <div>
               <span>БИЗНЕСИЙН ТҮНШЛЭЛ</span>
-              <h2>Дэлгүүрээ DeliverHub-д нэмээд шинэ хэрэглэгчдэд өнөөдөр хүр.</h2>
-              <p>Бараа, захиалга, хүргэлт, орлого нэг урсгалд орж, таны дэлгүүр marketplace дээр шууд борлуулалт авах боломжтой болно.</p>
+              <h2>Дэлгүүрээ онлайн болго</h2>
+              <p>Захиалга, хүргэлт, орлого нэг дор.</p>
             </div>
             <div className="landing-partner-metrics">
-              <article><strong>01</strong><small>Таны дэлгүүр ойрын хэрэглэгчдийн хайлтанд илүү хурдан гарна.</small></article>
-              <article><strong>02</strong><small>Захиалга ормогц хүргэлт, төлөв, мэдэгдэл автоматаар цэгцэрнэ.</small></article>
-              <article><strong>03</strong><small>Борлуулалт, үлдэгдэл, хүргэлтийн явцаа нэг dashboard-оос удирдана.</small></article>
+              <article><strong>01</strong><small>Хайлтад илүү хурдан гарна.</small></article>
+              <article><strong>02</strong><small>Захиалга автоматаар цэгцэрнэ.</small></article>
+              <article><strong>03</strong><small>Бүгд нэг dashboard-д.</small></article>
             </div>
           </div>
 
@@ -1278,7 +1278,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <section className="copy" data-i={index} key={copy.kicker}>
           <span>{copy.kicker}</span>
           {index === 0 ? <h1>{copy.title}</h1> : <h2>{copy.title}</h2>}
-          <p>{copy.body}</p>
+          {copy.body ? <p>{copy.body}</p> : null}
         </section>
       ))}
 
@@ -1286,18 +1286,18 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       <section className="landing-contact-dashboard" aria-label="Холбоо барих">
         <div className="landing-contact-head">
           <span>САНАЛ АВАХ</span>
-          <h2>DeliverHub таны захиалгын урсгалыг хэрхэн өсгөхийг ярилцъя.</h2>
+          <h2>Борлуулалтаа өсгөе</h2>
         </div>
         <div className="landing-contact-grid">
           <article>
             <span>Имэйл</span>
             <strong>support@deliverhub.mn</strong>
-            <p>Бизнесээ холбох, хүргэлтээ хурдлуулах, хэрэглэгчийн туршлагаа сайжруулах зөвлөгөө аваарай.</p>
+            <p>Бизнесээ холбох зөвлөгөө аваарай.</p>
           </article>
           <article>
             <span>Утас</span>
             <strong>+976 7700 1122</strong>
-            <p>Дэлгүүрийн бүртгэл, courier-ийн баг, marketplace нэвтрүүлэлтийн талаар шууд зөвлөнө.</p>
+            <p>Бүртгэл, хүргэлт, marketplace-ийн дэмжлэг.</p>
           </article>
           <form>
             <label>
@@ -1323,8 +1323,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           <header className="landing-courier-portal-head">
             <div>
               <span>COURIER БОЛОХ</span>
-              <h2>DeliverHub-ийн хүргэлтийн багт нэгдээд захиалга бүрээс орлого олоорой.</h2>
-              <p>Шинэ дуудлага, маршрут, pickup/dropoff баталгаажуулалт, realtime төлөв бүгд нэг апп дээр ажиллана.</p>
+              <h2>Courier болж орлого ол</h2>
+              <p>Дуудлага, маршрут, төлөв нэг апп дээр.</p>
             </div>
             <div className="landing-courier-auth-links">
               <a href={`${employeePortalUrl}/?mode=login`}>Ажилдаа орох</a>
@@ -1335,17 +1335,17 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             <article>
               <span>01</span>
               <strong>Илүү олон дуудлага</strong>
-              <p>Ойрын захиалгуудыг хурдан харж, өөрт тохирох хүргэлтээ сонгон ажиллаарай.</p>
+              <p>Ойрын захиалгаа сонгоод ажилла.</p>
             </article>
             <article>
               <span>02</span>
               <strong>Итгэл төрүүлэх live төлөв</strong>
-              <p>Байршил, ETA ил тод харагдсанаар хэрэглэгчийн итгэл нэмэгдэж, хүргэлт амар болдог.</p>
+              <p>Байршил, ETA ил тод.</p>
             </article>
             <article>
               <span>03</span>
               <strong>Аюулгүй баталгаажуулалт</strong>
-              <p>Pickup болон dropoff дээр кодоор баталгаажуулж, маргаан багатай найдвартай хүргэнэ.</p>
+              <p>Кодоор баталгаажуулж хүргэнэ.</p>
             </article>
           </div>
           <section className="landing-courier-status-panel">

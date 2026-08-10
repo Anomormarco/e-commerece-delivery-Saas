@@ -1212,7 +1212,7 @@ h3 {
   top: 50%;
   left: 6vw;
   z-index: 5;
-  max-width: 430px;
+  max-width: 320px;
   opacity: 0;
   pointer-events: none;
   transform: translateY(-50%);
@@ -1221,26 +1221,26 @@ h3 {
 
 .nomad-scroll-page .copy span {
   display: block;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
   color: #ff6338;
-  font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
-  letter-spacing: 0.18em;
+  font: 10px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  letter-spacing: 0.14em;
 }
 
 .nomad-scroll-page .copy h1,
 .nomad-scroll-page .copy h2 {
-  margin: 0 0 16px;
+  margin: 0 0 10px;
   color: #f3f5f7;
-  font-size: clamp(34px, 5vw, 66px);
+  font-size: clamp(24px, 3.2vw, 38px);
   font-weight: 650;
-  line-height: 1.02;
+  line-height: 1.08;
 }
 
 .nomad-scroll-page .copy p {
   margin: 0;
   color: #9aa3ad;
-  font-size: 17px;
-  line-height: 1.55;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .nomad-scroll-page #progress {
@@ -1931,13 +1931,13 @@ h3 {
 .landing-partner-copy {
   display: grid;
   align-content: center;
-  gap: clamp(24px, 4vw, 44px);
-  max-width: 720px;
+  gap: clamp(18px, 3vw, 30px);
+  max-width: 560px;
 }
 
 .landing-partner-copy > div:first-child {
   display: grid;
-  gap: 18px;
+  gap: 10px;
 }
 
 .landing-partner-copy span,
@@ -1950,20 +1950,20 @@ h3 {
 }
 
 .landing-partner-copy h2 {
-  max-width: 680px;
+  max-width: 460px;
   margin: 0;
   color: white;
-  font-size: clamp(38px, 5.2vw, 78px);
+  font-size: clamp(26px, 3.4vw, 42px);
   font-weight: 950;
-  line-height: 1.05;
+  line-height: 1.08;
 }
 
 .landing-partner-copy p {
-  max-width: 600px;
+  max-width: 420px;
   margin: 0;
   color: #a8b3c5;
-  font-size: 16px;
-  line-height: 1.7;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .landing-partner-metrics {
@@ -7389,8 +7389,8 @@ h3 {
 .landing-contact-head h2 {
   margin: 0;
   color: white;
-  font-size: clamp(28px, 4vw, 44px);
-  line-height: 1.05;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.1;
 }
 
 .landing-contact-grid {
@@ -7504,20 +7504,20 @@ h3 {
 }
 
 .landing-courier-portal-head h2 {
-  max-width: 760px;
-  margin: 8px 0 12px;
+  max-width: 520px;
+  margin: 8px 0 10px;
   color: white;
-  font-size: clamp(30px, 4.5vw, 54px);
-  line-height: 1.02;
+  font-size: clamp(24px, 3.2vw, 38px);
+  line-height: 1.08;
 }
 
 .landing-courier-portal-head p,
 .landing-courier-portal-grid article p {
-  max-width: 680px;
+  max-width: 520px;
   margin: 0;
   color: #9db6d8;
-  font-size: 15px;
-  line-height: 1.55;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .landing-courier-auth-links {
@@ -11079,7 +11079,7 @@ h2 {
   }
 
   .landing-partner-copy h2 {
-    font-size: 34px;
+    font-size: 28px;
   }
 
   .landing-partner-copy p {
@@ -11603,7 +11603,7 @@ h2 {
 
   .nomad-scroll-page .copy h1,
   .nomad-scroll-page .copy h2 {
-    font-size: 34px;
+    font-size: 26px;
   }
 
   .landing-contact-dashboard {
