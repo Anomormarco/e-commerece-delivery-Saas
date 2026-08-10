@@ -796,7 +796,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return { ...current, [productId]: nextQuantity };
     });
     setWishlistOpen(false);
-    setCartOpen(true);
   }
 
   function toggleWishlist(productId: string) {
