@@ -1309,6 +1309,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           <div className="landing-product-actions">
                             <button className="landing-product-qty" onClick={() => updateCart(product.id, -1)} type="button">−</button>
                             <b>{cart[product.id] ?? 0}</b>
+                            <button className="landing-product-qty" onClick={() => updateCart(product.id, 1)} type="button" disabled={product.stockCount <= 0}>+</button>
                             <button
                               className="landing-product-add"
                               onClick={() => updateCart(product.id, 1)}
@@ -1317,7 +1318,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                               aria-label={`${product.name} сагсанд нэмэх`}
                               title="Сагсанд нэмэх"
                             >
-                              <span aria-hidden="true">+</span>
                               <span>Сагслах</span>
                             </button>
                           </div>
