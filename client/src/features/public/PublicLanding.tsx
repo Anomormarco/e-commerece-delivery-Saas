@@ -1617,7 +1617,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           <h1>Монголын албан ёсны цахим худалдаа, чөлөөт хүргэлтийн нэгдсэн платформ</h1>
         </div>
         <div className="landing-hero-footer-text">
-          <span>Хүссэнээ захиалаад гэртээ хүргүүл</span>
+          <span>Гэртээ захиалаад хүргүүлээд аваарай</span>
         </div>
       </section>
 
