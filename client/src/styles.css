@@ -1252,7 +1252,7 @@ h3 {
   max-width: 11.5ch;
   margin: 0;
   font-family: "Manrope", "Noto Sans", "Segoe UI", sans-serif;
-  font-size: clamp(1.4rem, 2.35vw, 2.12rem);
+  font-size: clamp(1.55rem, 2.55vw, 2.35rem);
   font-weight: 800;
   line-height: 1.06;
   letter-spacing: 0;
@@ -1275,7 +1275,7 @@ h3 {
 .landing-hero-footer-text span {
   color: rgba(255, 255, 255, 0.92);
   font-family: "Space Grotesk", "Manrope", "Segoe UI", sans-serif;
-  font-size: clamp(0.84rem, 1.45vw, 20px);
+  font-size: clamp(0.92rem, 1.6vw, 22px);
   font-weight: 400;
   line-height: 1.1;
   letter-spacing: 0.06em;
@@ -1299,7 +1299,7 @@ h3 {
   .landing-hero-copy h1 {
     max-width: 11.5ch;
     margin-inline: auto;
-    font-size: clamp(1.12rem, 5vw, 1.6rem);
+    font-size: clamp(1.22rem, 5.4vw, 1.75rem);
   }
 
   .landing-hero-footer-text {
@@ -1308,7 +1308,7 @@ h3 {
   }
 
   .landing-hero-footer-text span {
-    font-size: clamp(0.72rem, 3.2vw, 0.88rem);
+    font-size: clamp(0.8rem, 3.5vw, 0.98rem);
     white-space: normal;
   }
 }
