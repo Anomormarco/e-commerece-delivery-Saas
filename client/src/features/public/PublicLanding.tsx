@@ -110,7 +110,9 @@ const storeNotificationsStorageKey = "deliverhub-store-notifications";
 const storeUsersStorageKey = "deliverhub-store-users";
 const storeSessionStorageKey = "deliverhub-store-session";
 const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
-const productsPerMarketPage = 15;
+const marketRowsPerPage = 15;
+const marketCardsPerRow = 3;
+const productsPerMarketPage = marketRowsPerPage * marketCardsPerRow;
 
 const storeBrands = [
   {
