@@ -1327,7 +1327,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     </header>
                     <div className="landing-product-grid">
                       {products.map((product) => (
-                        <article className={(cart[product.id] ?? 0) > 0 ? "in-cart" : ""} key={product.id}>
+                        <article key={product.id}>
                           <button
                             className={`landing-product-wish ${wishlist.includes(product.id) ? "active" : ""}`}
                             onClick={() => toggleWishlist(product.id)}
@@ -1350,6 +1350,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                             Үлдэгдэл: {product.stockCount} ш
                           </em>
                           <div className="landing-product-actions">
+                            <div className="landing-product-stepper" aria-label={`${product.name} тоо ширхэг`}>
+                              <button className="landing-product-qty" onClick={() => updateProductQuantity(product.id, -1)} type="button">−</button>
+                              <b>{productQuantities[product.id] ?? 1}</b>
+                              <button className="landing-product-qty" onClick={() => updateProductQuantity(product.id, 1)} type="button" disabled={product.stockCount <= 0}>+</button>
+                            </div>
                             <button
                               className="landing-product-add"
                               onClick={() => addSelectedQuantityToCart(product.id)}
@@ -1358,15 +1363,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                               aria-label={`${product.name} сагсанд нэмэх`}
                               title="Сагсанд нэмэх"
                             >
-                              <span>Сагсанд нэмэх</span>
+                              <span>Сагсанд хийх</span>
                             </button>
-                            <span className="landing-product-cart-count">Сагсанд: {cart[product.id] ?? 0}</span>
-                            <div className="landing-product-stepper" aria-label={`${product.name} тоо ширхэг`}>
-                              <button className="landing-product-qty" onClick={() => updateProductQuantity(product.id, -1)} type="button">−</button>
-                              <b>{productQuantities[product.id] ?? 1}</b>
-                              <button className="landing-product-qty" onClick={() => updateProductQuantity(product.id, 1)} type="button" disabled={product.stockCount <= 0}>+</button>
-                            </div>
-                            <button className="landing-product-detail" type="button">Дэлгэрэнгүй</button>
                           </div>
                         </article>
                       ))}

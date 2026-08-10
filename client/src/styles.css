@@ -3829,9 +3829,9 @@ h3 {
 .market-page .landing-product-grid article {
   position: relative;
   display: grid;
-  grid-template-rows: 142px auto auto auto 1fr;
+  grid-template-rows: 142px auto auto auto;
   gap: 7px;
-  min-height: 330px;
+  min-height: 0;
   overflow: hidden;
   border: 1px solid rgba(86, 111, 143, 0.38);
   border-radius: 16px;
@@ -3914,17 +3914,16 @@ h3 {
 
 .market-page .landing-product-actions {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 7px;
   width: 100%;
   min-width: 0;
-  align-self: end;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 
 .market-page .landing-product-stepper {
-  display: none;
+  display: grid;
   grid-template-columns: 26px 24px 26px;
   align-items: center;
   justify-content: start;
@@ -3933,10 +3932,6 @@ h3 {
   border-radius: 999px;
   background: rgba(226, 232, 240, 0.14);
   border: 1px solid rgba(226, 232, 240, 0.12);
-}
-
-.market-page .landing-product-grid article.in-cart .landing-product-stepper {
-  display: grid;
 }
 
 .market-page .landing-product-grid .landing-product-qty {
@@ -3980,39 +3975,6 @@ h3 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.market-page .landing-product-cart-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  min-width: 64px;
-  height: 30px;
-  border: 1px solid rgba(226, 232, 240, 0.12);
-  border-radius: 999px;
-  background: rgba(226, 232, 240, 0.08);
-  color: #e8eef8;
-  font-size: 10px;
-  font-weight: 850;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.market-page .landing-product-detail {
-  display: inline-flex;
-  grid-column: 1 / 2;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-width: 0;
-  height: 34px;
-  border: 0;
-  border-radius: 999px;
-  background: #f8fafc;
-  color: #07152a;
-  font-size: 12px;
-  font-weight: 950;
 }
 
 .market-page .landing-product-grid .landing-product-wish {
@@ -11900,7 +11862,7 @@ h2 {
   }
 
   .market-page .landing-product-actions {
-    grid-template-columns: 1fr;
+    grid-template-columns: auto minmax(0, 1fr);
     gap: 8px;
   }
 
@@ -11914,21 +11876,6 @@ h2 {
     min-width: 0;
     padding: 0 10px;
     font-size: 12px;
-  }
-
-  .market-page .landing-product-cart-count {
-    font-size: 12px;
-  }
-
-  .market-page .landing-product-detail {
-    width: 100%;
-    min-width: 0;
-    height: 36px;
-    font-size: 12px;
-  }
-
-  .market-page .landing-product-grid article.in-cart .landing-product-stepper {
-    display: grid;
   }
 
   .landing-partner-page {
