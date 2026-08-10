@@ -1317,7 +1317,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                               aria-label={`${product.name} сагсанд нэмэх`}
                               title="Сагсанд нэмэх"
                             >
-                              +
+                              <span aria-hidden="true">+</span>
+                              <span>Сагслах</span>
                             </button>
                           </div>
                         </article>

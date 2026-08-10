@@ -3573,10 +3573,9 @@ h3 {
 
 .market-page .landing-product-actions {
   display: grid;
-  grid-template-columns: 34px 34px 34px;
+  grid-template-columns: 34px 34px minmax(118px, 1fr);
   align-items: center;
   gap: 8px;
-  justify-content: start;
   margin-top: 2px;
 }
 
@@ -3587,9 +3586,11 @@ h3 {
 }
 
 .market-page .landing-product-grid .landing-product-add {
-  width: 34px;
-  padding: 0;
-  font-size: 18px;
+  display: inline-flex;
+  width: 100%;
+  padding: 0 12px;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 950;
 }
 
