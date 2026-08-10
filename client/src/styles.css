@@ -1823,7 +1823,7 @@ h3 {
 .landing-cart-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 110;
+  z-index: 36;
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 28%),
     rgba(17, 24, 39, 0.9);
@@ -1832,21 +1832,22 @@ h3 {
 
 .landing-cart-popover {
   position: fixed;
-  top: 50%;
-  left: 50%;
-  z-index: 120;
+  inset: 96px 32px 28px;
+  z-index: 41;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  gap: 18px;
-  width: min(1460px, calc(100vw - 64px));
-  max-height: min(780px, calc(100vh - 84px));
+  gap: 22px;
+  width: auto;
+  max-width: 1500px;
+  max-height: none;
+  margin: 0 auto;
   overflow: visible;
   border: 0;
   border-radius: 0;
   padding: 0;
   background: transparent;
   box-shadow: none;
-  transform: translate(-50%, -50%);
+  transform: none;
   outline: none;
 }
 
@@ -1872,16 +1873,16 @@ h3 {
 
 .landing-cart-popover > header {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto minmax(42px, auto);
+  align-items: center;
   gap: 18px;
-  padding: 0 8px;
+  padding: 0 8px 0 10px;
 }
 
 .landing-cart-popover > header div {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: start;
   gap: 16px;
 }
 
@@ -1899,8 +1900,8 @@ h3 {
 }
 
 .landing-cart-popover > header strong {
-  color: #020617;
-  font-size: clamp(24px, 2vw, 32px);
+  color: #06122a;
+  font-size: clamp(24px, 2vw, 30px);
   font-weight: 950;
 }
 
@@ -1955,10 +1956,11 @@ h3 {
 
 .landing-cart-items {
   display: grid;
+  align-content: start;
   gap: 18px;
   min-height: 0;
   overflow: auto;
-  padding: 0 4px 22px;
+  padding: 0 4px 28px;
 }
 
 .landing-cart-items article {
@@ -1970,7 +1972,7 @@ h3 {
   border: 1px solid rgba(226, 232, 240, 0.68);
   border-radius: 32px;
   padding: 24px;
-  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(226, 232, 240, 0.94));
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.98), rgba(226, 232, 240, 0.93));
   box-shadow: 0 28px 70px rgba(15, 23, 42, 0.28);
 }
 
@@ -2040,7 +2042,7 @@ h3 {
 .landing-cart-summary {
   display: grid;
   align-content: start;
-  gap: 14px;
+  gap: 16px;
   min-height: 0;
   border: 1px solid rgba(226, 232, 240, 0.72);
   border-radius: 28px;
@@ -11806,15 +11808,13 @@ h2 {
   }
 
   .landing-cart-popover {
-    top: 50%;
-    right: auto;
-    left: 50%;
-    width: calc(100vw - 18px);
-    max-height: calc(100vh - 28px);
+    inset: 72px 9px 10px;
+    width: auto;
+    max-height: none;
     overflow: auto;
     border-radius: 0;
     padding: 0;
-    transform: translate(-50%, -50%);
+    transform: none;
   }
 
   .landing-cart-items article {

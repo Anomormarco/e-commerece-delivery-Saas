@@ -1252,19 +1252,19 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
                     <div className="landing-payment-methods" aria-label="Төлбөрийн арга">
                       <button className={paymentMethod === "qpay" ? "active" : ""} onClick={() => setPaymentMethod("qpay")} type="button">
-                        <span>QR</span>
+                        <span>QP</span>
                         <strong>QPay</strong>
                       </button>
                       <button className={paymentMethod === "stripe" ? "active" : ""} onClick={() => setPaymentMethod("stripe")} type="button">
-                        <span>Card</span>
-                        <strong>Stripe</strong>
+                        <span>CC</span>
+                        <strong>Bank Card</strong>
                       </button>
                     </div>
 
                     <p>Захиалга баталгаажих үед дэлгүүрт мэдэгдэл очиж, хүргэлтийн явц идэвхжинэ.</p>
                     <footer>
                       <button onClick={() => setCart({})} type="button">Цэвэрлэх</button>
-                      <button onClick={checkoutOrder} type="button">{paymentMethod === "stripe" ? "Картаар баталгаажуулах" : "QPay-ээр захиалах"}</button>
+                      <button onClick={checkoutOrder} type="button">Төлбөр хийх</button>
                     </footer>
                   </aside>
                 </div>
