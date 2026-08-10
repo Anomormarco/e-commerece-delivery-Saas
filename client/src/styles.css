@@ -1259,6 +1259,31 @@ h3 {
   text-wrap: balance;
 }
 
+.landing-hero-footer-text {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(760px, calc(100% - 36px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.landing-hero-footer-text span {
+  color: rgba(255, 255, 255, 0.92);
+  font-family: "Space Grotesk", "Manrope", "Segoe UI", sans-serif;
+  font-size: clamp(1rem, 2.05vw, 29px);
+  font-weight: 400;
+  line-height: 1.1;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
 @media (max-width: 760px) {
   .landing-hero-slider {
     min-height: 72vh;
@@ -1275,6 +1300,16 @@ h3 {
     max-width: 13ch;
     margin-inline: auto;
     font-size: clamp(1.28rem, 5.8vw, 1.85rem);
+  }
+
+  .landing-hero-footer-text {
+    bottom: 22px;
+    width: calc(100% - 24px);
+  }
+
+  .landing-hero-footer-text span {
+    font-size: clamp(0.84rem, 4vw, 1rem);
+    white-space: normal;
   }
 }
 
