@@ -1133,7 +1133,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             ) : null}
           </div>
         ) : (
-          <button className="landing-login-button" onClick={() => setAuthOpen(true)} type="button">Эхлэх</button>
+          <button className="landing-login-button" onClick={() => setAuthOpen(true)} type="button">Нэвтрэх</button>
         )}
 
         {cartOpen ? (
