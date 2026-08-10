@@ -3588,25 +3588,37 @@ h3 {
 
 .market-page .landing-product-actions {
   display: grid;
-  grid-template-columns: 34px 34px 34px minmax(104px, 1fr);
+  grid-template-columns: 32px 30px 32px minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
   margin-top: 2px;
 }
 
 .market-page .landing-product-grid .landing-product-qty,
 .market-page .landing-product-grid .landing-product-add {
-  height: 34px;
+  min-width: 0;
+  height: 32px;
   border-radius: 10px;
 }
 
 .market-page .landing-product-grid .landing-product-add {
   display: inline-flex;
+  justify-content: center;
   width: 100%;
-  padding: 0 12px;
-  gap: 6px;
-  font-size: 12px;
+  padding: 0 8px;
+  gap: 4px;
+  overflow: hidden;
+  font-size: 11px;
   font-weight: 950;
+}
+
+.market-page .landing-product-grid .landing-product-add span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .market-page .landing-store-list footer button,
@@ -11410,6 +11422,21 @@ h2 {
   .landing-commerce-nav .landing-cart-stepper button {
     width: 30px;
     height: 30px;
+  }
+
+  .market-page .landing-product-actions {
+    grid-template-columns: 30px 26px 30px minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .market-page .landing-product-grid .landing-product-qty,
+  .market-page .landing-product-grid .landing-product-add {
+    height: 30px;
+  }
+
+  .market-page .landing-product-grid .landing-product-add {
+    padding: 0 6px;
+    font-size: 10px;
   }
 
   .landing-partner-page {
