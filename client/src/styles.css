@@ -3829,6 +3829,7 @@ h3 {
 .market-page .landing-product-grid article {
   position: relative;
   display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   grid-template-rows: 142px auto auto auto;
   gap: 7px;
   min-height: 0;
@@ -3842,6 +3843,7 @@ h3 {
 
 .market-page .landing-product-grid article > img,
 .market-page .landing-product-image-fallback {
+  grid-column: 1 / -1;
   width: 100%;
   height: 142px;
   margin: 0 -12px;
@@ -3870,6 +3872,11 @@ h3 {
 }
 
 .market-page .landing-product-grid article > span {
+  grid-column: 2;
+  grid-row: 2;
+  align-self: center;
+  justify-self: end;
+  max-width: 72px;
   width: fit-content;
   border-radius: 999px;
   padding: 3px 7px;
@@ -3878,10 +3885,16 @@ h3 {
   font-size: 9px;
   font-weight: 900;
   letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .market-page .landing-product-grid h3 {
+  grid-column: 1;
+  grid-row: 2;
+  align-self: center;
   min-width: 0;
   color: #ffffff;
   font-size: 13px;
@@ -3894,6 +3907,7 @@ h3 {
 
 .market-page .landing-product-grid strong {
   position: relative;
+  grid-column: 1 / -1;
   min-width: 0;
   width: fit-content;
   max-width: 100%;
@@ -3911,10 +3925,10 @@ h3 {
   position: absolute;
   left: 0;
   bottom: -6px;
-  width: 22px;
+  width: 56px;
   height: 3px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(148, 163, 184, 0.72);
 }
 
 .market-page .landing-product-grid em {
@@ -3923,6 +3937,7 @@ h3 {
 
 .market-page .landing-product-actions {
   display: grid;
+  grid-column: 1 / -1;
   grid-template-columns: 1fr;
   align-items: stretch;
   gap: 7px;
