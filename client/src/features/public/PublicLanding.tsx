@@ -759,15 +759,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     });
   }
 
-  function addProductToCart(productId: string) {
-    setCart((current) => {
-      const product = allMarketProducts.find((item) => item.id === productId);
-      const maxQuantity = product?.stockCount ?? 0;
-      if (maxQuantity <= 0) return current;
-      return { ...current, [productId]: Math.max(1, current[productId] ?? 0) };
-    });
-  }
-
   function toggleWishlist(productId: string) {
     setWishlist((current) => (
       current.includes(productId)
@@ -1319,10 +1310,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           <div className="landing-product-actions">
                             <button className="landing-product-qty" onClick={() => updateCart(product.id, -1)} type="button">−</button>
                             <b>{cart[product.id] ?? 0}</b>
-                            <button className="landing-product-qty" onClick={() => updateCart(product.id, 1)} type="button" disabled={product.stockCount <= 0}>+</button>
                             <button
                               className="landing-product-add"
-                              onClick={() => addProductToCart(product.id)}
+                              onClick={() => updateCart(product.id, 1)}
                               type="button"
                               disabled={product.stockCount <= 0}
                               aria-label={`${product.name} сагсанд нэмэх`}

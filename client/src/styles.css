@@ -3573,7 +3573,7 @@ h3 {
 
 .market-page .landing-product-actions {
   display: grid;
-  grid-template-columns: 34px 34px 34px minmax(104px, 1fr);
+  grid-template-columns: 34px 34px minmax(104px, 1fr);
   align-items: center;
   gap: 8px;
   margin-top: 2px;
