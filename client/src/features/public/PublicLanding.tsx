@@ -110,6 +110,7 @@ const storeNotificationsStorageKey = "deliverhub-store-notifications";
 const storeUsersStorageKey = "deliverhub-store-users";
 const storeSessionStorageKey = "deliverhub-store-session";
 const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
+const storesPerMarketPage = 5;
 
 const storeBrands = [
   {
@@ -187,7 +188,38 @@ function productImageFor(product: Pick<Product, "name" | "category" | "imageUrl"
   if (product.imageUrl) return product.imageUrl;
   const searchable = `${product.name} ${product.category}`.toLowerCase();
   return productImages.find((image) => image.match.some((keyword) => searchable.includes(keyword)))?.url
-    ?? "https://images.unsplash.com/photo-1601593768798-4b7e50ad14c8?auto=format&fit=crop&w=800&q=80";
+    ?? productIllustrationFor(product);
+}
+
+function productIllustrationFor(product: Pick<Product, "name" | "category">) {
+  const paletteByCategory: Record<string, [string, string, string]> = {
+    "Хүнс": ["#16a34a", "#dcfce7", "#f97316"],
+    "24/7 дэлгүүр": ["#2563eb", "#dbeafe", "#facc15"],
+    "Гэр ахуй": ["#0f766e", "#ccfbf1", "#f8fafc"],
+    "Цахилгаан бараа": ["#4f46e5", "#e0e7ff", "#22d3ee"],
+    "Эмийн сан": ["#dc2626", "#fee2e2", "#ffffff"],
+    "Гоо сайхан": ["#be185d", "#fce7f3", "#f9a8d4"],
+    "Ном, бичиг хэрэг": ["#7c2d12", "#ffedd5", "#f97316"],
+    "Спорт бараа": ["#15803d", "#dcfce7", "#84cc16"],
+    "Хүүхдийн бараа": ["#7c3aed", "#ede9fe", "#facc15"],
+    "Амьтны бараа": ["#92400e", "#fef3c7", "#f59e0b"],
+  };
+  const [primary, surface, accent] = paletteByCategory[product.category] ?? ["#0f172a", "#e2e8f0", "#f97316"];
+  const seed = Array.from(product.name).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const angle = (seed % 28) - 14;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="650" viewBox="0 0 900 650">
+    <rect width="900" height="650" rx="48" fill="${surface}"/>
+    <circle cx="720" cy="126" r="96" fill="${accent}" opacity=".22"/>
+    <circle cx="168" cy="510" r="118" fill="${primary}" opacity=".13"/>
+    <g transform="translate(450 326) rotate(${angle})">
+      <rect x="-168" y="-132" width="336" height="264" rx="34" fill="#fff" stroke="${primary}" stroke-width="18"/>
+      <rect x="-112" y="-88" width="224" height="176" rx="26" fill="${primary}" opacity=".88"/>
+      <circle cx="-54" cy="-28" r="30" fill="${surface}"/>
+      <circle cx="46" cy="18" r="44" fill="${accent}"/>
+      <rect x="-96" y="68" width="192" height="22" rx="11" fill="${surface}"/>
+    </g>
+  </svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
 const marketTemplates = [
@@ -201,29 +233,6 @@ const marketTemplates = [
   { category: "Спорт бараа", stores: ["Sport Zone", "Fit Market", "Outdoor Pro", "Bike House", "Active Gear"], products: [["Гүйлтийн пүүз", "running shoes"], ["Иогийн дэвсгэр", "yoga mat"], ["Дамббелл", "dumbbells"], ["Усны сав", "sports water bottle"], ["Хөл бөмбөг", "football ball"], ["Сагсан бөмбөг", "basketball"], ["Дугуйн дуулга", "bike helmet"], ["Спорт цүнх", "gym bag"], ["Майхан", "camping tent"], ["Уулын гутал", "hiking boots"]] },
   { category: "Хүүхдийн бараа", stores: ["Baby World", "Kids Planet", "Toy Land", "Little Star", "Mother Care"], products: [["Живх", "diapers"], ["Baby wipes", "baby wipes"], ["Угж", "baby bottle"], ["Хүүхдийн тоглоом", "baby toys"], ["Puzzle", "kids puzzle"], ["Lego set", "building blocks"], ["Хүүхдийн хувцас", "baby clothes"], ["Тэрэг", "baby stroller"], ["Зөөлөн тоглоом", "plush toy"], ["Сүүн тэжээл", "baby formula"]] },
   { category: "Амьтны бараа", stores: ["Pet Care", "Happy Pet", "Dog & Cat", "Pet Food Market", "Animal House"], products: [["Нохойн хоол", "dog food"], ["Муурын хоол", "cat food"], ["Амьтны тоглоом", "pet toys"], ["Оосор", "dog leash"], ["Муурын элс", "cat litter"], ["Амьтны шампунь", "pet shampoo"], ["Үүр", "pet bed"], ["Аквариум", "aquarium"], ["Загасны хоол", "fish food"], ["Тэжээлийн аяга", "pet bowl"]] },
-];
-
-const productPhotoUrls = [
-  "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1607013251379-e6eecfffe234?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1583947581924-860bda6a26df?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=900&q=80",
 ];
 
 function productNameVariant(category: string, baseName: string, index: number) {
@@ -243,23 +252,20 @@ function productNameVariant(category: string, baseName: string, index: number) {
   return `${baseName} ${variants[Math.floor(index / 10) % variants.length]}`.trim();
 }
 
-function productPhotoFor(templateIndex: number, productIndex: number) {
-  return productPhotoUrls[(templateIndex * 2 + productIndex) % productPhotoUrls.length];
-}
-
 function buildDemoMarketStores(): StoreDirectoryItem[] {
   return marketTemplates.flatMap((template, templateIndex) =>
     template.stores.map((storeName, storeIndex) => {
       const id = `demo-${templateIndex + 1}-${storeIndex + 1}`;
       const products = Array.from({ length: 50 }, (_, index) => {
         const [baseName] = template.products[index % template.products.length];
+        const name = productNameVariant(template.category, baseName, index);
         return {
           id: `${id}-product-${index + 1}`,
-          name: productNameVariant(template.category, baseName, index),
+          name,
           category: template.category,
           priceMnt: String(1800 + (index + 1) * 420 + templateIndex * 500 + storeIndex * 300),
           weightGrams: 180 + (index % 12) * 150,
-          imageUrl: productPhotoFor(templateIndex, index),
+          imageUrl: productIllustrationFor({ name, category: template.category }),
         };
       });
 
@@ -487,6 +493,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [storeFilter, setStoreFilter] = useState("Бүгд");
   const [selectedStoreId, setSelectedStoreId] = useState("");
   const [productSearch, setProductSearch] = useState("");
+  const [marketPage, setMarketPage] = useState(1);
   const [deliveryType, setDeliveryType] = useState<DeliveryType>("bike");
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [addressText, setAddressText] = useState("");
@@ -676,6 +683,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         )),
     })).filter((group) => group.products.length > 0);
   }, [filteredStores, productSearch]);
+  const totalMarketPages = Math.max(1, Math.ceil(storeProductGroups.length / storesPerMarketPage));
+  const pagedStoreProductGroups = useMemo(
+    () => storeProductGroups.slice((marketPage - 1) * storesPerMarketPage, marketPage * storesPerMarketPage),
+    [marketPage, storeProductGroups],
+  );
   const allMarketProducts = useMemo(
     () => (storeProductGroups.length ? storeProductGroups.flatMap((group) => group.products) : initialProducts),
     [storeProductGroups],
@@ -703,6 +715,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     () => ["Бүгд", ...new Set(marketStoreDirectory.flatMap((store) => store.categories).filter(Boolean))],
     [marketStoreDirectory],
   );
+
+  useEffect(() => {
+    setMarketPage(1);
+  }, [productSearch, storeFilter, storeSearch]);
+
+  useEffect(() => {
+    setMarketPage((current) => Math.min(current, totalMarketPages));
+  }, [totalMarketPages]);
   const addressSuggestions = [
     addressLabel,
     addressText,
@@ -1262,16 +1282,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               </div>
             </section>
 
-            <section className="market-stats-row">
-              <article><span>Дэлгүүр</span><strong>{storeProductGroups.length}</strong><em>{storesLoading ? "Ачаалж байна" : "Дарааллаар"}</em></article>
-              <article><span>Харагдаж буй бараа</span><strong>{marketProducts.length}</strong><em>{storeFilter}</em></article>
-              <article><span>Таны сагс</span><strong>{selectedItems.length}</strong><em>{formatMnt(subtotal)}</em></article>
-              <article><span>Тооцсон хүргэлт</span><strong>{selectedItems.length ? `${etaMinutes} мин` : "-"}</strong><em>{selectedItems.length ? formatMnt(deliveryFee) : "0 MNT"}</em></article>
-            </section>
-
             <section className="market-store-feed">
-              {storeProductGroups.length ? storeProductGroups.map(({ store, products }, storeIndex) => {
+              {pagedStoreProductGroups.length ? pagedStoreProductGroups.map(({ store, products }, storeIndex) => {
                 const brand = storeBrandFor(store.name);
+                const displayIndex = (marketPage - 1) * storesPerMarketPage + storeIndex + 1;
                 return (
                   <section className="market-store-section" key={store.id}>
                     <header>
@@ -1279,7 +1293,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                         {brand.logoUrl ? <img alt={`${store.name} logo`} src={brand.logoUrl} /> : <b>{brand.initials}</b>}
                       </span>
                       <div>
-                        <span>#{String(storeIndex + 1).padStart(2, "0")} · {store.categories.join(", ")}</span>
+                        <span>#{String(displayIndex).padStart(2, "0")} · {store.categories.join(", ")}</span>
                         <strong>{store.name}</strong>
                         <small>{store.address}</small>
                       </div>
@@ -1295,7 +1309,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           >
                             {wishlist.includes(product.id) ? "♥" : "♡"}
                           </button>
-                          <img alt={product.name} src={productImageFor(product)} />
+                          <img
+                            alt={product.name}
+                            src={productImageFor(product)}
+                            onError={(event) => {
+                              event.currentTarget.src = productIllustrationFor(product);
+                            }}
+                          />
                           <span>{product.category}</span>
                           <h3>{product.name}</h3>
                           <p>{product.description}</p>
@@ -1319,6 +1339,16 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                 <p className="market-empty">Одоогоор тохирох дэлгүүр олдсонгүй.</p>
               )}
             </section>
+
+            <nav className="market-pagination" aria-label="Маркетийн хуудас">
+              <button onClick={() => setMarketPage((pageNumber) => Math.max(1, pageNumber - 1))} type="button" disabled={marketPage <= 1}>
+                Өмнөх
+              </button>
+              <span>{marketPage} / {totalMarketPages}</span>
+              <button onClick={() => setMarketPage((pageNumber) => Math.min(totalMarketPages, pageNumber + 1))} type="button" disabled={marketPage >= totalMarketPages}>
+                Дараах
+              </button>
+            </nav>
 
             <section className="market-cart">
         {tracking ? (

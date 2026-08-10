@@ -106,29 +106,6 @@ const categories = [
   },
 ];
 
-const productPhotoUrls = [
-  "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1607013251379-e6eecfffe234?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1583947581924-860bda6a26df?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=900&q=80",
-  "https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=900&q=80",
-];
-
 const variantsByCategory = {
   "Хүнс": ["500г", "1кг", "2кг", "5кг", "багц"],
   "24/7 дэлгүүр": ["дан", "комбо", "том", "дунд", "2ш"],
@@ -165,7 +142,24 @@ function productTemplate(store, index) {
 }
 
 function productImage(store, index) {
-  return productPhotoUrls[(storeConfigs.findIndex((item) => item.slug === store.slug) * 2 + index) % productPhotoUrls.length];
+  const { name } = productTemplate(store, index);
+  const paletteByCategory = {
+    "Хүнс": ["#16a34a", "#dcfce7", "#f97316"],
+    "24/7 дэлгүүр": ["#2563eb", "#dbeafe", "#facc15"],
+    "Гэр ахуй": ["#0f766e", "#ccfbf1", "#f8fafc"],
+    "Цахилгаан бараа": ["#4f46e5", "#e0e7ff", "#22d3ee"],
+    "Эмийн сан": ["#dc2626", "#fee2e2", "#ffffff"],
+    "Гоо сайхан": ["#be185d", "#fce7f3", "#f9a8d4"],
+    "Ном, бичиг хэрэг": ["#7c2d12", "#ffedd5", "#f97316"],
+    "Спорт бараа": ["#15803d", "#dcfce7", "#84cc16"],
+    "Хүүхдийн бараа": ["#7c3aed", "#ede9fe", "#facc15"],
+    "Амьтны бараа": ["#92400e", "#fef3c7", "#f59e0b"],
+  };
+  const [primary, surface, accent] = paletteByCategory[store.type] ?? ["#0f172a", "#e2e8f0", "#f97316"];
+  const seed = Array.from(name).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  const angle = (seed % 28) - 14;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="650" viewBox="0 0 900 650"><rect width="900" height="650" rx="48" fill="${surface}"/><circle cx="720" cy="126" r="96" fill="${accent}" opacity=".22"/><circle cx="168" cy="510" r="118" fill="${primary}" opacity=".13"/><g transform="translate(450 326) rotate(${angle})"><rect x="-168" y="-132" width="336" height="264" rx="34" fill="#fff" stroke="${primary}" stroke-width="18"/><rect x="-112" y="-88" width="224" height="176" rx="26" fill="${primary}" opacity=".88"/><circle cx="-54" cy="-28" r="30" fill="${surface}"/><circle cx="46" cy="18" r="44" fill="${accent}"/><rect x="-96" y="68" width="192" height="22" rx="11" fill="${surface}"/></g></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 }
 
 async function main() {
