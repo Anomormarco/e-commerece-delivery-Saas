@@ -3487,6 +3487,79 @@ h3 {
   overflow: visible;
 }
 
+.market-page .landing-product-grid article {
+  gap: 10px;
+  border-radius: 18px;
+  padding: 12px;
+  background: linear-gradient(180deg, #142033, #0f172a);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.22);
+}
+
+.market-page .landing-product-grid article > img,
+.market-page .landing-product-image-fallback {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  border-radius: 14px;
+  object-fit: cover;
+  background: linear-gradient(135deg, #e0f2fe, #fff7ed);
+}
+
+.market-page .landing-product-image-fallback {
+  display: grid;
+  place-items: center;
+}
+
+.market-page .landing-product-image-fallback span {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 18px;
+  background: white;
+  color: #f97316;
+  font-size: 28px;
+  font-weight: 950;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.16);
+}
+
+.market-page .landing-product-grid article > span {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(249, 115, 22, 0.12);
+  color: #fed7aa;
+}
+
+.market-page .landing-product-grid h3 {
+  font-size: 15px;
+  line-height: 1.22;
+}
+
+.market-page .landing-product-grid strong {
+  font-size: 18px;
+}
+
+.market-page .landing-product-actions {
+  display: grid;
+  grid-template-columns: 34px 34px minmax(92px, 1fr);
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.market-page .landing-product-grid .landing-product-qty,
+.market-page .landing-product-grid .landing-product-add {
+  height: 34px;
+  border-radius: 10px;
+}
+
+.market-page .landing-product-grid .landing-product-add {
+  width: 100%;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 950;
+}
+
 .market-page .landing-store-list footer button,
 .market-page .landing-store-pagination button,
 .market-page .landing-product-grid button,
@@ -3576,6 +3649,97 @@ h3 {
   background: linear-gradient(90deg, #f97316 0 8px, #1e293b 8px);
   color: #f97316;
   box-shadow: none;
+}
+
+.market-page .landing-store-cards {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  overflow: auto;
+  padding: 2px 2px 8px;
+}
+
+.market-page .landing-store-cards > p {
+  margin: 0;
+  color: #9db6d8;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.market-page .landing-store-cards > button {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #243044;
+  border-radius: 14px;
+  padding: 10px;
+  background: linear-gradient(135deg, #111827, #0f172a);
+  color: white;
+  text-align: left;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.market-page .landing-store-cards > button.active {
+  border-color: #f97316;
+  background: linear-gradient(135deg, #1e293b, #111827);
+  box-shadow: inset 5px 0 0 #f97316, 0 16px 34px rgba(249, 115, 22, 0.14);
+}
+
+.landing-store-logo {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.landing-store-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.landing-store-logo b {
+  color: #0f172a;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.landing-store-card-copy {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.landing-store-card-copy strong,
+.market-page .landing-store-card-copy strong {
+  overflow: hidden;
+  color: white;
+  font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.landing-store-card-copy small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #9db6d8;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.landing-store-card-copy em {
+  color: #fed7aa;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 900;
 }
 
 .market-page .landing-store-list {

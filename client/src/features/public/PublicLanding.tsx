@@ -109,6 +109,35 @@ const storeUsersStorageKey = "deliverhub-store-users";
 const storeSessionStorageKey = "deliverhub-store-session";
 const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
 
+const storeBrands = [
+  {
+    match: ["номин", "nomin"],
+    logoUrl: "https://www.mongoliansaddle.com/partners/Nomin%20supermarket.JPG",
+    initials: "Н",
+  },
+  {
+    match: ["cu"],
+    logoUrl: "https://gs-private.sgp1.cdn.digitaloceanspaces.com/web-builder/web-builder_6684f03324960/CU%20logo.png",
+    initials: "CU",
+  },
+  {
+    match: ["gs25", "gs 25"],
+    logoUrl: "https://gs25.mn/favicon.webp",
+    initials: "GS",
+  },
+  {
+    match: ["emart", "e-mart", "еmart"],
+    logoUrl: "https://media.licdn.com/dms/image/v2/C4D12AQFOB2KcJkJ3pQ/article-cover_image-shrink_720_1280/article-cover_image-shrink_720_1280/0/1520175340379?e=2147483647&t=iLbGsrLHLE2MD_kZSzXDYG0eXgNFXk0ULh14MFJl9tI&v=beta",
+    initials: "e",
+  },
+];
+
+function storeBrandFor(name: string) {
+  const normalizedName = name.toLowerCase();
+  return storeBrands.find((brand) => brand.match.some((keyword) => normalizedName.includes(keyword)))
+    ?? { logoUrl: "", initials: name.trim().slice(0, 2).toUpperCase() || "DH" };
+}
+
 const initialProducts: Product[] = [
   {
     id: "rice-5kg",
@@ -1045,6 +1074,35 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                   </button>
                 ))}
               </div>
+              <div className="landing-store-cards" aria-label="Дэлгүүрүүд">
+                {storesLoading ? (
+                  <p>Дэлгүүрүүд ачаалж байна...</p>
+                ) : stores.length ? stores.map((store) => {
+                  const brand = storeBrandFor(store.name);
+                  return (
+                    <button
+                      className={selectedStore?.id === store.id ? "active" : ""}
+                      key={store.id}
+                      onClick={() => {
+                        setSelectedStoreId(store.id);
+                        setStoreFilter("Бүгд");
+                      }}
+                      type="button"
+                    >
+                      <span className="landing-store-logo">
+                        {brand.logoUrl ? <img alt={`${store.name} logo`} src={brand.logoUrl} /> : <b>{brand.initials}</b>}
+                      </span>
+                      <span className="landing-store-card-copy">
+                        <strong>{store.name}</strong>
+                        <small>{store.description || store.address}</small>
+                        <em>{store.productCount} бараа · {store.orderCount} захиалга</em>
+                      </span>
+                    </button>
+                  );
+                }) : (
+                  <p>Одоогоор дэлгүүр олдсонгүй.</p>
+                )}
+              </div>
             </section>
           </aside>
 
@@ -1087,7 +1145,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                   >
                     {wishlist.includes(product.id) ? "♥" : "♡"}
                   </button>
-                  {"imageUrl" in product && product.imageUrl ? <img alt={product.name} src={product.imageUrl} /> : null}
+                  {"imageUrl" in product && product.imageUrl ? (
+                    <img alt={product.name} src={product.imageUrl} />
+                  ) : (
+                    <div className="landing-product-image-fallback" aria-hidden="true">
+                      <span>{product.name.slice(0, 1)}</span>
+                    </div>
+                  )}
                   <span>{product.category}</span>
                   <h3>{product.name}</h3>
                   <p>{product.description}</p>
@@ -1095,10 +1159,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                   <em className={product.stockCount <= 0 ? "is-empty" : product.stockCount <= 12 ? "is-low" : ""}>
                     Үлдэгдэл: {product.stockCount} ш
                   </em>
-                  <div>
-                    <button onClick={() => updateCart(product.id, -1)} type="button">−</button>
+                  <div className="landing-product-actions">
+                    <button className="landing-product-qty" onClick={() => updateCart(product.id, -1)} type="button">−</button>
                     <b>{cart[product.id] ?? 0}</b>
-                    <button onClick={() => updateCart(product.id, 1)} type="button" disabled={product.stockCount <= 0}>+</button>
+                    <button className="landing-product-add" onClick={() => updateCart(product.id, 1)} type="button" disabled={product.stockCount <= 0}>
+                      {cart[product.id] ? "Нэмэх" : "Сагслах"}
+                    </button>
                   </div>
                 </article>
               ))}
