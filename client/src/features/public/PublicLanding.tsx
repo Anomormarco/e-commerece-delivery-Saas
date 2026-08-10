@@ -110,7 +110,7 @@ const storeNotificationsStorageKey = "deliverhub-store-notifications";
 const storeUsersStorageKey = "deliverhub-store-users";
 const storeSessionStorageKey = "deliverhub-store-session";
 const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
-const storesPerMarketPage = 5;
+const productsPerMarketPage = 15;
 
 const storeBrands = [
   {
@@ -624,8 +624,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }, [marketStoreDirectory, storeFilter, storeSearch]);
   const storeProductGroups = useMemo(() => {
     const normalizedProductSearch = productSearch.trim().toLowerCase();
-    return filteredStores.map((store) => ({
+    return filteredStores.map((store, storeIndex) => ({
       store,
+      storeIndex,
       products: store.products.map((product) => ({
           id: product.id,
           sku: product.id.slice(-8),
@@ -646,11 +647,26 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         )),
     })).filter((group) => group.products.length > 0);
   }, [filteredStores, productSearch]);
-  const totalMarketPages = Math.max(1, Math.ceil(storeProductGroups.length / storesPerMarketPage));
-  const pagedStoreProductGroups = useMemo(
-    () => storeProductGroups.slice((marketPage - 1) * storesPerMarketPage, marketPage * storesPerMarketPage),
-    [marketPage, storeProductGroups],
+  const marketProductRows = useMemo(
+    () => storeProductGroups.flatMap((group) => group.products.map((product) => ({
+      product,
+      store: group.store,
+      storeIndex: group.storeIndex,
+    }))),
+    [storeProductGroups],
   );
+  const totalMarketPages = Math.max(1, Math.ceil(marketProductRows.length / productsPerMarketPage));
+  const pagedStoreProductGroups = useMemo(() => {
+    const pageRows = marketProductRows.slice((marketPage - 1) * productsPerMarketPage, marketPage * productsPerMarketPage);
+    return pageRows.reduce<Array<{ store: StoreDirectoryItem; storeIndex: number; products: Product[] }>>((groups, row) => {
+      const existingGroup = groups.find((group) => group.store.id === row.store.id);
+      if (existingGroup) {
+        existingGroup.products.push(row.product);
+        return groups;
+      }
+      return [...groups, { store: row.store, storeIndex: row.storeIndex, products: [row.product] }];
+    }, []);
+  }, [marketPage, marketProductRows]);
   const allMarketProducts = useMemo(
     () => (storeProductGroups.length ? storeProductGroups.flatMap((group) => group.products) : initialProducts),
     [storeProductGroups],
@@ -1246,9 +1262,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             </section>
 
             <section className="market-store-feed">
-              {pagedStoreProductGroups.length ? pagedStoreProductGroups.map(({ store, products }, storeIndex) => {
+              {pagedStoreProductGroups.length ? pagedStoreProductGroups.map(({ store, storeIndex, products }) => {
                 const brand = storeBrandFor(store.name);
-                const displayIndex = (marketPage - 1) * storesPerMarketPage + storeIndex + 1;
+                const displayIndex = storeIndex + 1;
                 return (
                   <section className="market-store-section" key={store.id}>
                     <header>
