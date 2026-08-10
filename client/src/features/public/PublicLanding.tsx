@@ -490,6 +490,20 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }, [section, session?.token, storeSearch]);
 
   const selectedStore = stores.find((store) => store.id === selectedStoreId) ?? stores[0];
+  const filteredStores = useMemo(() => {
+    const normalizedSearch = storeSearch.trim().toLowerCase();
+    return stores.filter((store) => (
+      (storeFilter === "Бүгд" || store.categories.includes(storeFilter))
+      && (
+        !normalizedSearch
+        || store.name.toLowerCase().includes(normalizedSearch)
+        || store.address.toLowerCase().includes(normalizedSearch)
+        || store.description.toLowerCase().includes(normalizedSearch)
+        || store.categories.some((category) => category.toLowerCase().includes(normalizedSearch))
+      )
+    ));
+  }, [storeFilter, storeSearch, stores]);
+  const showStoreResults = Boolean(storeSearch.trim()) || storeFilter !== "Бүгд";
   const allMarketProducts = useMemo(() => (
     selectedStore?.products.length
       ? selectedStore.products.map((product) => ({
@@ -507,16 +521,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   ), [selectedStore]);
   const marketProducts = useMemo(() => {
     const searched = allMarketProducts.filter((product) => (
-      (storeFilter === "Бүгд" || product.category === storeFilter)
-      && (
-        !productSearch.trim()
-        || product.name.toLowerCase().includes(productSearch.trim().toLowerCase())
-        || product.category.toLowerCase().includes(productSearch.trim().toLowerCase())
-      )
+      !productSearch.trim()
+      || product.name.toLowerCase().includes(productSearch.trim().toLowerCase())
+      || product.category.toLowerCase().includes(productSearch.trim().toLowerCase())
     ));
 
     return searched;
-  }, [allMarketProducts, productSearch, storeFilter]);
+  }, [allMarketProducts, productSearch]);
 
   const selectedItems = useMemo(
     () => allMarketProducts
@@ -1074,10 +1085,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                   </button>
                 ))}
               </div>
-              <div className="landing-store-cards" aria-label="Дэлгүүрүүд">
+              {showStoreResults ? <div className="landing-store-cards" aria-label="Дэлгүүрүүд">
                 {storesLoading ? (
                   <p>Дэлгүүрүүд ачаалж байна...</p>
-                ) : stores.length ? stores.map((store) => {
+                ) : filteredStores.length ? filteredStores.map((store) => {
                   const brand = storeBrandFor(store.name);
                   return (
                     <button
@@ -1085,7 +1096,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                       key={store.id}
                       onClick={() => {
                         setSelectedStoreId(store.id);
-                        setStoreFilter("Бүгд");
+                        setStoreSearch("");
                       }}
                       type="button"
                     >
@@ -1102,7 +1113,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                 }) : (
                   <p>Одоогоор дэлгүүр олдсонгүй.</p>
                 )}
-              </div>
+              </div> : null}
             </section>
           </aside>
 
