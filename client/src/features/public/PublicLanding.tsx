@@ -1172,6 +1172,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           <button onClick={() => updateCart(item.id, -1)} type="button" aria-label="Хасах">−</button>
                           <b>{item.quantity}</b>
                           <button onClick={() => updateCart(item.id, 1)} type="button" aria-label="Нэмэх">+</button>
+                          <button className="landing-cart-remove" onClick={() => updateCart(item.id, -item.quantity)} type="button">Устгах</button>
                         </div>
                         <div className="landing-cart-line-total">
                           <span>Нийт үнэ</span>
