@@ -462,6 +462,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [selectedStoreId, setSelectedStoreId] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [marketPage, setMarketPage] = useState(1);
+  const [productQuantities, setProductQuantities] = useState<Record<string, number>>({});
   const [deliveryType, setDeliveryType] = useState<DeliveryType>("bike");
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [addressText, setAddressText] = useState("");
@@ -755,6 +756,25 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       const product = allMarketProducts.find((item) => item.id === productId);
       const maxQuantity = product?.stockCount ?? 0;
       const nextQuantity = Math.min(maxQuantity, Math.max(0, (current[productId] ?? 0) + delta));
+      return { ...current, [productId]: nextQuantity };
+    });
+  }
+
+  function updateProductQuantity(productId: string, delta: number) {
+    setProductQuantities((current) => {
+      const product = allMarketProducts.find((item) => item.id === productId);
+      const maxQuantity = product?.stockCount ?? 1;
+      const nextQuantity = Math.min(maxQuantity, Math.max(1, (current[productId] ?? 1) + delta));
+      return { ...current, [productId]: nextQuantity };
+    });
+  }
+
+  function addSelectedQuantityToCart(productId: string) {
+    setCart((current) => {
+      const product = allMarketProducts.find((item) => item.id === productId);
+      const maxQuantity = product?.stockCount ?? 0;
+      const selectedQuantity = productQuantities[productId] ?? 1;
+      const nextQuantity = Math.min(maxQuantity, (current[productId] ?? 0) + selectedQuantity);
       return { ...current, [productId]: nextQuantity };
     });
   }
@@ -1307,11 +1327,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                             Үлдэгдэл: {product.stockCount} ш
                           </em>
                           <div className="landing-product-actions">
-                            <button className="landing-product-qty" onClick={() => updateCart(product.id, -1)} type="button">−</button>
-                            <b>{cart[product.id] ?? 0}</b>
+                            <button className="landing-product-qty" onClick={() => updateProductQuantity(product.id, -1)} type="button">−</button>
+                            <b>{productQuantities[product.id] ?? 1}</b>
+                            <button className="landing-product-qty" onClick={() => updateProductQuantity(product.id, 1)} type="button" disabled={product.stockCount <= 0}>+</button>
                             <button
                               className="landing-product-add"
-                              onClick={() => updateCart(product.id, 1)}
+                              onClick={() => addSelectedQuantityToCart(product.id)}
                               type="button"
                               disabled={product.stockCount <= 0}
                               aria-label={`${product.name} сагсанд нэмэх`}
