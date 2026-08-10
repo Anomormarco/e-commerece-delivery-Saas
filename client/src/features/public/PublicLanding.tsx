@@ -1,7 +1,13 @@
-﻿import { createElement, useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useRef } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
+import heroAppleeImage from "../../assets/geed-hero/applee.avif";
+import heroIphoneImage from "../../assets/geed-hero/iphone15.avif";
+import heroMacbookImage from "../../assets/geed-hero/macbook.jpg";
+import heroNoteImage from "../../assets/geed-hero/note.jpg";
+import heroPromaxImage from "../../assets/geed-hero/promax.jpg";
+import heroWatchImage from "../../assets/geed-hero/watch.avif";
 
 type AuthMode = "login" | "register";
 type PartnerAuthMode = "login" | "register";
@@ -114,6 +120,14 @@ const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
 const marketRowsPerPage = 15;
 const marketCardsPerRow = 3;
 const productsPerMarketPage = marketRowsPerPage * marketCardsPerRow;
+const landingHeroImages = [
+  heroPromaxImage,
+  heroMacbookImage,
+  heroWatchImage,
+  heroIphoneImage,
+  heroNoteImage,
+  heroAppleeImage,
+];
 
 const storeBrands = [
   {
@@ -296,29 +310,6 @@ const deliveryOptions: Array<{ id: DeliveryType; label: string; copy: string; ba
   { id: "foot", label: "Явган", copy: "Ойрын хүргэлтэд тохиромжтой", base: 1800, perKm: 700, perKg: 180, speedKmh: 4 },
 ];
 
-const copies = [
-  {
-    kicker: "ХУРДАН",
-    title: "Маркет гэрт тань.",
-    body: "",
-  },
-  {
-    kicker: "АМАР",
-    title: "Сонгоод захиал.",
-    body: "",
-  },
-  {
-    kicker: "ИЛ ТОД",
-    title: "Явцаа шууд хар.",
-    body: "",
-  },
-  {
-    kicker: "ӨСӨЛТ",
-    title: "Бизнесээ өсгө.",
-    body: "",
-  },
-];
-
 function formatMnt(value: number | string) {
   return `₮${Number(value || 0).toLocaleString("mn-MN")}`;
 }
@@ -432,6 +423,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [cartOpen, setCartOpen] = useState(false);
   const cartPanelRef = useRef<HTMLElement | null>(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [heroImageIndex, setHeroImageIndex] = useState(0);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", phone: "", login: "", password: "" });
   const [partnerAuthOpen, setPartnerAuthOpen] = useState(false);
   const [partnerAuthMode, setPartnerAuthMode] = useState<PartnerAuthMode>("register");
@@ -508,28 +500,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }, [section, session]);
 
   useEffect(() => {
-    if (section !== "home") return;
+    if (section !== "home") return undefined;
 
-    if (!document.querySelector('script[data-deliverhub-spline-viewer="true"]')) {
-      const viewerScript = document.createElement("script");
-      viewerScript.type = "module";
-      viewerScript.src = "https://unpkg.com/@splinetool/viewer/build/spline-viewer.js";
-      viewerScript.dataset.deliverhubSplineViewer = "true";
-      document.body.appendChild(viewerScript);
-    }
+    const intervalId = window.setInterval(() => {
+      setHeroImageIndex((current) => (current + 1) % landingHeroImages.length);
+    }, 4000);
 
-    const timer = window.setTimeout(() => {
-      const wrap = document.getElementById("canvas-wrap");
-      if (!wrap || wrap.querySelector("canvas")) return;
-
-      (window as typeof window & { __deliverhubNomadSceneStarted?: boolean }).__deliverhubNomadSceneStarted = false;
-      const script = document.createElement("script");
-      script.type = "module";
-      script.src = `/nomad-scroll-scene.js?v=${Date.now()}`;
-      document.body.appendChild(script);
-    }, 0);
-
-    return () => window.clearTimeout(timer);
+    return () => window.clearInterval(intervalId);
   }, [section]);
 
   useEffect(() => {
@@ -708,6 +685,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     [allMarketProducts, wishlist],
   );
   const subtotal = selectedItems.reduce((sum, product) => sum + product.priceMnt * product.quantity, 0);
+  const cartItemCount = selectedItems.reduce((sum, product) => sum + product.quantity, 0);
   const weightKg = Math.round(selectedItems.reduce((sum, product) => sum + product.weightGrams * product.quantity, 0) / 100) / 10;
   const activeDelivery = deliveryOptions.find((option) => option.id === deliveryType) ?? deliveryOptions[0];
   const customerLocation = location ?? { latitude: 47.9212, longitude: 106.9186 };
@@ -1110,8 +1088,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             aria-expanded={cartOpen}
             aria-label="Сагс"
           >
-            <span aria-hidden="true">▣</span>
-            {session && selectedItems.length > 0 ? <b>{selectedItems.length}</b> : null}
+            <svg aria-hidden="true" className="landing-nav-icon" fill="none" viewBox="0 0 24 24">
+              <path d="M3 4H5L7.2 14.2C7.39 15.07 8.16 15.69 9.05 15.69H17.8C18.64 15.69 19.38 15.14 19.62 14.33L21 9.5H8.1" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+              <circle cx="9.5" cy="19" fill="currentColor" r="1.4" />
+              <circle cx="17.5" cy="19" fill="currentColor" r="1.4" />
+            </svg>
+            {session && cartItemCount > 0 ? <b>{cartItemCount}</b> : null}
           </button>
           <button
             className={wishlistOpen ? "active" : ""}
@@ -1124,11 +1106,16 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             aria-expanded={wishlistOpen}
             aria-label="Wishlist"
           >
-            <span aria-hidden="true">♡</span>
+            <svg aria-hidden="true" className="landing-nav-icon" fill="none" viewBox="0 0 24 24">
+              <path d="M6 4.8C6 3.8 6.8 3 7.8 3H16.2C17.2 3 18 3.8 18 4.8V20L12 16.6L6 20V4.8Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+            </svg>
             {wishlistItems.length > 0 ? <b>{wishlistItems.length}</b> : null}
           </button>
           <button type="button" aria-label="Миний захиалсан">
-            <span aria-hidden="true">≡</span>
+            <svg aria-hidden="true" className="landing-nav-icon" fill="none" viewBox="0 0 24 24">
+              <path d="M12 12C14.4853 12 16.5 9.98528 16.5 7.5C16.5 5.01472 14.4853 3 12 3C9.51472 3 7.5 5.01472 7.5 7.5C7.5 9.98528 9.51472 12 12 12Z" stroke="currentColor" strokeWidth="1.8" />
+              <path d="M4 20C4.8 16.9 7.72 15 12 15C16.28 15 19.2 16.9 20 20" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+            </svg>
             {session && tracking ? <b className="is-notification">1</b> : null}
           </button>
         </div>
@@ -1543,24 +1530,17 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         </div>
       ) : null}
 
-      <div id="progress" />
-      <div id="spline-hero">
-        {createElement("spline-viewer", {
-          "loading-anim-type": "spinner-small-dark",
-          url: "https://prod.spline.design/17ec5be6-08d9-461d-aa33-f19f4c6dc35f/scene.splinecode",
-        })}
-      </div>
-      <div id="stage">
-        <div id="canvas-wrap" />
-      </div>
-
-      {copies.map((copy, index) => (
-        <section className="copy" data-i={index} key={copy.kicker}>
-          <span>{copy.kicker}</span>
-          {index === 0 ? <h1>{copy.title}</h1> : <h2>{copy.title}</h2>}
-          {copy.body ? <p>{copy.body}</p> : null}
-        </section>
-      ))}
+      <section className="landing-hero-slider" aria-label="DeliverHub танилцуулга">
+        {landingHeroImages.map((image, index) => (
+          <div className={`landing-hero-slide ${index === heroImageIndex ? "active" : ""}`} key={image}>
+            <img alt="" src={image} />
+          </div>
+        ))}
+        <div className="landing-hero-shade" />
+        <div className="landing-hero-copy">
+          <h1>Монгол дахь албан ёсны чөлөөт хүргэлтийн нэгдсэн платформ</h1>
+        </div>
+      </section>
 
       {section === "contact" ? (
       <section className="landing-contact-dashboard" aria-label="Холбоо барих">
