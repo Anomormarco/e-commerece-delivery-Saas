@@ -143,11 +143,11 @@ function storeBrandFor(name: string) {
 
 function productImageFor(product: Pick<Product, "name" | "category" | "imageUrl">) {
   if (product.imageUrl) return product.imageUrl;
-  return productPhotoUrl(keywordForProduct(product), product.name);
+  return productPhotoUrl(keywordForProduct(product));
 }
 
-function productPhotoUrl(keyword: string, seed: string) {
-  const query = encodeURIComponent(`${keyword} product photo ${seed}`);
+function productPhotoUrl(keyword: string) {
+  const query = encodeURIComponent(`${keyword} product photo`);
   return `https://tse4.mm.bing.net/th?q=${query}&w=900&h=650&c=7&rs=1&p=0`;
 }
 
@@ -221,7 +221,7 @@ function buildDemoMarketStores(): StoreDirectoryItem[] {
           category: template.category,
           priceMnt: String(1800 + (index + 1) * 420 + templateIndex * 500 + storeIndex * 300),
           weightGrams: 180 + (index % 12) * 150,
-          imageUrl: productPhotoUrl(keyword, `${id}-${index + 1}`),
+          imageUrl: productPhotoUrl(keyword),
         };
       });
 
@@ -635,7 +635,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           weightGrams: product.weightGrams,
           stockCount: 100,
           description: `${store.name} - ${product.category.toLowerCase()} ангилал.`,
-          imageUrl: productPhotoUrl(keywordForProduct(product), product.id),
+          imageUrl: productPhotoUrl(keywordForProduct(product)),
           storeId: store.id,
           storeName: store.name,
         })).filter((product) => (

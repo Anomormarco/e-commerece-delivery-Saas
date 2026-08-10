@@ -143,7 +143,7 @@ function productTemplate(store, index) {
 
 function productImage(store, index) {
   const { keyword } = productTemplate(store, index);
-  const query = encodeURIComponent(`${keyword} product photo ${store.slug}-${index + 1}`);
+  const query = encodeURIComponent(`${keyword} product photo`);
   return `https://tse4.mm.bing.net/th?q=${query}&w=900&h=650&c=7&rs=1&p=0`;
 }
 
