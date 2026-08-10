@@ -118,7 +118,7 @@ const initialProducts: Product[] = [
     priceMnt: 28000,
     weightGrams: 5000,
     stockCount: 45,
-    description: "Гэр бүлийн өдөр тутмын хүнсний нөөц.",
+    description: "Өдөр тутмын хэрэглээгээ хурдан, найдвартай хүргүүлээрэй.",
   },
   {
     id: "meat-1kg",
@@ -128,7 +128,7 @@ const initialProducts: Product[] = [
     priceMnt: 18500,
     weightGrams: 1000,
     stockCount: 12,
-    description: "Хүйтэн хэлхээгээр хүргэгдэх шинэ мах.",
+    description: "Шинэхэн бүтээгдэхүүнээ гэрийн үүдэндээ тав тухтай аваарай.",
   },
   {
     id: "bread",
@@ -138,7 +138,7 @@ const initialProducts: Product[] = [
     priceMnt: 3200,
     weightGrams: 420,
     stockCount: 30,
-    description: "Өдөр тутмын хурдан эргэлттэй бараа.",
+    description: "Хэрэгтэй зүйлээ хүлээлгүй захиалж, цаг хэмнээрэй.",
   },
   {
     id: "milk-1l",
@@ -148,36 +148,36 @@ const initialProducts: Product[] = [
     priceMnt: 4500,
     weightGrams: 1050,
     stockCount: 0,
-    description: "Өглөөний хэрэглээнд шууд хүргэнэ.",
+    description: "Өглөөний хэрэглээгээ нэг товшоод шууд захиалаарай.",
   },
 ];
 
 const deliveryOptions: Array<{ id: DeliveryType; label: string; copy: string; base: number; perKm: number; perKg: number; speedKmh: number }> = [
-  { id: "bike", label: "Мопед/дугуй", copy: "Ойрын зайд хурдан", base: 2500, perKm: 900, perKg: 140, speedKmh: 18 },
-  { id: "car", label: "Машин", copy: "Хүнд бараанд тохиромжтой", base: 4200, perKm: 1200, perKg: 110, speedKmh: 28 },
-  { id: "foot", label: "Явган", copy: "Ойр байр/оффис", base: 1800, perKm: 700, perKg: 180, speedKmh: 4 },
+  { id: "bike", label: "Мопед/дугуй", copy: "Хамгийн хурдан сонголт", base: 2500, perKm: 900, perKg: 140, speedKmh: 18 },
+  { id: "car", label: "Машин", copy: "Том захиалгад найдвартай", base: 4200, perKm: 1200, perKg: 110, speedKmh: 28 },
+  { id: "foot", label: "Явган", copy: "Ойрын хүргэлтэд хэмнэлттэй", base: 1800, perKm: 700, perKg: 180, speedKmh: 4 },
 ];
 
 const copies = [
   {
-    kicker: "01 - COURIER LOCATION",
-    title: "Хот таны хөдөлгөөнөөр амь орно.",
-    body: "Courier-ийн байршил, хурд, тээврийн хэрэгсэл бодит хугацаанд харагдана.",
+    kicker: "01 - ХУРДАН ХҮРГЭЛТ",
+    title: "DeliverHub-ийг сонгоод хотын хамгийн ойрын маркетийг гэртээ авчраарай.",
+    body: "Захиалга бүр ил тод явцтай, courier-ийн байршил бодит хугацаанд харагдаж, хүлээлт багасна.",
   },
   {
-    kicker: "02 - CUSTOMER ORDER",
-    title: "Маркетаас бараагаа шууд захиална.",
-    body: "Нэвтэрсний дараа байршлаа баталгаажуулж, хүргэлтийн төрлөө сонгоод төлбөрийн өмнө үнэ тооцоолно.",
+    kicker: "02 - УХААЛАГ ЗАХИАЛГА",
+    title: "Бараагаа сонго, хүргэлтээ тохируул, үлдсэнийг DeliverHub даана.",
+    body: "Үнэ, зай, хугацаа бүгд урьдчилж тооцогдоно. Хэрэглэгч илүү итгэлтэй, бизнес илүү хурдан борлуулна.",
   },
   {
-    kicker: "03 - DELIVERY STEPS",
-    title: "Захиалгын 4 төлөв нэг дэлгэц дээр.",
-    body: "Баталгаажсан, бэлтгэгдсэн, хүргэлтэнд гарсан, амжилттай гэсэн явцыг хэрэглэгч өөрөөсөө харна.",
+    kicker: "03 - ИЛ ТОД ЯВЦ",
+    title: "Захиалга хаана явааг асуух шаардлагагүй.",
+    body: "Баталгаажсан мөчөөс амжилттай хүргэгдэх хүртэл бүх төлөв нэг дэлгэц дээр шинэчлэгдэнэ.",
   },
   {
-    kicker: "04 - REALTIME COURIER",
-    title: "Courier замд гармагц live location асна.",
-    body: "Захиалга хүргэлтэнд гарахад courier-ийн байршил realtime байдлаар шинэчлэгдэнэ.",
+    kicker: "04 - БИЗНЕСИЙН ӨСӨЛТ",
+    title: "Дэлгүүр, хүргэлт, хэрэглэгчийг нэг платформ дээр холбо.",
+    body: "DeliverHub таны борлуулалтын урсгалыг цэгцэлж, захиалга бүрийг илүү хурдан хаахад тусална.",
   },
 ];
 
@@ -610,11 +610,16 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     const orderNo = `DH-${Date.now().toString().slice(-8)}`;
     const paymentLabel = paymentMethod === "stripe" ? "Stripe" : "QPay";
     const district = addressSuggestions.join(" · ") || "Хаяг баталгаажиж байна";
+    const storeName = selectedStore?.name ?? "DeliverHub market";
+    const storeRecipient = readStoreUsers().find((user) => user.storeName.toLowerCase() === storeName.toLowerCase());
+    const storeId = storeRecipient?.id ?? selectedStore?.id ?? "deliverhub-market";
     appendJsonStorage(storeOrdersStorageKey, {
       id: orderNo,
-      status: "Төлбөр амжилттай - дэлгүүр баталгаажуулна",
+      status: paymentMethod === "stripe" ? "Stripe гүйлгээ амжилттай - дэлгүүр баталгаажуулна" : "QPay төлбөр амжилттай - дэлгүүр баталгаажуулна",
       amountMnt: String(total),
       district,
+      storeId,
+      storeName,
       paymentMethod: paymentLabel,
       customerName: session.customer.fullName,
       customerPhone: session.customer.phone,
@@ -628,14 +633,16 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     });
     appendJsonStorage(storeNotificationsStorageKey, {
       id: `notif-${orderNo}`,
-      title: "Шинэ төлбөртэй захиалга",
-      body: `${paymentLabel}-ээр ${formatMnt(total)} төлөгдсөн. Хаяг: ${district}`,
+      title: paymentMethod === "stripe" ? "Stripe гүйлгээ амжилттай" : "Шинэ төлбөртэй захиалга",
+      body: `${storeName}: ${paymentLabel}-ээр ${formatMnt(total)} төлөгдсөн шинэ захиалга ирлээ. Хаяг: ${district}`,
+      storeId,
+      storeName,
       readAt: null,
       createdAt: new Date().toISOString(),
     });
     setTracking({
       orderNo,
-      storeName: selectedStore?.name ?? "DeliverHub market",
+      storeName,
       district,
       statusLabel: "Төлбөр амжилттай",
       totalMnt: String(total),
@@ -665,7 +672,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         etaText: `${etaMinutes} минутын тооцоололтой`,
       },
     });
-    setPaymentSuccess(`${paymentLabel}: төлбөр амжилттай хийгдлээ. Дэлгүүрт захиалга очлоо.`);
+    setPaymentSuccess(paymentMethod === "stripe"
+      ? "Stripe гүйлгээ амжилттай. Захиалга тухайн дэлгүүрийн notification руу очлоо."
+      : "QPay төлбөр амжилттай. Захиалга тухайн дэлгүүрийн notification руу очлоо.");
     window.setTimeout(() => setPaymentSuccess(""), 3600);
     setNotice("Захиалга дэлгүүрийн notification руу илгээгдлээ.");
     setCart({});
@@ -848,11 +857,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <a className="landing-commerce-brand" href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>
           <BrandLogo showText size={32} />
         </a>
-        <a className={section === "home" ? "active" : ""} href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>Нүүр</a>
-        <button className={section === "market" ? "active" : ""} onClick={openMarket} type="button">Маркет</button>
-        <button className={section === "courier" ? "active" : ""} onClick={openCourier} type="button">Хүргэлтийн ажилтан</button>
-        <button className={section === "partner" ? "active" : ""} onClick={openPartner} type="button">Байгууллага бүртгэх</button>
-        <button className={section === "contact" ? "active" : ""} onClick={openContact} type="button">Холбоо барих</button>
+        <a className={section === "home" ? "active" : ""} href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>Яагаад бид вэ</a>
+        <button className={section === "market" ? "active" : ""} onClick={openMarket} type="button">Одоо захиалах</button>
+        <button className={section === "courier" ? "active" : ""} onClick={openCourier} type="button">Courier болох</button>
+        <button className={section === "partner" ? "active" : ""} onClick={openPartner} type="button">Бизнесээ нэмэх</button>
+        <button className={section === "contact" ? "active" : ""} onClick={openContact} type="button">Санал авах</button>
         <div className="landing-nav-actions" aria-label="Хэрэглэгчийн үйлдлүүд">
           <button
             className={cartOpen ? "active" : ""}
@@ -901,7 +910,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             ) : null}
           </div>
         ) : (
-          <button className="landing-login-button" onClick={() => setAuthOpen(true)} type="button">Нэвтрэх</button>
+          <button className="landing-login-button" onClick={() => setAuthOpen(true)} type="button">Эхлэх</button>
         )}
 
         {cartOpen ? (
@@ -916,9 +925,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
             {!session ? (
               <div className="landing-cart-empty">
-                <strong>Эхлээд нэвтэрнэ үү</strong>
-                <p>Сагс үүсгэж, захиалга илгээхийн тулд хэрэглэгчээр нэвтэрнэ.</p>
-                <button onClick={() => { setAuthMode("login"); setAuthOpen(true); setCartOpen(false); }} type="button">Нэвтрэх</button>
+                <strong>Захиалгаа үргэлжлүүлэх үү?</strong>
+                <p>DeliverHub-д нэвтэрснээр сагсаа хадгалж, хүргэлтийн явцаа шууд хянах боломжтой.</p>
+                <button onClick={() => { setAuthMode("login"); setAuthOpen(true); setCartOpen(false); }} type="button">Үргэлжлүүлэх</button>
               </div>
             ) : selectedItems.length ? (
               <>
@@ -958,14 +967,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
                 <footer>
                   <button onClick={() => setCart({})} type="button">Цэвэрлэх</button>
-                  <button onClick={checkoutOrder} type="button">{paymentMethod === "stripe" ? "Stripe төлөх" : "QPay захиалах"}</button>
+                  <button onClick={checkoutOrder} type="button">{paymentMethod === "stripe" ? "Картаар баталгаажуулах" : "QPay-ээр захиалах"}</button>
                 </footer>
               </>
             ) : (
               <div className="landing-cart-empty">
-                <strong>Сагс хоосон байна</strong>
-                <p>Маркет руу орж бараагаа сонгоход энд шууд харагдана.</p>
-                <button onClick={openMarket} type="button">Маркет үзэх</button>
+                <strong>Өнөөдрийн хэрэгцээгээ эндээс эхлүүл</strong>
+                <p>Ойрын маркетуудаас бараагаа сонгоод хурдан хүргэлтээр гэртээ аваарай.</p>
+                <button onClick={openMarket} type="button">Захиалж эхлэх</button>
               </div>
             )}
           </section>
@@ -975,7 +984,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           <section className="landing-cart-popover landing-wishlist-popover" aria-label="Wishlist">
             <header>
               <div>
-                <span>Wishlist</span>
+                <span>Сонгосон бараа</span>
                 <strong>{wishlistItems.length ? `${wishlistItems.length} бараа` : "Хоосон байна"}</strong>
               </div>
               <button onClick={() => setWishlistOpen(false)} type="button" aria-label="Wishlist хаах">×</button>
@@ -998,9 +1007,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               </div>
             ) : (
               <div className="landing-cart-empty">
-                <strong>Хадгалсан бараа алга</strong>
-                <p>Product card дээрх heart icon дарвал энд хадгалагдана.</p>
-                <button onClick={openMarket} type="button">Маркет үзэх</button>
+                <strong>Таалагдсан бараагаа хадгалаарай</strong>
+                <p>Дараа захиалах бүтээгдэхүүнээ тэмдэглээд, нэг товшоод сагсандаа нэмнэ.</p>
+                <button onClick={openMarket} type="button">Сонголт хийх</button>
               </div>
             )}
           </section>
@@ -1011,11 +1020,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       <div className="landing-shop-panel market-page is-open">
         <header className="market-top-header">
           <div>
-            <h2>Маркетаас бараа захиалах</h2>
+            <h2>Ойрын маркетуудаас шууд захиалаарай</h2>
           </div>
           <label>
             <span>⌕</span>
-            <input value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Бараа, ангилал хайх..." />
+            <input value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Хэрэгтэй бараагаа хайх..." />
           </label>
         </header>
 
@@ -1025,7 +1034,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               <header>
                 <input
                   onChange={(event) => setStoreSearch(event.target.value)}
-                  placeholder="Маркетийн нэр, хаяг, төрөл хайх..."
+                  placeholder="Таарах маркет, хаяг, төрлөө хайх..."
                   value={storeSearch}
                 />
               </header>
@@ -1061,10 +1070,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             </section>
 
             <section className="market-stats-row">
-              <article><span>Маркет</span><strong>{selectedStore?.name ?? "Сонгоно уу"}</strong><em>Нээлттэй</em></article>
-              <article><span>Бараа</span><strong>{marketProducts.length}</strong><em>Filter active</em></article>
-              <article><span>Сагс</span><strong>{selectedItems.length}</strong><em>{formatMnt(subtotal)}</em></article>
-              <article><span>Хүргэлт</span><strong>{selectedItems.length ? `${etaMinutes} мин` : "-"}</strong><em>{selectedItems.length ? formatMnt(deliveryFee) : "0 MNT"}</em></article>
+              <article><span>Сонгосон маркет</span><strong>{selectedStore?.name ?? "Сонгоно уу"}</strong><em>Захиалга авч байна</em></article>
+              <article><span>Боломжит бараа</span><strong>{marketProducts.length}</strong><em>Шүүлт идэвхтэй</em></article>
+              <article><span>Таны сагс</span><strong>{selectedItems.length}</strong><em>{formatMnt(subtotal)}</em></article>
+              <article><span>Тооцсон хүргэлт</span><strong>{selectedItems.length ? `${etaMinutes} мин` : "-"}</strong><em>{selectedItems.length ? formatMnt(deliveryFee) : "0 MNT"}</em></article>
             </section>
 
             <section className="landing-product-grid">
@@ -1115,11 +1124,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             </ol>
             <div className="landing-courier-live">
               <strong>{tracking.courier.name}</strong>
-              <span>{tracking.courier.etaText || "Хүргэлтэнд гарахад realtime location харагдана"}</span>
+              <span>{tracking.courier.etaText || "Courier замд гарахад байршил шууд харагдана"}</span>
               <b>
                 {tracking.courierLocation
                   ? `${tracking.courierLocation.latitude.toFixed(5)}, ${tracking.courierLocation.longitude.toFixed(5)}`
-                  : "Location хүлээгдэж байна"}
+                  : "Байршил идэвхжихийг хүлээж байна"}
               </b>
             </div>
           </section>
@@ -1136,22 +1145,22 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <section className="landing-partner-page" aria-label="Байгууллага бүртгэх">
           <div className="landing-partner-copy">
             <div>
-              <span>STORE PARTNER</span>
-              <h2>Байгууллагаа DeliverHub-т холбо.</h2>
-              <p>Дэлгүүрийн бараа, захиалга, хүргэлт, орлого, notification бүгд нэг урсгалд орж marketplace дээр хэрэглэгчдэд шууд харагдана.</p>
+              <span>БИЗНЕСИЙН ТҮНШЛЭЛ</span>
+              <h2>Дэлгүүрээ DeliverHub-д нэмээд шинэ хэрэглэгчдэд өнөөдөр хүр.</h2>
+              <p>Бараа, захиалга, хүргэлт, орлого нэг урсгалд орж, таны дэлгүүр marketplace дээр шууд борлуулалт авах боломжтой болно.</p>
             </div>
             <div className="landing-partner-metrics">
-              <article><strong>01</strong><small>Marketplace дээр дэлгүүрийн төрөл, онцлогоор хайгдана.</small></article>
-              <article><strong>02</strong><small>Захиалгаас courier assignment хүртэл нэг workflow.</small></article>
-              <article><strong>03</strong><small>Realtime notification, төлөв, орлогын мэдээлэл нэг дор.</small></article>
+              <article><strong>01</strong><small>Таны дэлгүүр ойрын хэрэглэгчдийн хайлтанд илүү хурдан гарна.</small></article>
+              <article><strong>02</strong><small>Захиалга ормогц хүргэлт, төлөв, мэдэгдэл автоматаар цэгцэрнэ.</small></article>
+              <article><strong>03</strong><small>Борлуулалт, үлдэгдэл, хүргэлтийн явцаа нэг dashboard-оос удирдана.</small></article>
             </div>
           </div>
 
           <aside className="landing-partner-auth">
             <header>
               <div>
-                <span>Дэлгүүрийн эрх</span>
-                <strong>{partnerAuthMode === "login" ? "Нэвтрэх" : "Бүртгэл үүсгэх"}</strong>
+                <span>Түншийн эрх</span>
+                <strong>{partnerAuthMode === "login" ? "Борлуулалтаа үргэлжлүүлэх" : "Дэлгүүрээ эхлүүлэх"}</strong>
               </div>
               <div>
                 <button className={partnerAuthMode === "login" ? "active" : ""} onClick={() => setPartnerAuthMode("login")} type="button">Нэвтрэх</button>
@@ -1176,7 +1185,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                 <input value={partnerForm.confirmPassword} onChange={(event) => setPartnerForm({ ...partnerForm, confirmPassword: event.target.value })} placeholder="Нууц үг давтах" type="password" />
               ) : null}
               <button className="landing-auth-submit" type="submit">
-                {partnerAuthMode === "login" ? "Нэвтрэх" : "Бүртгэл үүсгэх"}
+                {partnerAuthMode === "login" ? "Портал руу орох" : "Бизнесээ нэмэх"}
               </button>
               {notice ? <p>{notice}</p> : null}
             </form>
@@ -1276,19 +1285,19 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       {section === "contact" ? (
       <section className="landing-contact-dashboard" aria-label="Холбоо барих">
         <div className="landing-contact-head">
-          <span>Холбоо барих</span>
-          <h2>DeliverHub багтай шууд холбогдох</h2>
+          <span>САНАЛ АВАХ</span>
+          <h2>DeliverHub таны захиалгын урсгалыг хэрхэн өсгөхийг ярилцъя.</h2>
         </div>
         <div className="landing-contact-grid">
           <article>
             <span>Имэйл</span>
             <strong>support@deliverhub.mn</strong>
-            <p>Систем, бүртгэл, захиалга болон market workflow-ийн асуултад хариулна.</p>
+            <p>Бизнесээ холбох, хүргэлтээ хурдлуулах, хэрэглэгчийн туршлагаа сайжруулах зөвлөгөө аваарай.</p>
           </article>
           <article>
             <span>Утас</span>
             <strong>+976 7700 1122</strong>
-            <p>Дэлгүүр, courier, хэрэглэгчийн onboarding дэмжлэг авна.</p>
+            <p>Дэлгүүрийн бүртгэл, courier-ийн баг, marketplace нэвтрүүлэлтийн талаар шууд зөвлөнө.</p>
           </article>
           <form>
             <label>
@@ -1301,9 +1310,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             </label>
             <label>
               <span>Мессеж</span>
-              <textarea placeholder="Юуны талаар холбогдох вэ?" />
+              <textarea placeholder="Бизнесээ хэрхэн өсгөх талаар бичээрэй" />
             </label>
-            <button type="button">Илгээх</button>
+            <button type="button">Санал авах</button>
           </form>
         </div>
       </section>
@@ -1313,37 +1322,37 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <section className="landing-courier-portal" aria-label="Хүргэлтийн ажилтан">
           <header className="landing-courier-portal-head">
             <div>
-              <span>Ажилтны портал</span>
-              <h2>Хүргэлтийн ажилтан өдөр тутмын дуудлагаа эндээс эхлүүлнэ.</h2>
-              <p>Онлайн төлөв, шинэ захиалга, pickup/dropoff маршрут болон OTP баталгаажуулалт employee app дээр ажиллана.</p>
+              <span>COURIER БОЛОХ</span>
+              <h2>DeliverHub-ийн хүргэлтийн багт нэгдээд захиалга бүрээс орлого олоорой.</h2>
+              <p>Шинэ дуудлага, маршрут, pickup/dropoff баталгаажуулалт, realtime төлөв бүгд нэг апп дээр ажиллана.</p>
             </div>
             <div className="landing-courier-auth-links">
-              <a href={`${employeePortalUrl}/?mode=login`}>Нэвтрэх</a>
-              <a href={`${employeePortalUrl}/?mode=register`}>Бүртгүүлэх</a>
+              <a href={`${employeePortalUrl}/?mode=login`}>Ажилдаа орох</a>
+              <a href={`${employeePortalUrl}/?mode=register`}>Courier болох</a>
             </div>
           </header>
           <div className="landing-courier-portal-grid">
             <article>
               <span>01</span>
-              <strong>Дуудлага хүлээн авах</strong>
-              <p>Шинэ хүргэлтийн хүсэлт орж ирэхэд ажилтан зөвшөөрөх эсвэл татгалзах боломжтой.</p>
+              <strong>Илүү олон дуудлага</strong>
+              <p>Ойрын захиалгуудыг хурдан харж, өөрт тохирох хүргэлтээ сонгон ажиллаарай.</p>
             </article>
             <article>
               <span>02</span>
-              <strong>Realtime location</strong>
-              <p>Хүргэлтэнд гарсан үед courier-ийн байршил customer талд realtime шинэчлэгдэнэ.</p>
+              <strong>Итгэл төрүүлэх live төлөв</strong>
+              <p>Байршил, ETA ил тод харагдсанаар хэрэглэгчийн итгэл нэмэгдэж, хүргэлт амар болдог.</p>
             </article>
             <article>
               <span>03</span>
-              <strong>OTP баталгаажуулалт</strong>
-              <p>Pickup болон dropoff дээр кодоор баталгаажуулж, захиалгын төлөв автоматаар шинэчлэгдэнэ.</p>
+              <strong>Аюулгүй баталгаажуулалт</strong>
+              <p>Pickup болон dropoff дээр кодоор баталгаажуулж, маргаан багатай найдвартай хүргэнэ.</p>
             </article>
           </div>
           <section className="landing-courier-status-panel">
-            <div><span>Өнөөдрийн дуудлага</span><strong>12</strong><em>demo</em></div>
-            <div><span>Идэвхтэй хүргэлт</span><strong>3</strong><em>online</em></div>
-            <div><span>Дундаж ETA</span><strong>18 мин</strong><em>route</em></div>
-            <div><span>Амжилттай</span><strong>98%</strong><em>status</em></div>
+            <div><span>Өнөөдрийн боломж</span><strong>12</strong><em>дуудлага</em></div>
+            <div><span>Идэвхтэй ажил</span><strong>3</strong><em>онлайн</em></div>
+            <div><span>Дундаж хүргэлт</span><strong>18 мин</strong><em>хурд</em></div>
+            <div><span>Амжилтын түвшин</span><strong>98%</strong><em>итгэл</em></div>
           </section>
         </section>
       ) : null}

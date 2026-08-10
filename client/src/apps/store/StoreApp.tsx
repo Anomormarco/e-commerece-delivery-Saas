@@ -474,7 +474,7 @@ export function StoreApp() {
     return <StoreAuthPage onAuthenticated={setUser} />;
   }
 
-  return <StorePage onLogout={handleLogout} />;
+  return <StorePage onLogout={handleLogout} store={{ id: user.id, storeName: user.storeName }} />;
 }
 
 export default StoreApp;

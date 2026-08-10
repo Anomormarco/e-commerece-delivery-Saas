@@ -8,6 +8,8 @@ type NotificationItem = {
   body: string;
   readAt: string | null;
   createdAt: string;
+  storeId?: string;
+  storeName?: string;
 };
 
 type NotificationInbox = {
@@ -24,18 +26,23 @@ const text = {
 
 const localNotificationKey = "deliverhub-store-notifications";
 
-function markInboxRead(inbox: NotificationInbox | null): NotificationInbox | null {
+function isForStore(item: { storeId?: string; storeName?: string }, storeId?: string, storeName?: string) {
+  if (!storeId && !storeName) return true;
+  return item.storeId === storeId || item.storeName === storeName || (!item.storeId && !item.storeName);
+}
+
+function markInboxRead(inbox: NotificationInbox | null, storeId?: string, storeName?: string): NotificationInbox | null {
   if (!inbox) return inbox;
   const readAt = new Date().toISOString();
 
   return {
     ...inbox,
-    unreadCount: 0,
-    items: inbox.items.map((item) => (item.readAt ? item : { ...item, readAt })),
+    unreadCount: inbox.items.filter((item) => !item.readAt && !isForStore(item, storeId, storeName)).length,
+    items: inbox.items.map((item) => (item.readAt || !isForStore(item, storeId, storeName) ? item : { ...item, readAt })),
   };
 }
 
-export function NotificationBell({ className = "" }: { className?: string }) {
+export function NotificationBell({ className = "", storeId, storeName }: { className?: string; storeId?: string; storeName?: string }) {
   const [open, setOpen] = useState(false);
   const [localInbox, setLocalInbox] = useState<NotificationInbox | null>(null);
   const [localItems, setLocalItems] = useState<NotificationItem[]>(() => {
@@ -48,8 +55,10 @@ export function NotificationBell({ className = "" }: { className?: string }) {
   });
   const inbox = useRealtimeResource<NotificationInbox>("/notifications", ["notifications.updated"]);
   const visibleInbox = localInbox ?? inbox.data;
-  const items = [...localItems, ...(visibleInbox?.items ?? [])];
-  const unreadCount = localItems.filter((item) => !item.readAt).length + (visibleInbox?.unreadCount ?? 0);
+  const scopedLocalItems = localItems.filter((item) => isForStore(item, storeId, storeName));
+  const scopedRemoteItems = (visibleInbox?.items ?? []).filter((item) => isForStore(item, storeId, storeName));
+  const items = [...scopedLocalItems, ...scopedRemoteItems];
+  const unreadCount = items.filter((item) => !item.readAt).length;
 
   useEffect(() => {
     setLocalInbox(inbox.data);
@@ -76,10 +85,10 @@ export function NotificationBell({ className = "" }: { className?: string }) {
 
   async function markRead() {
     const readAt = new Date().toISOString();
-    const nextLocalItems = localItems.map((item) => (item.readAt ? item : { ...item, readAt }));
+    const nextLocalItems = localItems.map((item) => (item.readAt || !isForStore(item, storeId, storeName) ? item : { ...item, readAt }));
     setLocalItems(nextLocalItems);
     localStorage.setItem(localNotificationKey, JSON.stringify(nextLocalItems));
-    setLocalInbox((current) => markInboxRead(current ?? inbox.data));
+    setLocalInbox((current) => markInboxRead(current ?? inbox.data, storeId, storeName));
     const nextInbox = await postJson<NotificationInbox>("/notifications/read").catch(() => null);
 
     if (nextInbox) {

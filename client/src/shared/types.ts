@@ -23,6 +23,8 @@ export type StoreOrder = {
   status: string;
   amountMnt: string;
   district: string;
+  storeId?: string;
+  storeName?: string;
 };
 
 export type CustomerTracking = {

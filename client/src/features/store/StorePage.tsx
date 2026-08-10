@@ -34,10 +34,21 @@ type ProductItem = {
 
 const localStoreOrdersKey = "deliverhub-store-orders";
 
-function readLocalOrders(): StoreOrder[] {
+type StoreIdentity = {
+  id: string;
+  storeName: string;
+};
+
+function isForStore(order: StoreOrder, store?: StoreIdentity) {
+  if (!store) return true;
+  return order.storeId === store.id || order.storeName === store.storeName || (!order.storeId && !order.storeName);
+}
+
+function readLocalOrders(store?: StoreIdentity): StoreOrder[] {
   try {
     const raw = localStorage.getItem(localStoreOrdersKey);
-    return raw ? (JSON.parse(raw) as StoreOrder[]) : [];
+    const orders = raw ? (JSON.parse(raw) as StoreOrder[]) : [];
+    return orders.filter((order) => isForStore(order, store));
   } catch {
     return [];
   }
@@ -129,14 +140,14 @@ function orderLabel(index: number) {
   return "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u044D\u0434 \u0433\u0430\u0440\u0441\u0430\u043D";
 }
 
-export function StorePage({ onLogout }: { onLogout?: () => void }) {
+export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: StoreIdentity }) {
   const dashboard = useRealtimeResource<StoreDashboard>("/dashboard", ["store.dashboard.refresh"]);
   const [activeTab, setActiveTab] = useState<StoreTab>("overview");
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => (localStorage.getItem("deliverhub-store-theme") === "light" ? "light" : "night"));
   const [notice, setNotice] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState("");
   const [products, setProducts] = useState<ProductItem[]>(initialProducts);
-  const [localOrders, setLocalOrders] = useState<StoreOrder[]>(readLocalOrders);
+  const [localOrders, setLocalOrders] = useState<StoreOrder[]>(() => readLocalOrders(store));
 
   useEffect(() => {
     localStorage.setItem("deliverhub-store-theme", themeMode);
@@ -145,16 +156,17 @@ export function StorePage({ onLogout }: { onLogout?: () => void }) {
   useEffect(() => {
     function refreshLocalOrders(event?: Event) {
       if (event instanceof StorageEvent && event.key && event.key !== localStoreOrdersKey) return;
-      setLocalOrders(readLocalOrders());
+      setLocalOrders(readLocalOrders(store));
     }
 
+    refreshLocalOrders();
     window.addEventListener("storage", refreshLocalOrders);
     window.addEventListener("focus", refreshLocalOrders);
     return () => {
       window.removeEventListener("storage", refreshLocalOrders);
       window.removeEventListener("focus", refreshLocalOrders);
     };
-  }, []);
+  }, [store?.id, store?.storeName]);
 
   function runAction(label: string, target: string) {
     const nextStatus = label === text.confirm
@@ -370,7 +382,7 @@ export function StorePage({ onLogout }: { onLogout?: () => void }) {
         <article className="store-dash-welcome">
           <div>
             <span>{text.welcome}</span>
-            <h2>{text.storeName}</h2>
+            <h2>{store?.storeName ?? text.storeName}</h2>
             <p>{text.welcomeCopy}</p>
             <button onClick={() => setActiveTab("orders")} type="button">{text.orderBoard}</button>
           </div>
@@ -392,7 +404,7 @@ export function StorePage({ onLogout }: { onLogout?: () => void }) {
     return (
       <article className="store-dash-card store-dash-wide store-dash-simple">
         <h2>{title}</h2>
-        <p>{text.storeName} - {text.open}</p>
+        <p>{store?.storeName ?? text.storeName} - {text.open}</p>
       </article>
     );
   }
@@ -403,12 +415,12 @@ export function StorePage({ onLogout }: { onLogout?: () => void }) {
         <div className="store-dash-brand">
           <BrandLogo showText size={32} />
           <div>
-            <strong>{text.storeName}</strong>
+            <strong>{store?.storeName ?? text.storeName}</strong>
             <span>{text.open}</span>
           </div>
         </div>
         <button className="store-dash-primary" onClick={() => setActiveTab("orders")} type="button">{text.newDelivery}</button>
-        <nav aria-label={text.storeName}>
+        <nav aria-label={store?.storeName ?? text.storeName}>
           {tabs.map((tab) => (
             <button className={activeTab === tab.key ? "active" : ""} key={tab.key} onClick={() => setActiveTab(tab.key)} type="button">
               <span />
@@ -438,7 +450,7 @@ export function StorePage({ onLogout }: { onLogout?: () => void }) {
             <span>{text.lightMode}</span>
             <i aria-hidden="true" />
           </button>
-          <NotificationBell />
+          <NotificationBell storeId={store?.id} storeName={store?.storeName} />
         </header>
 
         <div className="store-dash-canvas">
@@ -467,7 +479,7 @@ export function StorePage({ onLogout }: { onLogout?: () => void }) {
       <button className="store-mobile-fab" onClick={() => setActiveTab("orders")} type="button" aria-label={text.newDelivery}>
         +
       </button>
-      <nav className="store-mobile-nav" aria-label={text.storeName}>
+      <nav className="store-mobile-nav" aria-label={store?.storeName ?? text.storeName}>
         <button className={activeTab === "overview" ? "active" : ""} onClick={() => setActiveTab("overview")} type="button">
           <span aria-hidden="true">{"\u25A1"}</span>
           {text.home}
