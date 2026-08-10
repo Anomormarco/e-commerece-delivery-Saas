@@ -335,6 +335,8 @@ function fixMojibake(value: string) {
 
 function cleanProductName(value: string) {
   return fixMojibake(value)
+    .replace(/\b(premium)\b/gi, "")
+    .replace(/(^|\s)(премиум)(?=\s|$)/gi, " ")
     .replace(/\s+(шинэ|шинэхэн|shine|new)$/i, "")
     .replace(/\s{2,}/g, " ")
     .trim();
