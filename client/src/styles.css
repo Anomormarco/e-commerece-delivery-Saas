@@ -3821,7 +3821,7 @@ h3 {
 }
 
 .market-page .landing-product-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 10px;
   overflow: visible;
 }
@@ -3882,19 +3882,28 @@ h3 {
 }
 
 .market-page .landing-product-grid h3 {
+  min-width: 0;
   color: #ffffff;
   font-size: 13px;
   line-height: 1.22;
+  overflow: hidden;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.28);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .market-page .landing-product-grid strong {
   position: relative;
+  min-width: 0;
   width: fit-content;
+  max-width: 100%;
   color: #ffffff;
   font-size: 14px;
   font-weight: 950;
+  overflow: hidden;
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.26);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .market-page .landing-product-grid strong::before {
@@ -3914,8 +3923,8 @@ h3 {
 
 .market-page .landing-product-actions {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
+  grid-template-columns: 1fr;
+  align-items: stretch;
   gap: 7px;
   width: 100%;
   min-width: 0;
@@ -3926,7 +3935,8 @@ h3 {
   display: grid;
   grid-template-columns: 26px 24px 26px;
   align-items: center;
-  justify-content: start;
+  justify-content: center;
+  justify-self: center;
   width: fit-content;
   padding: 3px;
   border-radius: 999px;
@@ -3994,27 +4004,9 @@ h3 {
   backdrop-filter: blur(10px);
 }
 
-.market-page .landing-product-grid .landing-product-wish span {
-  position: relative;
-  display: block;
-  width: 10px;
-  height: 14px;
-  border: 2px solid currentColor;
-  border-bottom: 0;
-  border-radius: 3px 3px 0 0;
-}
-
-.market-page .landing-product-grid .landing-product-wish span::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  bottom: -5px;
-  width: 8px;
-  height: 8px;
-  border-right: 2px solid currentColor;
-  border-bottom: 2px solid currentColor;
-  background: inherit;
-  transform: translateX(-50%) rotate(45deg);
+.market-page .landing-product-grid .landing-product-wish svg {
+  width: 18px;
+  height: 18px;
 }
 
 .market-page .landing-product-grid .landing-product-wish.active {
@@ -4115,9 +4107,9 @@ h3 {
 
 .market-store-feed {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   align-items: start;
-  gap: 20px;
+  gap: 18px;
 }
 
 .market-store-section {
@@ -11862,7 +11854,7 @@ h2 {
   }
 
   .market-page .landing-product-actions {
-    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-columns: 1fr;
     gap: 8px;
   }
 

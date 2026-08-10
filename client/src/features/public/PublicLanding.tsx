@@ -1334,7 +1334,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                             type="button"
                             aria-label={`${product.name} wishlist`}
                           >
-                            <span aria-hidden="true" />
+                            <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                              <path d="M6 4.8C6 3.8 6.8 3 7.8 3H16.2C17.2 3 18 3.8 18 4.8V20L12 16.6L6 20V4.8Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.9" />
+                            </svg>
                           </button>
                           <img
                             alt={product.name}
