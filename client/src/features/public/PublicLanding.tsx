@@ -857,11 +857,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <a className="landing-commerce-brand" href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>
           <BrandLogo showText size={32} />
         </a>
-        <a className={section === "home" ? "active" : ""} href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>Яагаад бид вэ</a>
-        <button className={section === "market" ? "active" : ""} onClick={openMarket} type="button">Одоо захиалах</button>
-        <button className={section === "courier" ? "active" : ""} onClick={openCourier} type="button">Courier болох</button>
-        <button className={section === "partner" ? "active" : ""} onClick={openPartner} type="button">Бизнесээ нэмэх</button>
-        <button className={section === "contact" ? "active" : ""} onClick={openContact} type="button">Санал авах</button>
+        <a className={section === "home" ? "active" : ""} href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>Нүүр</a>
+        <button className={section === "market" ? "active" : ""} onClick={openMarket} type="button">Маркет</button>
+        <button className={section === "courier" ? "active" : ""} onClick={openCourier} type="button">Хүргэлтийн ажилтан</button>
+        <button className={section === "partner" ? "active" : ""} onClick={openPartner} type="button">Байгууллага бүртгэх</button>
+        <button className={section === "contact" ? "active" : ""} onClick={openContact} type="button">Холбоо барих</button>
         <div className="landing-nav-actions" aria-label="Хэрэглэгчийн үйлдлүүд">
           <button
             className={cartOpen ? "active" : ""}
