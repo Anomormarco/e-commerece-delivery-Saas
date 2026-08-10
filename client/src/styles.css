@@ -3305,6 +3305,7 @@ h3 {
 }
 
 .market-address-panel,
+.market-store-showcase,
 .market-stats-row article,
 .market-page .landing-store-browser,
 .market-page .landing-store-list article,
@@ -3326,6 +3327,37 @@ h3 {
   align-items: end;
   margin-bottom: 18px;
   padding: 18px;
+}
+
+.market-store-showcase {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 18px;
+}
+
+.market-store-showcase > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.market-store-showcase > header div {
+  display: grid;
+  gap: 4px;
+}
+
+.market-store-showcase > header span,
+.market-store-showcase > header small {
+  color: #9db6d8;
+  font-size: 12px;
+  font-weight: 850;
+}
+
+.market-store-showcase > header strong {
+  color: white;
+  font-size: 18px;
 }
 
 .market-delivery-picker {
@@ -3660,6 +3692,13 @@ h3 {
   padding: 2px 2px 6px;
 }
 
+.market-page .market-store-showcase .landing-store-cards {
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  max-height: none;
+  margin-top: 0;
+  overflow: visible;
+}
+
 .market-page .landing-store-cards > p {
   margin: 0;
   color: #9db6d8;
@@ -3679,6 +3718,10 @@ h3 {
   color: white;
   text-align: left;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+.market-page .market-store-showcase .landing-store-cards > button {
+  min-height: 76px;
 }
 
 .market-page .landing-store-cards > button.active {

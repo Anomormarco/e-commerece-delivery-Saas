@@ -1,7 +1,6 @@
 import { prisma, disconnectPrisma } from "../src/database/prisma.js";
 
 const tenantSlug = "deliverhub-public";
-const imageBase = "https://source.unsplash.com/900x650/?";
 const productsPerStore = 50;
 
 const categories = [
@@ -107,7 +106,41 @@ const categories = [
   },
 ];
 
-const productQualifiers = ["шинэ", "премиум", "гэр бүлийн", "өдөр тутмын", "органик", "хэмнэлттэй", "том савлагаа", "мини", "сонгодог", "комбо"];
+const productPhotoUrls = [
+  "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1607013251379-e6eecfffe234?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1583947581924-860bda6a26df?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=900&q=80",
+];
+
+const variantsByCategory = {
+  "Хүнс": ["500г", "1кг", "2кг", "5кг", "багц"],
+  "24/7 дэлгүүр": ["дан", "комбо", "том", "дунд", "2ш"],
+  "Гэр ахуй": ["цагаан", "саарал", "хар", "дунд", "сет"],
+  "Цахилгаан бараа": ["хар", "цагаан", "compact", "pro", "type-c"],
+  "Эмийн сан": ["30ш", "60ш", "100мл", "250мл", "багц"],
+  "Гоо сайхан": ["01", "02", "03", "50мл", "100мл"],
+  "Ном, бичиг хэрэг": ["A4", "A5", "хатуу хавтастай", "зөөлөн хавтастай", "12ш"],
+  "Спорт бараа": ["S", "M", "L", "XL", "багц"],
+  "Хүүхдийн бараа": ["0-6 сар", "6-12 сар", "1-2 нас", "3-5 нас", "багц"],
+  "Амьтны бараа": ["жижиг", "дунд", "том", "1кг", "3кг"],
+};
 
 const storeConfigs = categories.flatMap((category, categoryIndex) =>
   category.stores.map((name, storeIndex) => ({
@@ -124,16 +157,15 @@ const storeConfigs = categories.flatMap((category, categoryIndex) =>
 
 function productTemplate(store, index) {
   const [baseName, keyword] = store.products[index % store.products.length];
-  const qualifier = productQualifiers[Math.floor(index / store.products.length) % productQualifiers.length];
+  const variants = variantsByCategory[store.type] ?? ["дан", "дунд", "том", "2ш", "сет"];
   return {
-    name: `${baseName} ${qualifier}`,
+    name: `${baseName} ${variants[Math.floor(index / store.products.length) % variants.length]}`.trim(),
     keyword,
   };
 }
 
 function productImage(store, index) {
-  const { keyword } = productTemplate(store, index);
-  return `${imageBase}${encodeURIComponent(`${keyword} product`)}&sig=${store.slug}-${index + 1}`;
+  return productPhotoUrls[(storeConfigs.findIndex((item) => item.slug === store.slug) * 2 + index) % productPhotoUrls.length];
 }
 
 async function main() {
@@ -150,14 +182,14 @@ async function main() {
       update: {
         tenantId: tenant.id,
         name: config.name,
-        description: `${config.type} - 50 бараатай онлайн дэлгүүр`,
+        description: config.type,
         isActive: true,
       },
       create: {
         tenantId: tenant.id,
         name: config.name,
         slug: config.slug,
-        description: `${config.type} - 50 бараатай онлайн дэлгүүр`,
+        description: config.type,
         isActive: true,
       },
     });

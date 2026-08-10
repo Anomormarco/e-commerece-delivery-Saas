@@ -201,29 +201,70 @@ const marketTemplates = [
   { category: "Амьтны бараа", stores: ["Pet Care", "Happy Pet", "Dog & Cat", "Pet Food Market", "Animal House"], products: [["Нохойн хоол", "dog food"], ["Муурын хоол", "cat food"], ["Амьтны тоглоом", "pet toys"], ["Оосор", "dog leash"], ["Муурын элс", "cat litter"], ["Амьтны шампунь", "pet shampoo"], ["Үүр", "pet bed"], ["Аквариум", "aquarium"], ["Загасны хоол", "fish food"], ["Тэжээлийн аяга", "pet bowl"]] },
 ];
 
-const productQualifiers = ["шинэ", "премиум", "гэр бүлийн", "өдөр тутмын", "органик"];
+const productPhotoUrls = [
+  "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1518843875459-f738682238a6?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1551782450-a2132b4ba21d?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1607013251379-e6eecfffe234?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1583947581924-860bda6a26df?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1524758631624-e2822e304c36?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1495446815901-a7297e633e8d?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&w=900&q=80",
+  "https://images.unsplash.com/photo-1560807707-8cc77767d783?auto=format&fit=crop&w=900&q=80",
+];
+
+function productNameVariant(category: string, baseName: string, index: number) {
+  const variantsByCategory: Record<string, string[]> = {
+    "Хүнс": ["500г", "1кг", "2кг", "5кг", "багц"],
+    "24/7 дэлгүүр": ["дан", "комбо", "том", "дунд", "2ш"],
+    "Гэр ахуй": ["цагаан", "саарал", "хар", "дунд", "сет"],
+    "Цахилгаан бараа": ["хар", "цагаан", "compact", "pro", "type-c"],
+    "Эмийн сан": ["30ш", "60ш", "100мл", "250мл", "багц"],
+    "Гоо сайхан": ["01", "02", "03", "50мл", "100мл"],
+    "Ном, бичиг хэрэг": ["A4", "A5", "хатуу хавтастай", "зөөлөн хавтастай", "12ш"],
+    "Спорт бараа": ["S", "M", "L", "XL", "багц"],
+    "Хүүхдийн бараа": ["0-6 сар", "6-12 сар", "1-2 нас", "3-5 нас", "багц"],
+    "Амьтны бараа": ["жижиг", "дунд", "том", "1кг", "3кг"],
+  };
+  const variants = variantsByCategory[category] ?? ["дан", "дунд", "том", "2ш", "сет"];
+  return `${baseName} ${variants[Math.floor(index / 10) % variants.length]}`.trim();
+}
+
+function productPhotoFor(templateIndex: number, productIndex: number) {
+  return productPhotoUrls[(templateIndex * 2 + productIndex) % productPhotoUrls.length];
+}
 
 function buildDemoMarketStores(): StoreDirectoryItem[] {
   return marketTemplates.flatMap((template, templateIndex) =>
     template.stores.map((storeName, storeIndex) => {
       const id = `demo-${templateIndex + 1}-${storeIndex + 1}`;
       const products = Array.from({ length: 50 }, (_, index) => {
-        const [baseName, keyword] = template.products[index % template.products.length];
-        const qualifier = productQualifiers[Math.floor(index / template.products.length) % productQualifiers.length];
+        const [baseName] = template.products[index % template.products.length];
         return {
           id: `${id}-product-${index + 1}`,
-          name: `${baseName} ${qualifier}`,
+          name: productNameVariant(template.category, baseName, index),
           category: template.category,
           priceMnt: String(1800 + (index + 1) * 420 + templateIndex * 500 + storeIndex * 300),
           weightGrams: 180 + (index % 12) * 150,
-          imageUrl: `https://source.unsplash.com/900x650/?${encodeURIComponent(`${keyword} product`)}&sig=${id}-${index + 1}`,
+          imageUrl: productPhotoFor(templateIndex, index),
         };
       });
 
       return {
         id,
         name: storeName,
-        description: `${template.category} - 50 бараатай онлайн дэлгүүр`,
+        description: template.category,
         address: `Улаанбаатар, ${["Сүхбаатар", "Баянзүрх", "Хан-Уул", "Баянгол", "Чингэлтэй"][storeIndex]} дүүрэг`,
         coverUrl: products[0]?.imageUrl ?? "",
         productCount: products.length,
@@ -606,7 +647,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       )
     ));
   }, [marketStoreDirectory, storeFilter, storeSearch]);
-  const showStoreResults = Boolean(storeSearch.trim()) || storeFilter !== "Бүгд";
   const allMarketProducts = useMemo(() => (
     selectedStore?.products.length
       ? selectedStore.products.map((product) => ({
@@ -1188,35 +1228,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                   </button>
                 ))}
               </div>
-              {showStoreResults ? <div className="landing-store-cards" aria-label="Дэлгүүрүүд">
-                {storesLoading ? (
-                  <p>Дэлгүүрүүд ачаалж байна...</p>
-                ) : filteredStores.length ? filteredStores.map((store) => {
-                  const brand = storeBrandFor(store.name);
-                  return (
-                    <button
-                      className={selectedStore?.id === store.id ? "active" : ""}
-                      key={store.id}
-                      onClick={() => {
-                        setSelectedStoreId(store.id);
-                        setStoreSearch("");
-                      }}
-                      type="button"
-                    >
-                      <span className="landing-store-logo">
-                        {brand.logoUrl ? <img alt={`${store.name} logo`} src={brand.logoUrl} /> : <b>{brand.initials}</b>}
-                      </span>
-                      <span className="landing-store-card-copy">
-                        <strong>{store.name}</strong>
-                        <small>{store.description || store.address}</small>
-                        <em>{store.productCount} бараа · {store.orderCount} захиалга</em>
-                      </span>
-                    </button>
-                  );
-                }) : (
-                  <p>Одоогоор дэлгүүр олдсонгүй.</p>
-                )}
-              </div> : null}
             </section>
           </aside>
 
@@ -1241,9 +1252,48 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               </div>
             </section>
 
+            <section className="market-store-showcase" aria-label="Дэлгүүрүүд">
+              <header>
+                <div>
+                  <span>Дэлгүүр сонгох</span>
+                  <strong>{filteredStores.length} дэлгүүр</strong>
+                </div>
+                {storesLoading ? <small>Ачаалж байна...</small> : null}
+              </header>
+              <div className="landing-store-cards">
+                {storesLoading ? (
+                  <p>Дэлгүүрүүд ачаалж байна...</p>
+                ) : filteredStores.length ? filteredStores.map((store) => {
+                  const brand = storeBrandFor(store.name);
+                  return (
+                    <button
+                      className={selectedStore?.id === store.id ? "active" : ""}
+                      key={store.id}
+                      onClick={() => {
+                        setSelectedStoreId(store.id);
+                        setStoreSearch("");
+                      }}
+                      type="button"
+                    >
+                      <span className="landing-store-logo">
+                        {brand.logoUrl ? <img alt={`${store.name} logo`} src={brand.logoUrl} /> : <b>{brand.initials}</b>}
+                      </span>
+                      <span className="landing-store-card-copy">
+                        <strong>{store.name}</strong>
+                        <small>{store.description || store.address}</small>
+                        <em>{store.address}</em>
+                      </span>
+                    </button>
+                  );
+                }) : (
+                  <p>Одоогоор дэлгүүр олдсонгүй.</p>
+                )}
+              </div>
+            </section>
+
             <section className="market-stats-row">
-              <article><span>Сонгосон маркет</span><strong>{selectedStore?.name ?? "Сонгоно уу"}</strong><em>Захиалга авч байна</em></article>
-              <article><span>Боломжит бараа</span><strong>{marketProducts.length}</strong><em>Шүүлт идэвхтэй</em></article>
+              <article><span>Сонгосон маркет</span><strong>{selectedStore?.name ?? "Сонгоно уу"}</strong><em>{selectedStore?.address ?? "Хаяг сонгоно уу"}</em></article>
+              <article><span>Харагдаж буй бараа</span><strong>{marketProducts.length}</strong><em>{selectedStore?.categories[0] ?? "Маркет"}</em></article>
               <article><span>Таны сагс</span><strong>{selectedItems.length}</strong><em>{formatMnt(subtotal)}</em></article>
               <article><span>Тооцсон хүргэлт</span><strong>{selectedItems.length ? `${etaMinutes} мин` : "-"}</strong><em>{selectedItems.length ? formatMnt(deliveryFee) : "0 MNT"}</em></article>
             </section>
