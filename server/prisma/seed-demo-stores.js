@@ -147,6 +147,10 @@ function productImage(store, index) {
   return `https://tse4.mm.bing.net/th?q=${query}&w=900&h=650&c=7&rs=1&p=0`;
 }
 
+function stockQuantity(store, index) {
+  return Array.from(`${store.slug}-${index}`).reduce((sum, char) => sum + char.charCodeAt(0), 23) % 101;
+}
+
 async function main() {
   const tenant = await prisma.tenant.upsert({
     where: { slug: tenantSlug },
@@ -269,11 +273,11 @@ async function main() {
 
       await prisma.inventoryItem.upsert({
         where: { warehouseId_variantId: { warehouseId: warehouse.id, variantId: variant.id } },
-        update: { quantity: 30 + (index % 70), reserved: index % 4 },
+        update: { quantity: stockQuantity(config, index), reserved: index % 4 },
         create: {
           warehouseId: warehouse.id,
           variantId: variant.id,
-          quantity: 30 + (index % 70),
+          quantity: stockQuantity(config, index),
           reserved: index % 4,
         },
       });

@@ -158,6 +158,10 @@ function productPlaceholderUrl(product: Pick<Product, "name" | "category">) {
   return `https://placehold.co/900x650/png?text=${label}`;
 }
 
+function stableStockCount(seed: string) {
+  return Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 17) % 101;
+}
+
 const marketTemplates = [
   { category: "Хүнс", stores: ["Номин Супермаркет", "Fresh Mart", "Good Price Market", "Оргил Хүнс", "Minii Delguur"], products: [["Цагаан будаа", "rice bag"], ["Гурил", "flour"], ["Сүү", "milk bottle"], ["Өндөг", "eggs carton"], ["Алим", "apples"], ["Төмс", "potatoes"], ["Лууван", "carrots"], ["Үхрийн мах", "beef meat"], ["Тахианы мах", "chicken breast"], ["Бяслаг", "cheese"]] },
   { category: "24/7 дэлгүүр", stores: ["CU Mongolia", "GS25 Mongolia", "Quick Stop", "City Express", "Night Mart"], products: [["Сэндвич", "sandwich"], ["Кимбап", "kimbap"], ["Рамен", "instant ramen"], ["Ус", "water bottle"], ["Кола", "cola can"], ["Чипс", "potato chips"], ["Шоколад", "chocolate bar"], ["Зайрмаг", "ice cream"], ["Салат", "fresh salad"], ["Бэлэн хоол", "ready meal"]] },
@@ -640,7 +644,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           category: product.category,
           priceMnt: Number(product.priceMnt),
           weightGrams: product.weightGrams,
-          stockCount: 100,
+          stockCount: stableStockCount(product.id),
           description: `${store.name} - ${product.category.toLowerCase()} ангилал.`,
           imageUrl: productPhotoUrl(keywordForProduct(product)),
           storeId: store.id,
