@@ -214,7 +214,7 @@ function buildDemoMarketStores(): StoreDirectoryItem[] {
       const id = `demo-${templateIndex + 1}-${storeIndex + 1}`;
       const products = Array.from({ length: 50 }, (_, index) => {
         const [baseName, keyword] = template.products[index % template.products.length];
-        const name = productNameVariant(template.category, baseName, index);
+        const name = cleanProductName(productNameVariant(template.category, baseName, index));
         return {
           id: `${id}-product-${index + 1}`,
           name,
@@ -331,6 +331,13 @@ function fixMojibake(value: string) {
   }
 }
 
+function cleanProductName(value: string) {
+  return fixMojibake(value)
+    .replace(/\s+(шинэ|шинэхэн|shine|new)$/i, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function cleanStoreItem(store: StoreDirectoryItem): StoreDirectoryItem {
   return {
     ...store,
@@ -340,7 +347,7 @@ function cleanStoreItem(store: StoreDirectoryItem): StoreDirectoryItem {
     categories: store.categories.map(fixMojibake),
     products: store.products.map((product) => ({
       ...product,
-      name: fixMojibake(product.name),
+      name: cleanProductName(product.name),
       category: fixMojibake(product.category),
     })),
   };
@@ -622,7 +629,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       products: store.products.map((product) => ({
           id: product.id,
           sku: product.id.slice(-8),
-          name: product.name,
+          name: cleanProductName(product.name),
           category: product.category,
           priceMnt: Number(product.priceMnt),
           weightGrams: product.weightGrams,
@@ -1282,8 +1289,15 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           <div className="landing-product-actions">
                             <button className="landing-product-qty" onClick={() => updateCart(product.id, -1)} type="button">−</button>
                             <b>{cart[product.id] ?? 0}</b>
-                            <button className="landing-product-add" onClick={() => updateCart(product.id, 1)} type="button" disabled={product.stockCount <= 0}>
-                              {cart[product.id] ? "Нэмэх" : "Сагслах"}
+                            <button
+                              className="landing-product-add"
+                              onClick={() => updateCart(product.id, 1)}
+                              type="button"
+                              disabled={product.stockCount <= 0}
+                              aria-label={`${product.name} сагсанд нэмэх`}
+                              title="Сагсанд нэмэх"
+                            >
+                              +
                             </button>
                           </div>
                         </article>
