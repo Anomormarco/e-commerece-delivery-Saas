@@ -1,5 +1,6 @@
 ﻿import { createElement, useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
+import { useRef } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 
 type AuthMode = "login" | "register";
@@ -429,6 +430,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [authOpen, setAuthOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
+  const cartPanelRef = useRef<HTMLElement | null>(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", phone: "", login: "", password: "" });
   const [partnerAuthOpen, setPartnerAuthOpen] = useState(false);
@@ -485,6 +487,18 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   useEffect(() => {
     localStorage.setItem(wishlistStorageKey, JSON.stringify(wishlist));
   }, [wishlist]);
+
+  useEffect(() => {
+    if (!cartOpen) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.requestAnimationFrame(() => cartPanelRef.current?.focus());
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [cartOpen]);
 
   useEffect(() => {
     if (section === "market" && !session) {
@@ -781,6 +795,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       const nextQuantity = Math.min(maxQuantity, (current[productId] ?? 0) + selectedQuantity);
       return { ...current, [productId]: nextQuantity };
     });
+    setWishlistOpen(false);
+    setCartOpen(true);
   }
 
   function toggleWishlist(productId: string) {
@@ -1135,7 +1151,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         )}
 
         {cartOpen ? (
-          <section className="landing-cart-popover" aria-label="Сагс">
+          <div className="landing-cart-backdrop" aria-hidden="true" onClick={() => setCartOpen(false)} />
+        ) : null}
+
+        {cartOpen ? (
+          <section className="landing-cart-popover" aria-label="Сагс" aria-modal="true" ref={cartPanelRef} role="dialog" tabIndex={-1}>
             <header>
               <div>
                 <span>Миний сагс</span>
