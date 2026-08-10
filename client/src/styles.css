@@ -3821,8 +3821,8 @@ h3 {
 }
 
 .market-page .landing-product-grid {
-  grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
   overflow: visible;
 }
 
@@ -3914,9 +3914,9 @@ h3 {
 
 .market-page .landing-product-actions {
   display: grid;
-  grid-template-columns: minmax(0, auto) 1fr;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px 7px;
+  gap: 7px;
   width: 100%;
   min-width: 0;
   align-self: end;
@@ -3961,10 +3961,10 @@ h3 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: fit-content;
-  min-width: 112px;
+  width: 100%;
+  min-width: 0;
   height: 34px;
-  padding: 0 12px;
+  padding: 0 10px;
   border: 0;
   border-radius: 999px;
   background: linear-gradient(135deg, #ff9800, #ff6a00);
@@ -3983,9 +3983,19 @@ h3 {
 }
 
 .market-page .landing-product-cart-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  min-width: 64px;
+  height: 30px;
+  border: 1px solid rgba(226, 232, 240, 0.12);
+  border-radius: 999px;
+  background: rgba(226, 232, 240, 0.08);
   color: #e8eef8;
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 850;
+  line-height: 1;
   white-space: nowrap;
 }
 
@@ -3994,8 +4004,8 @@ h3 {
   grid-column: 1 / 2;
   align-items: center;
   justify-content: center;
-  width: fit-content;
-  min-width: 96px;
+  width: 100%;
+  min-width: 0;
   height: 34px;
   border: 0;
   border-radius: 999px;
@@ -4145,7 +4155,7 @@ h3 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
-  gap: 28px;
+  gap: 20px;
 }
 
 .market-store-section {
