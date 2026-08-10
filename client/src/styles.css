@@ -1441,12 +1441,10 @@ h3 {
 }
 
 .nomad-scroll-page.is-market-route .landing-commerce-nav a:not(.landing-commerce-brand):hover,
-.nomad-scroll-page.is-market-route .landing-commerce-nav > button:hover,
-.nomad-scroll-page.is-market-route .landing-nav-actions > button:hover,
-.nomad-scroll-page.is-market-route .landing-profile-button:hover,
+.nomad-scroll-page.is-market-route .landing-commerce-nav button:hover,
 .nomad-scroll-page.is-market-route .landing-commerce-nav a:not(.landing-commerce-brand).active,
 .nomad-scroll-page.is-market-route .landing-commerce-nav button.active {
-  border-color: #f97316;
+  border-color: rgba(15, 23, 42, 0.08);
   background: rgba(15, 23, 42, 0.08);
   color: #111827;
 }
@@ -1522,12 +1520,10 @@ h3 {
 }
 
 .landing-commerce-nav a:not(.landing-commerce-brand):hover,
-.landing-commerce-nav > button:hover,
-.landing-nav-actions > button:hover,
-.landing-profile-button:hover,
+.landing-commerce-nav button:hover,
 .landing-commerce-nav a:not(.landing-commerce-brand).active,
 .landing-commerce-nav button.active {
-  border-color: #f97316;
+  border-color: rgba(255, 255, 255, 0.28);
   background: rgba(255, 255, 255, 0.14);
   color: white;
 }
@@ -1562,7 +1558,7 @@ h3 {
 }
 
 .landing-nav-actions button:hover {
-  border-color: #f97316;
+  border-color: rgba(255, 255, 255, 0.26);
   background: rgba(255, 255, 255, 0.14);
 }
 
