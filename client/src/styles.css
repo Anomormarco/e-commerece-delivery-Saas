@@ -3935,8 +3935,6 @@ h3 {
   border: 1px solid rgba(226, 232, 240, 0.12);
 }
 
-.market-page .landing-product-grid article:focus-within .landing-product-stepper,
-.market-page .landing-product-grid article:hover .landing-product-stepper,
 .market-page .landing-product-grid article.in-cart .landing-product-stepper {
   display: grid;
 }
@@ -11916,7 +11914,7 @@ h2 {
     font-size: 14px;
   }
 
-  .market-page .landing-product-stepper {
+  .market-page .landing-product-grid article.in-cart .landing-product-stepper {
     display: grid;
   }
 
