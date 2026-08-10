@@ -477,8 +477,24 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }, [page]);
 
   useEffect(() => {
+    if (!session) {
+      localStorage.removeItem(wishlistStorageKey);
+      return;
+    }
+
     localStorage.setItem(wishlistStorageKey, JSON.stringify(wishlist));
-  }, [wishlist]);
+  }, [session, wishlist]);
+
+  useEffect(() => {
+    if (session) return;
+
+    setCart({});
+    setWishlist([]);
+    setTracking(null);
+    setCartOpen(false);
+    setWishlistOpen(false);
+    setProfileOpen(false);
+  }, [session]);
 
   useEffect(() => {
     if (!cartOpen) return undefined;
@@ -675,14 +691,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const marketProducts = allMarketProducts;
 
   const selectedItems = useMemo(
-    () => allMarketProducts
+    () => (session ? allMarketProducts : [])
       .map((product) => ({ ...product, quantity: cart[product.id] ?? 0 }))
       .filter((product) => product.quantity > 0),
-    [allMarketProducts, cart],
+    [allMarketProducts, cart, session],
   );
   const wishlistItems = useMemo(
-    () => allMarketProducts.filter((product) => wishlist.includes(product.id)),
-    [allMarketProducts, wishlist],
+    () => (session ? allMarketProducts.filter((product) => wishlist.includes(product.id)) : []),
+    [allMarketProducts, session, wishlist],
   );
   const subtotal = selectedItems.reduce((sum, product) => sum + product.priceMnt * product.quantity, 0);
   const cartItemCount = selectedItems.reduce((sum, product) => sum + product.quantity, 0);
@@ -748,6 +764,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }
 
   function updateCart(productId: string, delta: number) {
+    if (!session) return;
+
     setCart((current) => {
       const product = allMarketProducts.find((item) => item.id === productId);
       const maxQuantity = product?.stockCount ?? 0;
@@ -766,6 +784,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }
 
   function addSelectedQuantityToCart(productId: string) {
+    if (!session) {
+      setAuthMode("login");
+      setAuthOpen(true);
+      setCartOpen(false);
+      setWishlistOpen(false);
+      return;
+    }
+
     setCart((current) => {
       const product = allMarketProducts.find((item) => item.id === productId);
       const maxQuantity = product?.stockCount ?? 0;
@@ -777,6 +803,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }
 
   function toggleWishlist(productId: string) {
+    if (!session) {
+      setAuthMode("login");
+      setAuthOpen(true);
+      setCartOpen(false);
+      setWishlistOpen(false);
+      return;
+    }
+
     setWishlist((current) => (
       current.includes(productId)
         ? current.filter((id) => id !== productId)
@@ -1080,6 +1114,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           <button
             className={cartOpen ? "active" : ""}
             onClick={() => {
+              if (!session) {
+                setAuthMode("login");
+                setAuthOpen(true);
+                setCartOpen(false);
+                setWishlistOpen(false);
+                return;
+              }
+
               setProfileOpen(false);
               setWishlistOpen(false);
               setCartOpen((open) => !open);
@@ -1098,6 +1140,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           <button
             className={wishlistOpen ? "active" : ""}
             onClick={() => {
+              if (!session) {
+                setAuthMode("login");
+                setAuthOpen(true);
+                setCartOpen(false);
+                setWishlistOpen(false);
+                return;
+              }
+
               setProfileOpen(false);
               setCartOpen(false);
               setWishlistOpen((open) => !open);
@@ -1109,9 +1159,18 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             <svg aria-hidden="true" className="landing-nav-icon" fill="none" viewBox="0 0 24 24">
               <path d="M6 4.8C6 3.8 6.8 3 7.8 3H16.2C17.2 3 18 3.8 18 4.8V20L12 16.6L6 20V4.8Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
             </svg>
-            {wishlistItems.length > 0 ? <b>{wishlistItems.length}</b> : null}
+            {session && wishlistItems.length > 0 ? <b>{wishlistItems.length}</b> : null}
           </button>
-          <button type="button" aria-label="Миний захиалсан">
+          <button
+            onClick={() => {
+              if (!session) {
+                setAuthMode("login");
+                setAuthOpen(true);
+              }
+            }}
+            type="button"
+            aria-label="Миний захиалсан"
+          >
             <svg aria-hidden="true" className="landing-nav-icon" fill="none" viewBox="0 0 24 24">
               <path d="M12 12C14.4853 12 16.5 9.98528 16.5 7.5C16.5 5.01472 14.4853 3 12 3C9.51472 3 7.5 5.01472 7.5 7.5C7.5 9.98528 9.51472 12 12 12Z" stroke="currentColor" strokeWidth="1.8" />
               <path d="M4 20C4.8 16.9 7.72 15 12 15C16.28 15 19.2 16.9 20 20" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
