@@ -280,7 +280,7 @@ p {
 
 h1 {
   margin-bottom: 0;
-  font-size: clamp(30px, 5vw, 56px);
+  font-size: clamp(26px, 4vw, 44px);
   line-height: 1;
   max-width: 780px;
 }
@@ -1247,11 +1247,11 @@ h3 {
 }
 
 .landing-hero-copy h1 {
-  max-width: 13ch;
+  max-width: 15ch;
   margin: 0;
-  font-size: clamp(2rem, 4.2vw, 4.9rem);
+  font-size: clamp(1.8rem, 3.2vw, 3.7rem);
   font-weight: 900;
-  line-height: 0.98;
+  line-height: 1.04;
   letter-spacing: 0;
   text-wrap: balance;
 }
@@ -1270,7 +1270,7 @@ h3 {
 
   .landing-hero-copy h1 {
     max-width: none;
-    font-size: clamp(1.85rem, 9vw, 3.2rem);
+    font-size: clamp(1.55rem, 7vw, 2.45rem);
   }
 }
 
