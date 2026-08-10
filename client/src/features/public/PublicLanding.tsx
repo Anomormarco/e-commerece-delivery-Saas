@@ -27,6 +27,8 @@ type Product = {
   stockCount: number;
   description: string;
   imageUrl?: string;
+  storeId?: string;
+  storeName?: string;
 };
 
 type CustomerSession = {
@@ -295,7 +297,7 @@ const initialProducts: Product[] = [
     priceMnt: 18500,
     weightGrams: 1000,
     stockCount: 12,
-    description: "Шинэхэн бүтээгдэхүүнээ гэрийн үүдэндээ тав тухтай аваарай.",
+    description: "Чанартай бүтээгдэхүүнээ гэрийн үүдэндээ тав тухтай аваарай.",
   },
   {
     id: "bread",
@@ -645,11 +647,16 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         || store.description.toLowerCase().includes(normalizedSearch)
         || store.categories.some((category) => category.toLowerCase().includes(normalizedSearch))
       )
-    ));
+    )).sort((first, second) => {
+      const categoryCompare = (first.categories[0] ?? "").localeCompare(second.categories[0] ?? "", "mn");
+      return categoryCompare || first.name.localeCompare(second.name, "mn");
+    });
   }, [marketStoreDirectory, storeFilter, storeSearch]);
-  const allMarketProducts = useMemo(() => (
-    selectedStore?.products.length
-      ? selectedStore.products.map((product) => ({
+  const storeProductGroups = useMemo(() => {
+    const normalizedProductSearch = productSearch.trim().toLowerCase();
+    return filteredStores.map((store) => ({
+      store,
+      products: store.products.map((product) => ({
           id: product.id,
           sku: product.id.slice(-8),
           name: product.name,
@@ -657,20 +664,23 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           priceMnt: Number(product.priceMnt),
           weightGrams: product.weightGrams,
           stockCount: 100,
-          description: `${selectedStore.name} маркетийн ${product.category.toLowerCase()} ангиллын бараа.`,
+          description: `${store.name} - ${product.category.toLowerCase()} ангилал.`,
           imageUrl: product.imageUrl ?? "",
-        }))
-      : initialProducts
-  ), [selectedStore]);
-  const marketProducts = useMemo(() => {
-    const searched = allMarketProducts.filter((product) => (
-      !productSearch.trim()
-      || product.name.toLowerCase().includes(productSearch.trim().toLowerCase())
-      || product.category.toLowerCase().includes(productSearch.trim().toLowerCase())
-    ));
-
-    return searched;
-  }, [allMarketProducts, productSearch]);
+          storeId: store.id,
+          storeName: store.name,
+        })).filter((product) => (
+          !normalizedProductSearch
+          || product.name.toLowerCase().includes(normalizedProductSearch)
+          || product.category.toLowerCase().includes(normalizedProductSearch)
+          || store.name.toLowerCase().includes(normalizedProductSearch)
+        )),
+    })).filter((group) => group.products.length > 0);
+  }, [filteredStores, productSearch]);
+  const allMarketProducts = useMemo(
+    () => (storeProductGroups.length ? storeProductGroups.flatMap((group) => group.products) : initialProducts),
+    [storeProductGroups],
+  );
+  const marketProducts = allMarketProducts;
 
   const selectedItems = useMemo(
     () => allMarketProducts
@@ -793,9 +803,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     const orderNo = `DH-${Date.now().toString().slice(-8)}`;
     const paymentLabel = paymentMethod === "stripe" ? "Stripe" : "QPay";
     const district = addressSuggestions.join(" · ") || "Хаяг баталгаажиж байна";
-    const storeName = selectedStore?.name ?? "DeliverHub market";
+    const storeName = selectedItems[0]?.storeName ?? selectedStore?.name ?? "DeliverHub market";
     const storeRecipient = readStoreUsers().find((user) => user.storeName.toLowerCase() === storeName.toLowerCase());
-    const storeId = storeRecipient?.id ?? selectedStore?.id ?? "deliverhub-market";
+    const storeId = storeRecipient?.id ?? selectedItems[0]?.storeId ?? selectedStore?.id ?? "deliverhub-market";
     appendJsonStorage(storeOrdersStorageKey, {
       id: orderNo,
       status: paymentMethod === "stripe" ? "Stripe гүйлгээ амжилттай - дэлгүүр баталгаажуулна" : "QPay төлбөр амжилттай - дэлгүүр баталгаажуулна",
@@ -816,8 +826,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     });
     appendJsonStorage(storeNotificationsStorageKey, {
       id: `notif-${orderNo}`,
-      title: paymentMethod === "stripe" ? "Stripe гүйлгээ амжилттай" : "Шинэ төлбөртэй захиалга",
-      body: `${storeName}: ${paymentLabel}-ээр ${formatMnt(total)} төлөгдсөн шинэ захиалга ирлээ. Хаяг: ${district}`,
+      title: paymentMethod === "stripe" ? "Stripe гүйлгээ амжилттай" : "Төлбөртэй захиалга",
+      body: `${storeName}: ${paymentLabel}-ээр ${formatMnt(total)} төлөгдсөн захиалга ирлээ. Хаяг: ${district}`,
       storeId,
       storeName,
       readAt: null,
@@ -1252,80 +1262,62 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               </div>
             </section>
 
-            <section className="market-store-showcase" aria-label="Дэлгүүрүүд">
-              <header>
-                <div>
-                  <span>Дэлгүүр сонгох</span>
-                  <strong>{filteredStores.length} дэлгүүр</strong>
-                </div>
-                {storesLoading ? <small>Ачаалж байна...</small> : null}
-              </header>
-              <div className="landing-store-cards">
-                {storesLoading ? (
-                  <p>Дэлгүүрүүд ачаалж байна...</p>
-                ) : filteredStores.length ? filteredStores.map((store) => {
-                  const brand = storeBrandFor(store.name);
-                  return (
-                    <button
-                      className={selectedStore?.id === store.id ? "active" : ""}
-                      key={store.id}
-                      onClick={() => {
-                        setSelectedStoreId(store.id);
-                        setStoreSearch("");
-                      }}
-                      type="button"
-                    >
-                      <span className="landing-store-logo">
-                        {brand.logoUrl ? <img alt={`${store.name} logo`} src={brand.logoUrl} /> : <b>{brand.initials}</b>}
-                      </span>
-                      <span className="landing-store-card-copy">
-                        <strong>{store.name}</strong>
-                        <small>{store.description || store.address}</small>
-                        <em>{store.address}</em>
-                      </span>
-                    </button>
-                  );
-                }) : (
-                  <p>Одоогоор дэлгүүр олдсонгүй.</p>
-                )}
-              </div>
-            </section>
-
             <section className="market-stats-row">
-              <article><span>Сонгосон маркет</span><strong>{selectedStore?.name ?? "Сонгоно уу"}</strong><em>{selectedStore?.address ?? "Хаяг сонгоно уу"}</em></article>
-              <article><span>Харагдаж буй бараа</span><strong>{marketProducts.length}</strong><em>{selectedStore?.categories[0] ?? "Маркет"}</em></article>
+              <article><span>Дэлгүүр</span><strong>{storeProductGroups.length}</strong><em>{storesLoading ? "Ачаалж байна" : "Дарааллаар"}</em></article>
+              <article><span>Харагдаж буй бараа</span><strong>{marketProducts.length}</strong><em>{storeFilter}</em></article>
               <article><span>Таны сагс</span><strong>{selectedItems.length}</strong><em>{formatMnt(subtotal)}</em></article>
               <article><span>Тооцсон хүргэлт</span><strong>{selectedItems.length ? `${etaMinutes} мин` : "-"}</strong><em>{selectedItems.length ? formatMnt(deliveryFee) : "0 MNT"}</em></article>
             </section>
 
-            <section className="landing-product-grid">
-              {marketProducts.map((product) => (
-                <article key={product.id}>
-                  <button
-                    className={`landing-product-wish ${wishlist.includes(product.id) ? "active" : ""}`}
-                    onClick={() => toggleWishlist(product.id)}
-                    type="button"
-                    aria-label={`${product.name} wishlist`}
-                  >
-                    {wishlist.includes(product.id) ? "♥" : "♡"}
-                  </button>
-                  <img alt={product.name} src={productImageFor(product)} />
-                  <span>{product.category}</span>
-                  <h3>{product.name}</h3>
-                  <p>{product.description}</p>
-                  <strong>{formatMnt(product.priceMnt)}</strong>
-                  <em className={product.stockCount <= 0 ? "is-empty" : product.stockCount <= 12 ? "is-low" : ""}>
-                    Үлдэгдэл: {product.stockCount} ш
-                  </em>
-                  <div className="landing-product-actions">
-                    <button className="landing-product-qty" onClick={() => updateCart(product.id, -1)} type="button">−</button>
-                    <b>{cart[product.id] ?? 0}</b>
-                    <button className="landing-product-add" onClick={() => updateCart(product.id, 1)} type="button" disabled={product.stockCount <= 0}>
-                      {cart[product.id] ? "Нэмэх" : "Сагслах"}
-                    </button>
-                  </div>
-                </article>
-              ))}
+            <section className="market-store-feed">
+              {storeProductGroups.length ? storeProductGroups.map(({ store, products }, storeIndex) => {
+                const brand = storeBrandFor(store.name);
+                return (
+                  <section className="market-store-section" key={store.id}>
+                    <header>
+                      <span className="landing-store-logo">
+                        {brand.logoUrl ? <img alt={`${store.name} logo`} src={brand.logoUrl} /> : <b>{brand.initials}</b>}
+                      </span>
+                      <div>
+                        <span>#{String(storeIndex + 1).padStart(2, "0")} · {store.categories.join(", ")}</span>
+                        <strong>{store.name}</strong>
+                        <small>{store.address}</small>
+                      </div>
+                    </header>
+                    <div className="landing-product-grid">
+                      {products.map((product) => (
+                        <article key={product.id}>
+                          <button
+                            className={`landing-product-wish ${wishlist.includes(product.id) ? "active" : ""}`}
+                            onClick={() => toggleWishlist(product.id)}
+                            type="button"
+                            aria-label={`${product.name} wishlist`}
+                          >
+                            {wishlist.includes(product.id) ? "♥" : "♡"}
+                          </button>
+                          <img alt={product.name} src={productImageFor(product)} />
+                          <span>{product.category}</span>
+                          <h3>{product.name}</h3>
+                          <p>{product.description}</p>
+                          <strong>{formatMnt(product.priceMnt)}</strong>
+                          <em className={product.stockCount <= 0 ? "is-empty" : product.stockCount <= 12 ? "is-low" : ""}>
+                            Үлдэгдэл: {product.stockCount} ш
+                          </em>
+                          <div className="landing-product-actions">
+                            <button className="landing-product-qty" onClick={() => updateCart(product.id, -1)} type="button">−</button>
+                            <b>{cart[product.id] ?? 0}</b>
+                            <button className="landing-product-add" onClick={() => updateCart(product.id, 1)} type="button" disabled={product.stockCount <= 0}>
+                              {cart[product.id] ? "Нэмэх" : "Сагслах"}
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                );
+              }) : (
+                <p className="market-empty">Одоогоор тохирох дэлгүүр олдсонгүй.</p>
+              )}
             </section>
 
             <section className="market-cart">

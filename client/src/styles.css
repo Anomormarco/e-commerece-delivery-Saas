@@ -3683,6 +3683,64 @@ h3 {
   box-shadow: none;
 }
 
+.market-store-feed {
+  display: grid;
+  gap: 22px;
+}
+
+.market-store-section {
+  display: grid;
+  gap: 14px;
+  border: 1px solid #243044;
+  border-radius: 24px;
+  padding: 16px;
+  background: #111827;
+}
+
+.market-store-section > header {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #243044;
+  padding-bottom: 14px;
+}
+
+.market-store-section > header div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.market-store-section > header span,
+.market-store-section > header small {
+  overflow: hidden;
+  color: #9db6d8;
+  font-size: 12px;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-store-section > header strong {
+  overflow: hidden;
+  color: white;
+  font-size: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.market-empty {
+  margin: 0;
+  border: 1px solid #243044;
+  border-radius: 18px;
+  padding: 18px;
+  background: #111827;
+  color: #9db6d8;
+  font-size: 13px;
+  font-weight: 850;
+}
+
 .market-page .landing-store-cards {
   display: grid;
   gap: 8px;
