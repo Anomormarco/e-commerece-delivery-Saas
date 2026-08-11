@@ -26,6 +26,7 @@ type GeoPoint = {
 const fallbackPosition: GeoPoint = { lat: 47.9189, lng: 106.9176 };
 const tileSize = 256;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
+const employeeUiDeployMarker = "employee-work-mode-offer-card-v2";
 
 const text = {
   title: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0430\u0436\u0438\u043B\u0442\u0430\u043D",
@@ -336,7 +337,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   }
 
   return (
-    <main className="courier-page role-page">
+    <main className="courier-page role-page" data-employee-ui-build={employeeUiDeployMarker}>
       <section className="employee-mobile-shell">
         <aside className={`employee-drawer ${sidebarOpen ? "open" : ""}`} aria-hidden={!sidebarOpen}>
           <div className="employee-drawer-brand">
