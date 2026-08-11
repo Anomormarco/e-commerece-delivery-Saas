@@ -6479,6 +6479,15 @@ h3 {
   align-items: center;
   gap: 10px;
   min-height: 42px;
+  min-width: 0;
+}
+
+.store-dash-brand > .brand-logo {
+  flex: 0 0 auto;
+}
+
+.store-dash-brand > div {
+  min-width: 0;
 }
 
 .store-dash-brand .brand-logo-mark {
@@ -6491,8 +6500,12 @@ h3 {
 
 .store-dash-brand strong {
   display: block;
+  max-width: 100%;
+  overflow: hidden;
   font-size: 14px;
   font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .store-dash-brand span {

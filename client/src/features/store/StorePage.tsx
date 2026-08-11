@@ -472,7 +472,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     <main className={`store-dash-shell store-theme-${themeMode}`}>
       <aside className="store-dash-sidebar">
         <div className="store-dash-brand">
-          <BrandLogo showText size={32} />
+          <BrandLogo compact size={32} />
           <div>
             <strong>{store?.storeName ?? text.storeName}</strong>
             <span>{text.open}</span>
