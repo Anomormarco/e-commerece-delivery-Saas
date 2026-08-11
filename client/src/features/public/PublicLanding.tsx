@@ -1267,7 +1267,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <a className={section === "home" ? "active" : ""} href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>Нүүр</a>
         <button className={section === "market" ? "active" : ""} onClick={openMarket} type="button">Маркет</button>
         <button className={section === "courier" ? "active" : ""} onClick={openCourier} type="button">Хүргэлтийн ажилтан</button>
-        <button className={`landing-partner-nav ${section === "partner" ? "active" : ""}`} onClick={openPartner} type="button">БИЗНЕСИЙН ТҮНШЛЭЛ</button>
+        <button className={`landing-partner-nav ${section === "partner" ? "active" : ""}`} onClick={openPartner} type="button">Бизнесийн түншлэл</button>
         <button className={section === "contact" ? "active" : ""} onClick={openContact} type="button">Холбоо барих</button>
         <div className="landing-nav-actions" aria-label="Хэрэглэгчийн үйлдлүүд">
           <button
