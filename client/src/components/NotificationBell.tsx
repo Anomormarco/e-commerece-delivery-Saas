@@ -26,9 +26,14 @@ const text = {
 
 const localNotificationKey = "deliverhub-store-notifications";
 
-function isForStore(item: { storeId?: string; storeName?: string }, storeId?: string, storeName?: string) {
+function isForStore(item: { storeId?: string; storeName?: string; title?: string; body?: string }, storeId?: string, storeName?: string) {
   if (!storeId && !storeName) return true;
-  return item.storeId === storeId || item.storeName === storeName || (!item.storeId && !item.storeName);
+  const normalizedStoreName = storeName?.trim().toLowerCase();
+  const itemStoreName = item.storeName?.trim().toLowerCase();
+  const searchableText = `${item.title ?? ""} ${item.body ?? ""}`.toLowerCase();
+  const matchesStoreName = Boolean(normalizedStoreName && (itemStoreName === normalizedStoreName || searchableText.includes(normalizedStoreName)));
+
+  return item.storeId === storeId || matchesStoreName || (!item.storeId && !item.storeName);
 }
 
 function markInboxRead(inbox: NotificationInbox | null, storeId?: string, storeName?: string): NotificationInbox | null {

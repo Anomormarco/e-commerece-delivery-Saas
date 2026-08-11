@@ -1543,12 +1543,12 @@ h3 {
 }
 
 .landing-commerce-nav .landing-partner-nav {
-  min-height: 30px !important;
-  padding: 0 8px !important;
-  font-size: 9px !important;
-  font-weight: 800 !important;
-  letter-spacing: 0 !important;
-  opacity: 0.82;
+  min-height: 38px;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  opacity: 1;
   text-transform: none;
   white-space: nowrap;
 }
@@ -1845,7 +1845,7 @@ h3 {
   position: fixed;
   top: 96px;
   left: 50%;
-  z-index: 80;
+  z-index: 160;
   width: min(520px, calc(100vw - 32px));
   border: 1px solid rgba(34, 197, 94, 0.42);
   border-radius: 16px;

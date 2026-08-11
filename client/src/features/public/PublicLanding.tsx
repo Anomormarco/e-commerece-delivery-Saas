@@ -472,6 +472,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [cartOpen, setCartOpen] = useState(false);
   const cartPanelRef = useRef<HTMLElement | null>(null);
   const cartReturnRef = useRef<{ section: LandingSection; scrollY: number }>({ section: page, scrollY: 0 });
+  const paymentSuccessTimerRef = useRef<number | null>(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", phone: "", login: "", password: "" });
@@ -1012,14 +1013,18 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       },
       ...current.filter((item) => item.orderNo !== nextTracking.orderNo),
     ].slice(0, 10));
+    if (paymentSuccessTimerRef.current) window.clearTimeout(paymentSuccessTimerRef.current);
     setPaymentSuccess("Захиалга амжилттай хийгдлээ");
-    window.setTimeout(() => setPaymentSuccess(""), 3000);
+    paymentSuccessTimerRef.current = window.setTimeout(() => {
+      setPaymentSuccess("");
+      paymentSuccessTimerRef.current = null;
+    }, 3000);
     setNotice("");
     setCart({});
     setCartOpen(false);
     setWishlistOpen(false);
     setProfileOpen(false);
-    setTrackingOpen(true);
+    setTrackingOpen(false);
     setSection(cartReturnRef.current.section);
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: cartReturnRef.current.scrollY, behavior: "smooth" });
