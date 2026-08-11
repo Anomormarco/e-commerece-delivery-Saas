@@ -1,6 +1,7 @@
 import { prisma } from "@deliverhub/server-platform/database/prisma";
 
 const busyAssignmentStatuses = [
+  "OFFERED",
   "ACCEPTED",
   "ARRIVING_PICKUP",
   "PICKUP_VERIFICATION",

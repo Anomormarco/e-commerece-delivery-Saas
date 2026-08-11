@@ -14,7 +14,7 @@ const defaultTenant = {
   slug: "deliverhub-public",
 };
 
-const offerTimeoutMs = 10_000;
+const offerTimeoutMs = 12_000;
 const defaultStoreLocation = { lat: 47.9189, lng: 106.9176 };
 
 function createHttpError(statusCode, message) {
@@ -121,7 +121,7 @@ async function createNextCourierOffer(transaction, { tenantId, orderId }) {
       verificationStatus: "ACTIVE",
       ...(excludedEmployeeIds.length ? { id: { notIn: excludedEmployeeIds } } : {}),
       assignments: {
-        none: { status: { in: activeAssignmentStatuses } },
+        none: { status: { in: ["OFFERED", ...activeAssignmentStatuses] } },
       },
     },
     include: { user: true },
@@ -133,7 +133,7 @@ async function createNextCourierOffer(transaction, { tenantId, orderId }) {
         verificationStatus: "ACTIVE",
         ...(excludedEmployeeIds.length ? { id: { notIn: excludedEmployeeIds } } : {}),
         assignments: {
-          none: { status: { in: activeAssignmentStatuses } },
+          none: { status: { in: ["OFFERED", ...activeAssignmentStatuses] } },
         },
       },
       include: { user: true },
@@ -192,7 +192,7 @@ export async function advanceExpiredCourierOffers(tenantId) {
         data: {
           assignmentId: offer.id,
           reason: "OFFER_TIMEOUT",
-          note: "Employee did not answer within 10 seconds; offer moved to the next nearest courier.",
+          note: "Employee did not answer within 12 seconds; offer moved to the next nearest courier.",
         },
       });
 
@@ -563,20 +563,9 @@ export async function findCourierDashboardByUserId(userId) {
 
   if (!employee) return null;
 
-  const openOffers = await prisma.deliveryAssignment.findMany({
-    where: {
-      tenantId: employee.tenantId,
-      employeeId: null,
-      status: "OFFERED",
-    },
-    take: 12,
-    orderBy: { createdAt: "desc" },
-    include: { order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } } },
-  });
-
   return {
     ...employee,
-    assignments: [...employee.assignments, ...openOffers],
+    assignments: employee.assignments,
   };
 }
 
@@ -624,7 +613,7 @@ export async function acceptDeliveryAssignment(userId, assignmentId) {
       where: {
         id: assignmentId,
         status: "OFFERED",
-        OR: [{ employeeId: null }, { employeeId: employee.id }],
+        employeeId: employee.id,
       },
       data: {
         employeeId: employee.id,
