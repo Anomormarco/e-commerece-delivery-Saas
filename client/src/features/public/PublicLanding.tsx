@@ -712,6 +712,20 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const km = distanceKm(storeLocation, customerLocation);
   const deliveryFee = Math.round(activeDelivery.base + km * activeDelivery.perKm + weightKg * activeDelivery.perKg);
   const etaMinutes = Math.max(12, Math.round((km / activeDelivery.speedKmh) * 60 + 10));
+  const qpaySandboxInvoice = useMemo(() => {
+    const rawKey = selectedItems.map((item) => `${item.id}:${item.quantity}`).join("|") || "empty";
+    let hash = 0;
+    for (let index = 0; index < rawKey.length; index += 1) {
+      hash = (hash * 31 + rawKey.charCodeAt(index)) % 1000000;
+    }
+
+    return {
+      id: `QP-SBX-${String(hash).padStart(6, "0")}`,
+      merchant: selectedItems[0]?.storeName ?? selectedStore?.name ?? "DeliverHub market",
+      expires: "15 минут",
+      deeplink: `qpay://sandbox/invoice/${String(hash).padStart(6, "0")}`,
+    };
+  }, [selectedItems, selectedStore?.name]);
   const storeCategories = useMemo(
     () => ["Бүгд", ...new Set(marketStoreDirectory.flatMap((store) => store.categories).filter(Boolean))],
     [marketStoreDirectory],
@@ -859,7 +873,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     const storeId = storeRecipient?.id ?? selectedItems[0]?.storeId ?? selectedStore?.id ?? "deliverhub-market";
     appendJsonStorage(storeOrdersStorageKey, {
       id: orderNo,
-      status: `${paymentLabel} төлбөр амжилттай - дэлгүүр баталгаажуулна`,
+      status: `${paymentLabel} төлбөр төлөгдсөн - дэлгүүр баталгаажуулна`,
       amountMnt: String(total),
       district,
       storeId,
@@ -877,8 +891,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     });
     appendJsonStorage(storeNotificationsStorageKey, {
       id: `notif-${orderNo}`,
-      title: `${paymentLabel} төлбөр амжилттай`,
-      body: `${storeName}: ${paymentLabel}-ээр ${formatMnt(total)} төлөгдсөн захиалга ирлээ. Хаяг: ${district}`,
+      title: "Шинэ захиалга ирлээ",
+      body: `${storeName}: ${paymentLabel}-ээр ${formatMnt(total)} төлөгдсөн. Захиалгыг хүлээж аваад бэлтгэнэ үү. Хаяг: ${district}`,
       storeId,
       storeName,
       readAt: null,
@@ -1245,16 +1259,29 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
                     {paymentMethod === "qpay" ? (
                       <section className="landing-qpay-sandbox" aria-label="QPay sandbox">
-                        <div className="landing-qpay-qr" aria-hidden="true">
-                          {Array.from({ length: 49 }, (_, index) => (
-                            <span className={index % 2 === 0 || index % 5 === 0 || [6, 8, 18, 24, 30, 40, 42].includes(index) ? "is-dark" : ""} key={index} />
-                          ))}
+                        <header>
+                          <strong>QPay Sandbox</strong>
+                          <span>WAITING</span>
+                        </header>
+                        <div className="landing-qpay-body">
+                          <div className="landing-qpay-qr" aria-hidden="true">
+                            {Array.from({ length: 49 }, (_, index) => (
+                              <span className={index % 2 === 0 || index % 5 === 0 || [6, 8, 18, 24, 30, 40, 42].includes(index) ? "is-dark" : ""} key={index} />
+                            ))}
+                          </div>
+                          <div className="landing-qpay-meta">
+                            <span>Invoice</span>
+                            <strong>{qpaySandboxInvoice.id}</strong>
+                            <span>Merchant</span>
+                            <strong>{qpaySandboxInvoice.merchant}</strong>
+                            <span>Amount</span>
+                            <strong>{formatMnt(subtotal + deliveryFee)}</strong>
+                          </div>
                         </div>
-                        <div>
-                          <strong>QPay Sandbox Invoice</strong>
-                          <span>QP-SBX-{Date.now().toString().slice(-6)}</span>
-                          <p>QPay app-аар уншуулсан мэт sandbox төлбөр баталгаажуулна.</p>
-                        </div>
+                        <footer>
+                          <span>Expires: {qpaySandboxInvoice.expires}</span>
+                          <code>{qpaySandboxInvoice.deeplink}</code>
+                        </footer>
                       </section>
                     ) : (
                       <section className="landing-card-sandbox" aria-label="Bank card sandbox">

@@ -2226,7 +2226,38 @@ h3 {
 
 .landing-qpay-sandbox {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
+  gap: 10px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(239, 246, 255, 0.72)),
+    rgba(255, 255, 255, 0.68);
+}
+
+.landing-qpay-sandbox header,
+.landing-qpay-sandbox footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.landing-qpay-sandbox header strong {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 950;
+}
+
+.landing-qpay-sandbox header span {
+  border-radius: 999px;
+  padding: 4px 8px;
+  background: rgba(245, 158, 11, 0.16);
+  color: #f97316;
+  font-size: 9px;
+  font-weight: 950;
+}
+
+.landing-qpay-body {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
 }
@@ -2235,8 +2266,8 @@ h3 {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   gap: 3px;
-  width: 88px;
-  height: 88px;
+  width: 92px;
+  height: 92px;
   border: 6px solid white;
   border-radius: 12px;
   padding: 5px;
@@ -2253,24 +2284,44 @@ h3 {
   background: #0f172a;
 }
 
-.landing-qpay-sandbox strong,
+.landing-qpay-meta {
+  display: grid;
+  grid-template-columns: 76px minmax(0, 1fr);
+  align-items: center;
+  gap: 5px 8px;
+}
+
+.landing-qpay-meta strong,
 .landing-card-sandbox label {
   color: #0f172a;
   font-size: 12px;
   font-weight: 950;
 }
 
-.landing-qpay-sandbox span,
+.landing-qpay-meta span,
 .landing-card-sandbox small {
   display: block;
-  margin-top: 4px;
-  color: #f97316;
+  color: #64748b;
   font-size: 11px;
-  font-weight: 950;
+  font-weight: 850;
 }
 
-.landing-qpay-sandbox p {
-  margin-top: 7px;
+.landing-qpay-sandbox footer span,
+.landing-qpay-sandbox footer code {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 850;
+}
+
+.landing-qpay-sandbox footer code {
+  overflow: hidden;
+  max-width: 180px;
+  border-radius: 999px;
+  padding: 4px 7px;
+  background: rgba(15, 23, 42, 0.06);
+  color: #0f172a;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .landing-card-sandbox {

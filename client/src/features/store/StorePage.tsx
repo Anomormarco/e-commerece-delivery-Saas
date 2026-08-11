@@ -134,6 +134,13 @@ function productStatus(product: ProductItem): { status: string; stock: string; t
   return { status: text.available, stock: `${product.stockCount} \u0448`, tone: "success" };
 }
 
+const storeOrderStatuses = {
+  accepted: "Дэлгүүр хүлээж авлаа - бараа бэлтгэж байна",
+  prepared: "Бэлтгэж дууслаа - хүргэлт дуудахад бэлэн",
+  courierCalled: "Хүргэлт дуудсан - courier assignment хүлээгдэж байна",
+  rejected: "Татгалзсан",
+};
+
 function orderLabel(index: number) {
   if (index === 0) return "\u0428\u0438\u043D\u044D";
   if (index === 1) return "\u0411\u044D\u043B\u0442\u0433\u044D\u0436 \u0431\u0430\u0439\u043D\u0430";
@@ -169,6 +176,28 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   }, [store?.id, store?.storeName]);
 
   function runAction(label: string, target: string) {
+    const mappedStatus = label === text.confirm
+      ? storeOrderStatuses.accepted
+      : label === "Бэлтгэж дууссан"
+        ? storeOrderStatuses.prepared
+        : label === text.callCourier
+          ? storeOrderStatuses.courierCalled
+          : label === text.reject
+            ? storeOrderStatuses.rejected
+            : null;
+
+    if (mappedStatus) {
+      setLocalOrders((current) => {
+        const nextOrders = current.map((order) => (order.id === target ? { ...order, status: mappedStatus } : order));
+        localStorage.setItem(localStoreOrdersKey, JSON.stringify(nextOrders));
+        window.dispatchEvent(new StorageEvent("storage", { key: localStoreOrdersKey, newValue: JSON.stringify(nextOrders) }));
+        return nextOrders;
+      });
+      setNotice(`${label}: ${target} - ${text.actionDone}`);
+      window.setTimeout(() => setNotice(null), 2200);
+      return;
+    }
+
     const nextStatus = label === text.confirm
       ? "Дэлгүүр хүлээж авлаа - унаанд тавихад бэлэн"
       : label === text.callCourier
@@ -220,13 +249,19 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               <p>{order.status}</p>
               <b>{order.amountMnt} MNT</b>
               <div>
-                {index === 0 ? (
+                {order.status === storeOrderStatuses.accepted ? (
+                  <button onClick={() => runAction("Бэлтгэж дууссан", order.id)} type="button">Бэлтгэж дууссан</button>
+                ) : order.status === storeOrderStatuses.prepared ? (
+                  <button onClick={() => runAction(text.callCourier, order.id)} type="button">{text.callCourier}</button>
+                ) : order.status === storeOrderStatuses.courierCalled ? (
+                  <button disabled type="button">Хүргэлт дуудсан</button>
+                ) : index === 0 ? (
                   <>
                     <button onClick={() => runAction(text.confirm, order.id)} type="button">{text.confirm}</button>
                     <button onClick={() => runAction(text.reject, order.id)} type="button">{text.reject}</button>
                   </>
                 ) : (
-                  <button onClick={() => runAction(text.callCourier, order.id)} type="button">{text.callCourier}</button>
+                  <button onClick={() => runAction(text.confirm, order.id)} type="button">{text.confirm}</button>
                 )}
               </div>
             </section>
