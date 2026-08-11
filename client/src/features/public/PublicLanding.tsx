@@ -1328,8 +1328,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               aria-label="Миний захиалсан"
             >
               <svg aria-hidden="true" className="landing-nav-icon" fill="none" viewBox="0 0 24 24">
-                <path d="M12 12C14.4853 12 16.5 9.98528 16.5 7.5C16.5 5.01472 14.4853 3 12 3C9.51472 3 7.5 5.01472 7.5 7.5C7.5 9.98528 9.51472 12 12 12Z" stroke="currentColor" strokeWidth="1.8" />
-                <path d="M4 20C4.8 16.9 7.72 15 12 15C16.28 15 19.2 16.9 20 20" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+                <path d="M7 3.8H17C18.1 3.8 19 4.7 19 5.8V20.2L16.8 18.9L14.6 20.2L12.4 18.9L10.2 20.2L8 18.9L5.8 20.2V5.8C5.8 4.7 6.7 3.8 7.8 3.8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+                <path d="M9 8.4H15" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+                <path d="M9 12H14" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
               </svg>
               <span>Миний захиалсан</span>
               {tracking || orderHistory.length ? <b className="is-notification">{Math.min(9, Math.max(1, orderHistory.length))}</b> : null}
@@ -1819,7 +1820,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           <h1>Монголын албан ёсны цахим худалдаа, чөлөөт хүргэлтийн нэгдсэн платформ</h1>
         </div>
         <div className="landing-hero-footer-text">
-          <span>Хүссэнээ захиалаад, гэртээ хүргүүлэн аваарай</span>
+          <span>Хүссэнээ захиалаад, хүргүүлээд аваарай</span>
         </div>
       </section>
 
