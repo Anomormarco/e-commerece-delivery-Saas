@@ -38,12 +38,19 @@ export async function findEmployeeInAdminReview(tenantId) {
 }
 
 export async function findDispatchOrder(tenantId, orderId) {
-  return prisma.order.findFirst({
+  const tenantOrder = await prisma.order.findFirst({
     where: {
       tenantId,
       ...(orderId ? { id: orderId } : {}),
     },
     orderBy: { createdAt: "desc" },
+    include: { store: true, branch: true, customerAddress: true },
+  });
+
+  if (tenantOrder || !orderId) return tenantOrder;
+
+  return prisma.order.findUnique({
+    where: { id: orderId },
     include: { store: true, branch: true, customerAddress: true },
   });
 }
@@ -107,15 +114,17 @@ export async function createDeliveryOffer(tenantId, orderId, employeeId = null) 
 
 export async function updateOrderStatus(tenantId, orderId, status, note) {
   return prisma.$transaction(async (tx) => {
-    await tx.order.updateMany({
-      where: { id: orderId, tenantId },
-      data: { status },
-    });
-
-    const order = await tx.order.findFirst({
+    let order = await tx.order.findFirst({
       where: { id: orderId, tenantId },
       include: { store: true },
     });
+
+    if (!order) {
+      order = await tx.order.findUnique({
+        where: { id: orderId },
+        include: { store: true },
+      });
+    }
 
     if (!order) {
       return {
@@ -125,9 +134,14 @@ export async function updateOrderStatus(tenantId, orderId, status, note) {
       };
     }
 
+    await tx.order.update({
+      where: { id: order.id },
+      data: { status },
+    });
+
     await tx.orderStatusHistory.create({
       data: {
-        orderId,
+        orderId: order.id,
         status,
         note,
       },

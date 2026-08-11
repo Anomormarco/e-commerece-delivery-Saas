@@ -239,18 +239,19 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
     };
   }
 
+  const dispatchTenantId = order.tenantId ?? tenantId;
   const [eligibleEmployeeCount, sameTenantEmployees] = await Promise.all([
-    countMatchingEmployees(tenantId, rule.eligibleVehicles),
-    listMatchingEmployees(tenantId, rule.eligibleVehicles),
+    countMatchingEmployees(dispatchTenantId, rule.eligibleVehicles),
+    listMatchingEmployees(dispatchTenantId, rule.eligibleVehicles),
   ]);
   const eligibleEmployees = sameTenantEmployees.length ? sameTenantEmployees : await listMatchingEmployeesAnyTenant(rule.eligibleVehicles);
   const rankedEmployees = rankNearbyEmployees(order, eligibleEmployees, distanceKm);
   const nearest = rankedEmployees[0] ?? selectNearestEmployee(order, eligibleEmployees, distanceKm);
-  const assignment = await createDeliveryOffer(tenantId, order.id, nearest?.employee.id ?? null);
+  const assignment = await createDeliveryOffer(dispatchTenantId, order.id, nearest?.employee.id ?? null);
   const routePlan = nearest?.routePlan ?? routePlanFor(order, null, distanceKm);
-  await updateOrderStatus(tenantId, order.id, "COURIER_ASSIGNED", "Дэлгүүр хүргэлт дуудлаа.");
+  await updateOrderStatus(dispatchTenantId, order.id, "COURIER_ASSIGNED", "Дэлгүүр хүргэлт дуудлаа.");
 
-  appCache.clearByPrefix(`store:dashboard:${tenantId}`);
+  appCache.clearByPrefix(`store:dashboard:${dispatchTenantId}`);
   appCache.clearByPrefix("courier:dashboard:");
   appCache.clearByPrefix("customer:tracking:");
   appCache.del("admin:dashboard");
