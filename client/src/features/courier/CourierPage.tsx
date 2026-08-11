@@ -31,6 +31,8 @@ const text = {
   title: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0430\u0436\u0438\u043B\u0442\u0430\u043D",
   startWork: "\u0410\u0436\u0438\u043B \u044D\u0445\u043B\u04AF\u04AF\u043B\u044D\u0445",
   stopWork: "\u0410\u0436\u043B\u0430\u0430\u0441 \u0431\u0443\u0443\u0445",
+  working: "\u0410\u0436\u0438\u043B\u043B\u0430\u0436 \u0431\u0430\u0439\u043D\u0430",
+  offWork: "\u0410\u0436\u043B\u0430\u0430\u0441 \u0431\u0443\u0443\u0441\u0430\u043D",
   confirmStart: "\u0410\u0436\u0438\u043B \u044D\u0445\u043B\u04AF\u04AF\u043B\u044D\u0445 \u04AF\u04AF?",
   confirmStop: "\u0410\u0436\u043B\u0430\u0430\u0441 \u0431\u0443\u0443\u0445 \u04AF\u04AF?",
   map: "\u041E\u0439\u0440\u043E\u043B\u0446\u043E\u043E\u0445 pickup \u0445\u04AF\u0441\u044D\u043B\u0442\u04AF\u04AF\u0434",
@@ -44,7 +46,7 @@ const text = {
   verified: "\u0411\u0430\u0442\u0430\u043B\u0433\u0430\u0430\u0436\u0441\u0430\u043D",
   identity: "\u0411\u0430\u0442\u0430\u043B\u0433\u0430\u0430\u0436\u0443\u0443\u043B\u0430\u043B\u0442\u044B\u043D \u0442\u04E9\u043B\u04E9\u0432",
   noJobs: "\u041E\u0434\u043E\u043E\u0445\u043E\u043D\u0434\u043E\u043E \u043E\u0439\u0440\u043E\u043B\u0446\u043E\u043E \u0445\u04AF\u0441\u044D\u043B\u0442 \u0430\u043B\u0433\u0430.",
-  activeDeliveryRule: "\u0418\u0434\u044D\u0432\u0445\u0442\u044D\u0439 \u0445\u04AF\u0440\u0433\u044D\u043B\u0442\u0442\u044D\u0439 \u04AF\u0435\u0434 \u0430\u0436\u043B\u0430\u0430\u0441 \u0431\u0443\u0443\u0445 \u0431\u043E\u043B\u043E\u043C\u0436\u0433\u04AF\u0439.",
+  activeDeliveryRule: "\u0410\u0436\u043B\u044B\u043D \u0442\u04E9\u043B\u04E9\u0432\u04E9\u04E9 \u0434\u0443\u0443\u0434\u043B\u0430\u0433\u0430 \u0434\u0443\u043D\u0434 \u0447 \u0441\u043E\u043B\u044C\u0436 \u0431\u043E\u043B\u043D\u043E.",
   actionError: "\u04AE\u0439\u043B\u0434\u044D\u043B \u0430\u043C\u0436\u0441\u0430\u043D\u0433\u04AF\u0439.",
   menu: "\u0426\u044D\u0441",
   mapTab: "\u0413\u0430\u0437\u0440\u044B\u043D \u0437\u0443\u0440\u0430\u0433",
@@ -62,8 +64,8 @@ const text = {
   deliveredOrders: "\u0425\u04AF\u0440\u0433\u044D\u0433\u0434\u0441\u044D\u043D",
   urgent: "\u042F\u0430\u0440\u0430\u043B\u0442\u0430\u0439",
   newRequest: "\u0428\u0438\u043D\u044D \u0445\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0445\u04AF\u0441\u044D\u043B\u0442",
-  offline: "\u041E\u0444\u0444\u043B\u0430\u0439\u043D",
-  online: "\u041E\u043D\u043B\u0430\u0439\u043D",
+  offline: "\u0410\u0436\u043B\u0430\u0430\u0441 \u0431\u0443\u0443\u0445",
+  online: "\u0410\u0436\u0438\u043B \u044D\u0445\u043B\u04AF\u04AF\u043B\u044D\u0445",
   approximate: "\u041E\u0439\u0440\u043E\u043B\u0446\u043E\u043E\u0433\u043E\u043E\u0440",
   acceptOrder: "\u0425\u04AF\u043B\u044D\u044D\u043D \u0430\u0432\u0430\u0445",
   details: "\u0414\u044D\u043B\u0433\u044D\u0440\u044D\u043D\u0433\u04AF\u0439",
@@ -281,7 +283,6 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   }, [isOnline, position]);
 
   async function toggleOnline() {
-    if (isOnline && hasActiveDelivery) return;
     const confirmed = window.confirm(isOnline ? text.confirmStop : text.confirmStart);
     if (!confirmed) return;
     setActionError(null);
@@ -377,9 +378,8 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
             </div>
           </button>
           <button className={`courier-header-toggle ${isOnline ? "online" : ""}`} onClick={toggleOnline} type="button" aria-label={isOnline ? text.stopWork : text.startWork}>
-            <span>{text.offline}</span>
+            <span>{isOnline ? text.stopWork : text.startWork}</span>
             <i aria-hidden="true" />
-            <span>{text.online}</span>
           </button>
           <NotificationBell />
         </header>
@@ -672,7 +672,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     </div>
                     <div>
                       <span>Ажлын төлөв</span>
-                      <strong>{isOnline ? text.online : text.offline}</strong>
+                      <strong>{isOnline ? text.working : text.offWork}</strong>
                     </div>
                     <div>
                       <span>{text.deliveriesTab}</span>
