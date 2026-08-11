@@ -30,6 +30,7 @@ type ProductItem = {
   price: string;
   stockCount: number;
   description: string;
+  imageUrl: string;
 };
 
 const localStoreOrdersKey = "deliverhub-store-orders";
@@ -76,9 +77,6 @@ const text = {
   orderBoard: "\u0417\u0430\u0445\u0438\u0430\u043B\u0433\u044B\u043D \u0441\u0430\u043C\u0431\u0430\u0440",
   productManagement: "\u0411\u0430\u0440\u0430\u0430 \u0443\u0434\u0438\u0440\u0434\u043B\u0430\u0433\u0430",
   addProduct: "\u0411\u0430\u0440\u0430\u0430 \u043D\u044D\u043C\u044D\u0445",
-  receiveProduct: "\u0411\u0430\u0440\u0430\u0430 \u0438\u0440\u043B\u044D\u044D",
-  receivedPlusTen: "+10 \u0438\u0440\u043B\u044D\u044D",
-  receivedNotice: "\u0431\u0430\u0440\u0430\u0430\u043D\u044B \u04AF\u043B\u0434\u044D\u0433\u0434\u044D\u043B +10 \u043D\u044D\u043C\u044D\u0433\u0434\u043B\u044D\u044D",
   inventoryTitle: "\u0411\u0430\u0440\u0430\u0430 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B\u043D \u0431\u04AF\u0440\u0442\u0433\u044D\u043B",
   inventoryCopy: "\u0411\u0430\u0440\u0430\u0430\u043D\u044B \u04AF\u043B\u0434\u044D\u0433\u0434\u044D\u043B, \u04AF\u043D\u044D, \u0442\u04E9\u043B\u04E9\u0432 \u0431\u043E\u043B\u043E\u043D \u0430\u043D\u0433\u0438\u043B\u043B\u044B\u0433 \u043D\u044D\u0433 \u0434\u044D\u043B\u0433\u044D\u0446\u044D\u044D\u0441 \u0445\u044F\u043D\u0430.",
   productListTitle: "\u0411\u0430\u0440\u0430\u0430 \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u044B\u043D \u0436\u0430\u0433\u0441\u0430\u0430\u043B\u0442",
@@ -122,12 +120,72 @@ const tabs: Array<{ key: StoreTab; label: string }> = [
   { key: "settings", label: text.settings },
 ];
 
-const initialProducts: ProductItem[] = [
-  { name: "\u0426\u0430\u0433\u0430\u0430\u043D \u0431\u0443\u0434\u0430\u0430 5\u043A\u0433", sku: "FD-1002", category: "\u0425\u04AF\u043D\u0441", price: "\u20AE28,000", stockCount: 45, description: "\u0413\u044D\u0440 \u0431\u04AF\u043B\u0438\u0439\u043D \u04E9\u0434\u04E9\u0440 \u0442\u0443\u0442\u043C\u044B\u043D \u0445\u04AF\u043D\u0441\u043D\u0438\u0439 \u043D\u04E9\u04E9\u0446." },
-  { name: "\u041C\u043E\u043D\u0433\u043E\u043B \u043C\u0430\u0445 1\u043A\u0433", sku: "MT-5541", category: "\u041C\u0430\u0445", price: "\u20AE18,500", stockCount: 12, description: "\u0428\u0438\u043D\u044D \u043C\u0430\u0445, \u0445\u04AF\u0439\u0442\u044D\u043D \u0445\u044D\u043B\u0445\u044D\u044D\u0433\u044D\u044D\u0440 \u0445\u04AF\u0440\u0433\u044D\u043D\u044D." },
-  { name: "\u0410\u043B\u0442\u0430\u043D \u0422\u0430\u043B\u0445", sku: "BR-9982", category: "\u0422\u0430\u043B\u0445", price: "\u20AE3,200", stockCount: 30, description: "\u04E8\u0434\u04E9\u0440 \u0442\u0443\u0442\u043C\u044B\u043D \u0445\u0443\u0440\u0434\u0430\u043D \u044D\u0440\u0433\u044D\u043B\u0442\u0442\u044D\u0439 \u0431\u0430\u0440\u0430\u0430." },
-  { name: "\u0421\u04AF\u04AF 1\u043B", sku: "ML-2011", category: "\u0421\u04AF\u04AF", price: "\u20AE4,500", stockCount: 0, description: "\u04AE\u043B\u0434\u044D\u0433\u0434\u044D\u043B \u0434\u0443\u0443\u0441\u0441\u0430\u043D, \u0434\u0430\u0445\u0438\u043D \u0442\u0430\u0442\u0430\u043D \u0430\u0432\u0430\u043B\u0442 \u0445\u0438\u0439\u043D\u044D." },
-];
+const productTemplates = [
+  ["Цагаан будаа 5кг", "Хүнс", "₮28,000", "rice bag grocery product"],
+  ["Гурил 2кг", "Хүнс", "₮7,200", "flour bag product"],
+  ["Сүү 1л", "Сүү", "₮4,500", "milk bottle product"],
+  ["Өндөг 10ш", "Хүнс", "₮8,900", "egg carton product"],
+  ["Алим 1кг", "Жимс", "₮9,800", "apples grocery product"],
+  ["Төмс 2кг", "Ногоо", "₮6,500", "potatoes grocery product"],
+  ["Лууван 1кг", "Ногоо", "₮4,900", "carrots grocery product"],
+  ["Үхрийн мах 1кг", "Мах", "₮24,500", "beef meat product"],
+  ["Тахианы цээж мах", "Мах", "₮18,500", "chicken breast product"],
+  ["Бяслаг 200г", "Сүү", "₮12,400", "cheese package product"],
+  ["Талх", "Талх", "₮3,200", "bread loaf product"],
+  ["Цөцгийн тос", "Сүү", "₮8,700", "butter package product"],
+  ["Йогурт", "Сүү", "₮3,900", "yogurt cup product"],
+  ["Гоймон", "Хүнс", "₮2,800", "pasta package product"],
+  ["Спагетти", "Хүнс", "₮5,600", "spaghetti package product"],
+  ["Кетчуп", "Соус", "₮6,200", "ketchup bottle product"],
+  ["Майонез", "Соус", "₮7,400", "mayonnaise jar product"],
+  ["Наранцэцгийн тос", "Хүнс", "₮12,900", "cooking oil bottle product"],
+  ["Элсэн чихэр 1кг", "Хүнс", "₮4,700", "sugar bag product"],
+  ["Давс", "Хүнс", "₮1,900", "salt package product"],
+  ["Ногоон цай", "Ундаа", "₮6,900", "green tea box product"],
+  ["Кофе", "Ундаа", "₮18,900", "coffee bag product"],
+  ["Ус 1.5л", "Ундаа", "₮2,200", "water bottle product"],
+  ["Жүүс 1л", "Ундаа", "₮6,800", "juice carton product"],
+  ["Кола", "Ундаа", "₮3,500", "cola can product"],
+  ["Чипс", "Амттан", "₮5,200", "potato chips bag product"],
+  ["Шоколад", "Амттан", "₮4,800", "chocolate bar product"],
+  ["Печень", "Амттан", "₮6,100", "cookies package product"],
+  ["Зайрмаг", "Амттан", "₮4,300", "ice cream cup product"],
+  ["Салат", "Бэлэн хоол", "₮8,900", "fresh salad bowl product"],
+  ["Сэндвич", "Бэлэн хоол", "₮7,900", "sandwich product"],
+  ["Кимбап", "Бэлэн хоол", "₮10,500", "kimbap product"],
+  ["Рамен", "Бэлэн хоол", "₮5,900", "instant ramen cup product"],
+  ["Хөлдөөсөн бууз", "Хөлдөөсөн", "₮16,800", "frozen dumplings product"],
+  ["Хөлдөөсөн банш", "Хөлдөөсөн", "₮14,900", "frozen dumplings package product"],
+  ["Загас", "Хөлдөөсөн", "₮19,600", "frozen fish product"],
+  ["Самар", "Амттан", "₮11,500", "nuts package product"],
+  ["Үзэм", "Амттан", "₮7,700", "raisins package product"],
+  ["Зөгийн бал", "Хүнс", "₮22,000", "honey jar product"],
+  ["Овьёос", "Хүнс", "₮8,400", "oats package product"],
+  ["Corn flakes", "Хүнс", "₮13,500", "corn flakes box product"],
+  ["Нойтон салфетка", "Ахуй", "₮5,100", "wet wipes package product"],
+  ["Ариун цэврийн цаас", "Ахуй", "₮14,200", "toilet paper package product"],
+  ["Угаалгын нунтаг", "Ахуй", "₮18,900", "laundry detergent product"],
+  ["Аяга таваг угаагч", "Ахуй", "₮8,800", "dishwashing liquid product"],
+  ["Шампунь", "Ахуй", "₮12,700", "shampoo bottle product"],
+  ["Саван", "Ахуй", "₮3,100", "soap bar product"],
+  ["Гар ариутгагч", "Эрүүл мэнд", "₮5,900", "hand sanitizer bottle product"],
+  ["Маск 50ш", "Эрүүл мэнд", "₮9,900", "medical mask box product"],
+  ["Витамин C", "Эрүүл мэнд", "₮16,500", "vitamin c bottle product"],
+] as const;
+
+function productImageUrl(keyword: string) {
+  return `https://source.unsplash.com/900x650/?${encodeURIComponent(keyword)}`;
+}
+
+const initialProducts: ProductItem[] = productTemplates.map(([name, category, price, keyword], index) => ({
+  name,
+  sku: `NM-${String(index + 1).padStart(4, "0")}`,
+  category,
+  price,
+  stockCount: index % 17 === 0 ? 0 : 8 + ((index * 7) % 68),
+  description: `Номин Маркет - ${category.toLowerCase()} ангиллын бараа.`,
+  imageUrl: productImageUrl(keyword),
+}));
 
 function productStatus(product: ProductItem): { status: string; stock: string; tone: ProductTone } {
   if (product.stockCount <= 0) return { status: text.out, stock: "0 \u0448", tone: "danger" };
@@ -165,12 +223,17 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => (localStorage.getItem("deliverhub-store-theme") === "light" ? "light" : "night"));
   const [notice, setNotice] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState("");
+  const [productPage, setProductPage] = useState(1);
   const [products, setProducts] = useState<ProductItem[]>(initialProducts);
   const [localOrders, setLocalOrders] = useState<StoreOrder[]>(() => readLocalOrders(store));
 
   useEffect(() => {
     localStorage.setItem("deliverhub-store-theme", themeMode);
   }, [themeMode]);
+
+  useEffect(() => {
+    setProductPage(1);
+  }, [productSearch]);
 
   useEffect(() => {
     function refreshLocalOrders(event?: Event) {
@@ -242,19 +305,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     window.setTimeout(() => setNotice(null), 2200);
   }
 
-  function receiveProduct(productSku: string) {
-    const product = products.find((item) => item.sku === productSku);
-    setProducts((currentProducts) =>
-      currentProducts.map((item) => (
-        item.sku === productSku ? { ...item, stockCount: item.stockCount + 10 } : item
-      )),
-    );
-    if (product) {
-      setNotice(`${product.name}: ${text.receivedNotice}`);
-      window.setTimeout(() => setNotice(null), 2200);
-    }
-  }
-
   function renderOrders(orders: StoreOrder[]) {
     return (
       <article className="store-dash-card store-dash-wide">
@@ -296,12 +346,17 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   }
 
   function renderProducts() {
+    const productsPerPage = 8;
     const lowStockCount = products.filter((product) => product.stockCount > 0 && product.stockCount <= 12).length;
     const categoryCount = new Set(products.map((product) => product.category)).size;
     const filteredProducts = products.filter((product) => {
       const normalizedSearch = productSearch.trim().toLowerCase();
       return !normalizedSearch || `${product.name} ${product.sku} ${product.category}`.toLowerCase().includes(normalizedSearch);
     });
+    const totalProductPages = Math.max(1, Math.ceil(filteredProducts.length / productsPerPage));
+    const currentProductPage = Math.min(productPage, totalProductPages);
+    const pageStart = (currentProductPage - 1) * productsPerPage;
+    const pagedProducts = filteredProducts.slice(pageStart, pageStart + productsPerPage);
 
     return (
       <section className="store-inventory-experience">
@@ -324,15 +379,14 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         </section>
 
         <section className="store-product-catalog">
-          {filteredProducts.map((product) => {
+          {pagedProducts.map((product) => {
             const presentation = productStatus(product);
             return (
             <article className={`store-product-card tone-${presentation.tone}`} key={product.name}>
               <div className="store-product-visual">
-                <span>{product.name.slice(0, 1)}</span>
+                <img alt={product.name} src={product.imageUrl} />
                 <div>
                   <button onClick={() => runAction(text.edit, product.name)} type="button" aria-label={text.edit}>{"\u270E"}</button>
-                  <button onClick={() => receiveProduct(product.sku)} type="button" aria-label={text.receiveProduct}>{"+"}</button>
                   <button onClick={() => runAction(text.delete, product.name)} type="button" aria-label={text.delete}>{"\u232B"}</button>
                 </div>
                 <b>{presentation.status}</b>
@@ -351,9 +405,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
                     <strong>{presentation.stock}</strong>
                   </label>
                 </div>
-                <button className="store-product-receive" onClick={() => receiveProduct(product.sku)} type="button">
-                  {text.receivedPlusTen}
-                </button>
               </div>
             </article>
             );
@@ -374,17 +425,18 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             />
           </label>
           <div>
-            {filteredProducts.map((product) => {
+            {pagedProducts.map((product) => {
               const presentation = productStatus(product);
               return (
               <article className={`store-mobile-product-item tone-${presentation.tone}`} key={product.sku}>
-                <span className="store-mobile-product-thumb" aria-hidden="true">{product.name.slice(0, 1)}</span>
+                <span className="store-mobile-product-thumb" aria-hidden="true">
+                  <img alt="" src={product.imageUrl} />
+                </span>
                 <div>
                   <strong>{product.name}</strong>
                   <em>SKU: {product.sku}</em>
                   <b>{presentation.status} ({product.stockCount})</b>
                 </div>
-                <button onClick={() => receiveProduct(product.sku)} type="button" aria-label={text.receiveProduct}>{"+"}</button>
               </article>
               );
             })}
@@ -392,13 +444,9 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         </section>
 
         <nav className="store-inventory-pagination" aria-label={text.productManagement}>
-          <button disabled type="button">{"<"}</button>
-          <button className="active" type="button">1</button>
-          <button type="button">2</button>
-          <button type="button">3</button>
-          <span>...</span>
-          <button type="button">24</button>
-          <button type="button">{">"}</button>
+          <button onClick={() => setProductPage((page) => Math.max(1, page - 1))} disabled={currentProductPage <= 1} type="button">{"<"}</button>
+          <span>{currentProductPage} / {totalProductPages}</span>
+          <button onClick={() => setProductPage((page) => Math.min(totalProductPages, page + 1))} disabled={currentProductPage >= totalProductPages} type="button">{">"}</button>
         </nav>
       </section>
     );

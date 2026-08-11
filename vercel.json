@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build:store --workspace @deliverhub/client",
-  "outputDirectory": "client/dist/store",
+  "buildCommand": "npm run build --workspace @deliverhub/client",
+  "outputDirectory": "client/dist",
   "rewrites": [
     {
       "source": "/(.*)",
