@@ -499,13 +499,13 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
       let usedLocalFallback = false;
       const isLocalOrder = localOrders.some((order) => order.id === target);
       const isPreparedAction = mappedStatus === storeOrderStatuses.prepared;
+      const orderSnapshot = localOrders.find((order) => order.id === target)
+        ?? dashboard.data?.orders.find((order) => order.id === target);
       try {
-        if (isLocalOrder && label !== text.callCourier) {
+        if ((isLocalOrder || isPreparedAction) && label !== text.callCourier) {
           usedLocalFallback = true;
         } else if (label === text.confirm) {
           await postJson(`/orders/${target}/accept`);
-        } else if (label === "Бэлтгэж дууссан") {
-          await postJson(`/orders/${target}/prepared`);
         } else if (label === text.callCourier) {
           const result = await postJson<StoreDispatchResponse>("/dispatch-request", { orderId: target });
           setDispatchTrackings((current) => ({ ...current, [target]: trackingFromDispatch(result) }));
@@ -526,7 +526,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         const nextOrders = hasExistingOrder
           ? current.map((order) => (order.id === target ? { ...order, status: mappedStatus } : order))
           : usedLocalFallback
-            ? [{ id: target, status: mappedStatus, amountMnt: "0", district: "Захиалгын мэдээлэл шинэчлэгдэж байна" }, ...current]
+            ? [{ ...(orderSnapshot ?? { id: target, amountMnt: "0", district: "Захиалгын мэдээлэл шинэчлэгдэж байна" }), status: mappedStatus }, ...current]
             : current;
         localStorage.setItem(localStoreOrdersKey, JSON.stringify(nextOrders));
         return nextOrders;
