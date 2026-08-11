@@ -787,26 +787,18 @@ export function CourierApp() {
 
     return localStorage.getItem(sessionStorageKey) ?? sessionStorage.getItem(sessionStorageKey);
   });
-  const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
-  const needsVerification = userId && verificationStatus !== "ACTIVE";
 
-  function handleAuthenticated(nextUserId: string, nextVerificationStatus?: string) {
+  function handleAuthenticated(nextUserId: string) {
     setUserId(nextUserId);
-    setVerificationStatus(nextVerificationStatus ?? null);
   }
 
   function handleLogout() {
     clearSession();
     setUserId(null);
-    setVerificationStatus(null);
   }
 
   if (!userId) {
     return <CourierAuthPage onAuthenticated={handleAuthenticated} />;
-  }
-
-  if (needsVerification) {
-    return <VerificationPage onVerified={() => setVerificationStatus("ACTIVE")} />;
   }
 
   return <CourierPage onLogout={handleLogout} />;
