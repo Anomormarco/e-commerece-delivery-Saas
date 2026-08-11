@@ -500,6 +500,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [loading, setLoading] = useState(false);
   const [storesLoading, setStoresLoading] = useState(false);
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
+  const [trackingOpen, setTrackingOpen] = useState(false);
 
   useEffect(() => {
     setSection(page);
@@ -524,6 +525,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setCartOpen(false);
     setWishlistOpen(false);
     setProfileOpen(false);
+    setTrackingOpen(false);
   }, [session]);
 
   useEffect(() => {
@@ -957,11 +959,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         etaText: `${etaMinutes} минутын тооцоололтой`,
       },
     });
-    setPaymentSuccess(`${paymentLabel} төлбөр амжилттай. Захиалга тухайн дэлгүүрийн notification руу очлоо.`);
-    window.setTimeout(() => setPaymentSuccess(""), 3600);
-    setNotice("Захиалга дэлгүүрийн notification руу илгээгдлээ.");
+    setPaymentSuccess("Захиалга амжилттай хийгдлээ");
+    window.setTimeout(() => setPaymentSuccess(""), 3000);
+    setNotice("");
     setCart({});
     setCartOpen(false);
+    setWishlistOpen(false);
+    setProfileOpen(false);
+    setTrackingOpen(true);
     setSection("market");
   }
 
@@ -1118,6 +1123,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setProfileOpen(false);
     setCartOpen(false);
     setWishlistOpen(false);
+    setTrackingOpen(false);
     setSection("home");
     onNavigateHome?.();
     setNotice("Гарлаа.");
@@ -1127,10 +1133,54 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setSection("home");
     setCartOpen(false);
     setWishlistOpen(false);
+    setTrackingOpen(false);
     onNavigateHome?.();
     window.requestAnimationFrame(() => {
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
+  }
+
+  function renderTrackingCard() {
+    if (!tracking) {
+      return (
+        <section className="landing-tracking-card is-empty">
+          <div>
+            <span>Миний захиалга</span>
+            <strong>Одоогоор идэвхтэй захиалга алга</strong>
+          </div>
+          <p>Маркетээс бараа сонгоод sandbox төлбөр баталгаажуулахад захиалгын явц энд харагдана.</p>
+        </section>
+      );
+    }
+
+    return (
+      <section className="landing-tracking-card">
+        <div>
+          <span>Миний захиалга</span>
+          <strong>#{tracking.orderNo.slice(-6)}</strong>
+        </div>
+        <ol>
+          {tracking.timeline.map((step) => (
+            <li className={step.state} key={step.title}>
+              <i />
+              <div>
+                <strong>{step.title}</strong>
+                <span>{step.description}</span>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <div className="landing-courier-live">
+          <strong>{tracking.courier.name}</strong>
+          <span>{tracking.courier.etaText || "Courier замд гарахад байршил шууд харагдана"}</span>
+          <b>
+            {tracking.courierLocation
+              ? `${tracking.courierLocation.latitude.toFixed(5)}, ${tracking.courierLocation.longitude.toFixed(5)}`
+              : "Байршил идэвхжихийг хүлээж байна"}
+          </b>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -1190,19 +1240,33 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             {session && wishlistItems.length > 0 ? <b>{wishlistItems.length}</b> : null}
           </button>
           <button
+            className={`landing-order-button ${trackingOpen ? "active" : ""}`}
             onClick={() => {
               if (!session) {
                 setAuthMode("login");
                 setAuthOpen(true);
+                setCartOpen(false);
+                setWishlistOpen(false);
+                setProfileOpen(false);
+                setTrackingOpen(false);
+                return;
               }
+
+              setMenuHidden(false);
+              setCartOpen(false);
+              setWishlistOpen(false);
+              setProfileOpen(false);
+              setTrackingOpen((open) => !open);
             }}
             type="button"
+            aria-expanded={trackingOpen}
             aria-label="Миний захиалсан"
           >
             <svg aria-hidden="true" className="landing-nav-icon" fill="none" viewBox="0 0 24 24">
               <path d="M12 12C14.4853 12 16.5 9.98528 16.5 7.5C16.5 5.01472 14.4853 3 12 3C9.51472 3 7.5 5.01472 7.5 7.5C7.5 9.98528 9.51472 12 12 12Z" stroke="currentColor" strokeWidth="1.8" />
               <path d="M4 20C4.8 16.9 7.72 15 12 15C16.28 15 19.2 16.9 20 20" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
             </svg>
+            <span>Миний захиалсан</span>
             {session && tracking ? <b className="is-notification">1</b> : null}
           </button>
         </div>
@@ -1223,6 +1287,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           <button className="landing-login-button" onClick={() => setAuthOpen(true)} type="button">Нэвтрэх</button>
         )}
       </nav>
+
+      {trackingOpen ? (
+        <aside className="landing-order-popover" aria-label="Миний захиалсан захиалга">
+          {renderTrackingCard()}
+        </aside>
+      ) : null}
 
       {cartOpen ? (
         <div className="landing-cart-backdrop" aria-hidden="true" onClick={() => setCartOpen(false)} />
@@ -1541,34 +1611,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             </nav>
 
             <section className="market-cart">
-        {tracking ? (
-          <section className="landing-tracking-card">
-            <div>
-              <span>Миний захиалга</span>
-              <strong>#{tracking.orderNo.slice(-6)}</strong>
-            </div>
-            <ol>
-              {tracking.timeline.map((step) => (
-                <li className={step.state} key={step.title}>
-                  <i />
-                  <div>
-                    <strong>{step.title}</strong>
-                    <span>{step.description}</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-            <div className="landing-courier-live">
-              <strong>{tracking.courier.name}</strong>
-              <span>{tracking.courier.etaText || "Courier замд гарахад байршил шууд харагдана"}</span>
-              <b>
-                {tracking.courierLocation
-                  ? `${tracking.courierLocation.latitude.toFixed(5)}, ${tracking.courierLocation.longitude.toFixed(5)}`
-                  : "Байршил идэвхжихийг хүлээж байна"}
-              </b>
-            </div>
-          </section>
-        ) : null}
+        {tracking ? renderTrackingCard() : null}
 
         {notice ? <p className="landing-commerce-notice">{notice}</p> : null}
             </section>

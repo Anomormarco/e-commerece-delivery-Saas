@@ -14,6 +14,19 @@ const labelsByEvent = {
 };
 
 function notificationCopy(event) {
+  if (event.type === "order.paid") {
+    const storeName = event.payload?.storeName ? String(event.payload.storeName) : "Дэлгүүр";
+    const customerName = event.payload?.customerName ? String(event.payload.customerName) : "Хэрэглэгч";
+    const totalMnt = Number(event.payload?.totalMnt ?? event.payload?.amountMnt ?? 0).toLocaleString("mn-MN");
+    const orderNo = event.payload?.orderNo ?? event.payload?.orderId;
+    const orderSuffix = orderNo ? ` #${String(orderNo).slice(-6)}` : "";
+
+    return {
+      title: `${storeName}: шинэ захиалга ирлээ`,
+      body: `${customerName}${orderSuffix} захиалга sandbox/QPay төлбөрөөр баталгаажлаа. Нийт дүн: ${totalMnt} MNT.`,
+    };
+  }
+
   const [title, body] = labelsByEvent[event.type] ?? ["Системийн мэдэгдэл", `${event.type} event ирлээ.`];
   return { title, body };
 }
@@ -28,11 +41,16 @@ function audienceForRole(role) {
 export async function createNotificationFromEvent(role, event = {}) {
   const { channel, tenantId } = audienceForRole(role);
   const { title, body } = notificationCopy(event);
+  const scopedUserId = role === "store" && event.payload?.storeId
+    ? String(event.payload.storeId)
+    : event.payload?.userId
+      ? String(event.payload.userId)
+      : null;
 
   return prisma.notification.create({
     data: {
       tenantId,
-      userId: event.payload?.userId ? String(event.payload.userId) : null,
+      userId: scopedUserId,
       title,
       body,
       channel,
@@ -57,6 +75,7 @@ export async function listNotificationsForRole(role, { limit = 20 } = {}) {
       body: notification.body,
       channel: notification.channel,
       status: notification.status,
+      storeId: notification.channel === "STORE" ? notification.userId : undefined,
       readAt: notification.readAt?.toISOString() ?? null,
       createdAt: notification.createdAt.toISOString(),
     })),

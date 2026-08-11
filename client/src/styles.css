@@ -1601,6 +1601,34 @@ h3 {
   background: #ef4444;
 }
 
+.landing-nav-actions .landing-order-button {
+  grid-template-columns: auto auto;
+  width: auto;
+  min-width: 132px;
+  gap: 7px;
+  padding: 0 12px !important;
+}
+
+.landing-nav-actions .landing-order-button span {
+  font-size: 11px;
+  font-weight: 950;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.landing-order-popover {
+  position: fixed;
+  top: 92px;
+  right: max(20px, calc((100vw - 1640px) / 2 + 20px));
+  z-index: 95;
+  width: min(390px, calc(100vw - 32px));
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  padding: 10px;
+  background: rgba(15, 23, 42, 0.96);
+  box-shadow: 0 24px 70px rgba(2, 6, 23, 0.42);
+}
+
 .notification-bell {
   position: relative;
   z-index: 20;
@@ -3492,6 +3520,13 @@ h3 {
 .landing-tracking-card li strong {
   color: white;
   font-size: 12px;
+}
+
+.landing-tracking-card.is-empty p {
+  margin: 0;
+  color: #cbd5e1;
+  font-size: 12px;
+  line-height: 1.5;
 }
 
 .landing-courier-live {
@@ -12010,6 +12045,25 @@ h2 {
   .landing-nav-actions button {
     width: 34px;
     min-height: 34px;
+  }
+
+  .landing-nav-actions .landing-order-button {
+    width: 34px;
+    min-width: 34px;
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding: 0 !important;
+  }
+
+  .landing-nav-actions .landing-order-button span {
+    display: none;
+  }
+
+  .landing-order-popover {
+    top: 62px;
+    right: 8px;
+    width: calc(100vw - 16px);
+    border-radius: 16px;
   }
 
   .landing-cart-popover {
