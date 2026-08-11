@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { BrandLogo } from "../../components/BrandLogo";
 import { NotificationBell } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
 import { postJson } from "../../shared/api";
@@ -34,6 +33,7 @@ type ProductItem = {
 };
 
 const localStoreOrdersKey = "deliverhub-store-orders";
+const nominLogoUrl = "https://www.mongoliansaddle.com/partners/Nomin%20supermarket.JPG";
 
 type StoreIdentity = {
   id: string;
@@ -472,7 +472,9 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     <main className={`store-dash-shell store-theme-${themeMode}`}>
       <aside className="store-dash-sidebar">
         <div className="store-dash-brand">
-          <BrandLogo compact size={32} />
+          <span className="store-dash-logo">
+            <img alt="" src={nominLogoUrl} />
+          </span>
           <div>
             <strong>{store?.storeName ?? text.storeName}</strong>
             <span>{text.open}</span>
