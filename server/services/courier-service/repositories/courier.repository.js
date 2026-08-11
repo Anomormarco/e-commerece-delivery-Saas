@@ -50,6 +50,31 @@ export async function findCourierByLoginId(loginId) {
   });
 }
 
+export async function findCourierByContact({ loginId, phone, email } = {}) {
+  const contactFilters = [];
+  const normalizedLoginId = String(loginId ?? "").trim();
+
+  if (normalizedLoginId) {
+    const isEmail = normalizedLoginId.includes("@");
+    contactFilters.push({ user: isEmail ? { email: normalizedLoginId } : { phone: normalizedLoginId } });
+  }
+
+  if (phone) {
+    contactFilters.push({ user: { phone } });
+  }
+
+  if (email) {
+    contactFilters.push({ user: { email } });
+  }
+
+  if (!contactFilters.length) return null;
+
+  return prisma.deliveryEmployee.findFirst({
+    where: { OR: contactFilters },
+    include: includeCourierDashboard(),
+  });
+}
+
 export async function createCourierApplication({
   fullName,
   loginId,

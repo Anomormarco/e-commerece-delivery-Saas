@@ -13,6 +13,7 @@ import {
   activateExistingCourierApplication,
   createCourierApplication,
   findCourierDashboardByUserId,
+  findCourierByContact,
   findCourierByLoginId,
   markCourierArrivedAtStore,
   recordFaceVerification,
@@ -195,9 +196,13 @@ export async function registerCourier(payload = {}) {
   const loginId = normalizeCourierLoginId(rawLoginId);
   validateStrongPassword(password);
 
-  const existing = await findCourierByLoginId(loginId);
+  const existing = await findCourierByContact({ loginId, phone, email });
   if (existing?.verificationStatus === "ACTIVE") {
-    throw createHttpError(409, "Энэ ID бүртгэлтэй байна.");
+    if (verifyPassword(password, existing.user.passwordHash)) {
+      return { userId: existing.userId, accessToken: createCourierAccessToken(existing), dashboard: formatCourierDashboard(existing) };
+    }
+
+    throw createHttpError(409, "Энэ утас эсвэл Gmail хаяг бүртгэлтэй байна. Нэвтрэх хэсгээр орно уу.");
   }
 
   const applicationData = {
