@@ -3531,6 +3531,13 @@ h3 {
   text-align: center;
 }
 
+.landing-product-privacy {
+  color: #93c5fd;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
 .landing-price-summary,
 .landing-tracking-card,
 .landing-auth-modal form {
@@ -7459,6 +7466,13 @@ h3 {
   line-height: 1.5;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+}
+
+.store-product-privacy {
+  color: #93c5fd;
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.4;
 }
 
 .store-product-body > div {

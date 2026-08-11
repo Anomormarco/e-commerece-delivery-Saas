@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { NotificationBell } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
 import { postJson } from "../../shared/api";
+import { nominCatalogProducts, nominSecurityBadges, nominStoreProfile } from "../../shared/nominCatalog";
 import type { StoreOrder } from "../../shared/types";
 import { useRealtimeResource } from "../../shared/useRealtimeResource";
 
@@ -34,7 +35,7 @@ type ProductItem = {
 };
 
 const localStoreOrdersKey = "deliverhub-store-orders";
-const nominLogoUrl = "https://www.mongoliansaddle.com/partners/Nomin%20supermarket.JPG";
+const nominLogoUrl = nominStoreProfile.logoUrl;
 
 type StoreIdentity = {
   id: string;
@@ -187,6 +188,16 @@ const initialProducts: ProductItem[] = productTemplates.map(([name, category, pr
   imageUrl: productImageUrl(keyword),
 }));
 
+const syncedNominProducts: ProductItem[] = nominCatalogProducts.map((product) => ({
+  name: product.name,
+  sku: product.sku,
+  category: product.category,
+  price: `₮${product.priceMnt.toLocaleString("mn-MN")}`,
+  stockCount: product.stockCount,
+  description: product.description,
+  imageUrl: product.imageUrl,
+}));
+
 function productStatus(product: ProductItem): { status: string; stock: string; tone: ProductTone } {
   if (product.stockCount <= 0) return { status: text.out, stock: "0 \u0448", tone: "danger" };
   if (product.stockCount <= 12) return { status: text.reorderNeeded, stock: `${product.stockCount} \u0448`, tone: "warning" };
@@ -224,7 +235,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   const [notice, setNotice] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState("");
   const [productPage, setProductPage] = useState(1);
-  const [products, setProducts] = useState<ProductItem[]>(initialProducts);
+  const [products, setProducts] = useState<ProductItem[]>(syncedNominProducts);
   const [localOrders, setLocalOrders] = useState<StoreOrder[]>(() => readLocalOrders(store));
 
   useEffect(() => {
@@ -395,6 +406,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
                 <span>{product.category}</span>
                 <h3>{product.name}</h3>
                 <p>{product.description}</p>
+                <small className="store-product-privacy">Нууцлал: {nominSecurityBadges.join(" · ")}</small>
                 <div>
                   <label>
                     {text.price}

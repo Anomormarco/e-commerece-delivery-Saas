@@ -2,6 +2,7 @@
 import type { FormEvent } from "react";
 import { useRef } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
+import { nominCatalogProducts, nominStoreProfile } from "../../shared/nominCatalog";
 import heroAppleeImage from "../../assets/geed-hero/applee.avif";
 import heroIphoneImage from "../../assets/geed-hero/iphone15.avif";
 import heroMacbookImage from "../../assets/geed-hero/macbook.jpg";
@@ -36,6 +37,7 @@ type Product = {
   imageUrl?: string;
   storeId?: string;
   storeName?: string;
+  privacyLabel?: string;
 };
 
 type CustomerSession = {
@@ -113,6 +115,8 @@ type StoreDirectoryItem = {
     priceMnt: string;
     weightGrams: number;
     imageUrl?: string;
+    stockCount?: number;
+    privacyLabel?: string;
   }>;
 };
 
@@ -255,6 +259,10 @@ function buildDemoMarketStores(): StoreDirectoryItem[] {
   return marketTemplates.flatMap((template, templateIndex) =>
     template.stores.map((storeName, storeIndex) => {
       const id = `demo-${templateIndex + 1}-${storeIndex + 1}`;
+      if (isNominStoreName(storeName)) {
+        return syncedNominStore({ id, orderCount: 20 + templateIndex * 7 + storeIndex * 3 });
+      }
+
       const products = Array.from({ length: 50 }, (_, index) => {
         const [baseName, keyword] = template.products[index % template.products.length];
         const name = cleanProductName(productNameVariant(template.category, baseName, index));
@@ -294,7 +302,41 @@ function storeKey(store: Pick<StoreDirectoryItem, "name">) {
   return store.name.trim().toLowerCase();
 }
 
+function isNominStoreName(name: string) {
+  const normalizedName = name.trim().toLowerCase();
+  return normalizedName.includes("номин") || normalizedName.includes("nomin");
+}
+
+function syncedNominStore(base?: Partial<StoreDirectoryItem>): StoreDirectoryItem {
+  const products = nominCatalogProducts.map((product) => ({
+    id: product.sku,
+    name: product.name,
+    category: product.category,
+    priceMnt: String(product.priceMnt),
+    weightGrams: product.weightGrams,
+    imageUrl: product.imageUrl,
+    stockCount: product.stockCount,
+    privacyLabel: product.privacyLabel,
+  }));
+
+  return {
+    id: base?.id || nominStoreProfile.id,
+    name: nominStoreProfile.name,
+    description: nominStoreProfile.description,
+    address: base?.address || nominStoreProfile.address,
+    coverUrl: products[0]?.imageUrl ?? "",
+    productCount: products.length,
+    orderCount: base?.orderCount ?? 0,
+    categories: [...new Set(products.map((product) => product.category))],
+    products,
+  };
+}
+
 function fillStoreProducts(store: StoreDirectoryItem, fallback?: StoreDirectoryItem): StoreDirectoryItem {
+  if (isNominStoreName(store.name)) {
+    return syncedNominStore(store);
+  }
+
   if (!fallback || store.products.length >= 50) {
     return { ...store, productCount: store.products.length };
   }
@@ -734,9 +776,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           category: product.category,
           priceMnt: Number(product.priceMnt),
           weightGrams: product.weightGrams,
-          stockCount: stableStockCount(product.id),
+          stockCount: product.stockCount ?? stableStockCount(product.id),
           description: `${store.name} - ${product.category.toLowerCase()} ангилал.`,
           imageUrl: product.imageUrl || productPhotoUrl(keywordForProduct(product)),
+          privacyLabel: product.privacyLabel,
           storeId: store.id,
           storeName: store.name,
         })).filter((product) => (
@@ -1769,6 +1812,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           <em className={product.stockCount <= 0 ? "is-empty" : product.stockCount <= 12 ? "is-low" : ""}>
                             Үлдэгдэл: {product.stockCount} ш
                           </em>
+                          {product.privacyLabel ? <small className="landing-product-privacy">Нууцлал: {product.privacyLabel}</small> : null}
                           <div className="landing-product-actions">
                             <div className="landing-product-stepper" aria-label={`${product.name} тоо ширхэг`}>
                               <button className="landing-product-qty" onClick={() => updateProductQuantity(product.id, -1)} type="button">−</button>
