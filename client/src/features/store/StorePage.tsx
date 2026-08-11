@@ -497,9 +497,12 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
 
     if (mappedStatus) {
       let usedLocalFallback = false;
+      const isLocalOrder = localOrders.some((order) => order.id === target);
       const isPreparedAction = mappedStatus === storeOrderStatuses.prepared;
       try {
-        if (label === text.confirm) {
+        if (isLocalOrder && label !== text.callCourier) {
+          usedLocalFallback = true;
+        } else if (label === text.confirm) {
           await postJson(`/orders/${target}/accept`);
         } else if (label === "Бэлтгэж дууссан") {
           await postJson(`/orders/${target}/prepared`);
