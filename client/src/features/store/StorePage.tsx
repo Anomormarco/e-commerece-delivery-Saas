@@ -631,7 +631,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     return (
       <section className={`store-dispatch-tracker ${isDelivering ? "is-delivering" : isAccepted ? "is-accepted" : "is-searching"}`}>
         {renderLiveStoreMap({ tracking, orderId: order.id, className: "store-dispatch-map" })}
-        {false && (
         <div className="store-dispatch-map" aria-label="Хүргэлтийн газрын зураг">
           <span className="store-dispatch-route route-to-store" aria-hidden="true" />
           <span className="store-dispatch-route route-to-customer" aria-hidden="true" />
@@ -652,7 +651,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             <span>#{order.id} · {courierName}</span>
           </div>
         </div>
-        )}
         <div className="store-dispatch-detail">
           <span>{isDelivering ? "Хэрэглэгч рүү хүргэж байна" : isAccepted ? "Хүргэлтийн ажилтан ирж байна" : "Хүргэлтийн ажилтан хайж байна"}</span>
           <h3>{courierName}</h3>
