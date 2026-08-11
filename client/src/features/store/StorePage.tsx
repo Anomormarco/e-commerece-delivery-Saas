@@ -546,7 +546,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           : selectedOrder?.status;
     const workflowSteps = selectedOrder ? [
       { key: storeOrderStatuses.paid, aliases: [storeOrderStatuses.confirmed], label: "Захиалга баталгаажсан" },
-      { key: storeOrderStatuses.prepared, aliases: [storeOrderStatuses.preparing, storeOrderStatuses.courierCalled, "COURIER_ARRIVING", "PICKUP_VERIFICATION"], label: preparedLabel },
+      { key: storeOrderStatuses.prepared, aliases: [storeOrderStatuses.courierCalled, "COURIER_ARRIVING", "PICKUP_VERIFICATION"], label: preparedLabel },
       { key: "PICKED_UP", aliases: ["IN_TRANSIT", "ARRIVING_DROPOFF"], label: "Хүргэлтэнд гарсан" },
       { key: "DELIVERED", aliases: ["COMPLETED"], label: "Захиалга дууссан" },
     ] : [];
@@ -605,10 +605,19 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
                 </span>
               ))}
             </div>
+            {selectedOrder.status === storeOrderStatuses.prepared ? (
+              <section className="store-dispatch-ready">
+                <div>
+                  <strong>Бэлтгэж дууссан</strong>
+                  <span>Хүргэлтэнд гаргахын өмнө courier employee хайж хүргэлт дуудна.</span>
+                </div>
+                <button onClick={() => runAction(text.callCourier, selectedOrder.id)} type="button">{text.callCourier}</button>
+              </section>
+            ) : null}
             {renderDeliveryTracking(selectedOrder, selectedTracking)}
             <div className="store-order-focus-actions">
               {selectedOrder.status === storeOrderStatuses.prepared ? (
-                <button onClick={() => runAction(text.callCourier, selectedOrder.id)} type="button">{text.callCourier}</button>
+                null
               ) : selectedOrder.status === storeOrderStatuses.courierCalled ? (
                 <button disabled type="button">Хүргэлт дуудсан</button>
               ) : selectedOrder.status === storeOrderStatuses.preparing ? (

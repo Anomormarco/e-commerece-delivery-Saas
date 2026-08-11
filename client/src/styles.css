@@ -7441,6 +7441,44 @@ h3 {
   color: #052e16;
 }
 
+.store-dispatch-ready {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(249, 115, 22, 0.42);
+  border-radius: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.18), rgba(37, 99, 235, 0.1));
+}
+
+.store-dispatch-ready div {
+  display: grid;
+  gap: 4px;
+}
+
+.store-dispatch-ready strong {
+  color: white;
+  font-size: 18px;
+}
+
+.store-dispatch-ready span {
+  color: #cbd5e1;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.store-dispatch-ready button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 22px;
+  background: linear-gradient(135deg, #ff8a00, #ff6b00);
+  color: white;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
 .store-dispatch-tracker {
   display: grid;
   grid-template-columns: minmax(360px, 1.2fr) minmax(220px, 0.8fr);
@@ -7721,6 +7759,18 @@ h3 {
 
 .store-theme-light .store-dispatch-tracker {
   background: #f8fafc;
+}
+
+.store-theme-light .store-dispatch-ready {
+  background: #fff7ed;
+}
+
+.store-theme-light .store-dispatch-ready strong {
+  color: #0f172a;
+}
+
+.store-theme-light .store-dispatch-ready span {
+  color: #475569;
 }
 
 .store-theme-light .store-dispatch-detail h3 {
@@ -13289,6 +13339,11 @@ h2 {
 
   .store-order-focus-grid {
     grid-template-columns: 1fr;
+  }
+
+  .store-dispatch-ready {
+    align-items: stretch;
+    flex-direction: column;
   }
 
   .store-dispatch-tracker {
