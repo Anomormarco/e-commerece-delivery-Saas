@@ -78,6 +78,25 @@ type TrackingResponse = {
   };
 };
 
+type OrderHistoryItem = {
+  orderNo: string;
+  storeName: string;
+  district: string;
+  statusLabel: string;
+  totalMnt: string;
+  createdAt: string;
+  updatedAt: string;
+  statusNote: string;
+  items: Array<{
+    label: string;
+    amountMnt: string;
+  }>;
+};
+
+type OrderHistoryResponse = {
+  items: OrderHistoryItem[];
+};
+
 type StoreDirectoryItem = {
   id: string;
   name: string;
@@ -501,6 +520,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [storesLoading, setStoresLoading] = useState(false);
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
   const [trackingOpen, setTrackingOpen] = useState(false);
+  const [orderHistory, setOrderHistory] = useState<OrderHistoryItem[]>([]);
 
   useEffect(() => {
     setSection(page);
@@ -522,6 +542,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setCart({});
     setWishlist([]);
     setTracking(null);
+    setOrderHistory([]);
     setCartOpen(false);
     setWishlistOpen(false);
     setProfileOpen(false);
@@ -591,24 +612,33 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     let closed = false;
     let socket: WebSocket | null = null;
 
-    async function refreshTracking() {
+    async function refreshOrders() {
       try {
-        const data = await apiGet<TrackingResponse | null>("/customer/orders/current/tracking", token);
-        if (!closed) setTracking(data);
+        const [currentOrder, history] = await Promise.all([
+          apiGet<TrackingResponse | null>("/customer/orders/current/tracking", token),
+          apiGet<OrderHistoryResponse>("/customer/orders/history", token),
+        ]);
+        if (!closed) {
+          setTracking(currentOrder);
+          setOrderHistory(history.items ?? []);
+        }
       } catch {
-        if (!closed) setTracking(null);
+        if (!closed) {
+          setTracking(null);
+          setOrderHistory([]);
+        }
       }
     }
 
-    void refreshTracking();
+    void refreshOrders();
     if (customerRealtimeUrl) {
       socket = new WebSocket(customerRealtimeUrl);
       socket.addEventListener("message", (message) => {
         const payload = JSON.parse(String(message.data)) as { event?: string };
-        if (payload.event === "customer.tracking.refresh") void refreshTracking();
+        if (payload.event === "customer.tracking.refresh") void refreshOrders();
       });
     }
-    const intervalId = window.setInterval(refreshTracking, 5000);
+    const intervalId = window.setInterval(refreshOrders, 5000);
     return () => {
       closed = true;
       socket?.close();
@@ -931,7 +961,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       setLoading(false);
     }
 
-    setTracking({
+    const nextTracking: TrackingResponse = {
       orderNo: orderResult.orderNo,
       storeName,
       district,
@@ -962,7 +992,25 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         vehicle: orderResult.quote.deliveryTypeLabel,
         etaText: `${etaMinutes} минутын тооцоололтой`,
       },
-    });
+    };
+    setTracking(nextTracking);
+    setOrderHistory((current) => [
+      {
+        orderNo: nextTracking.orderNo,
+        storeName: nextTracking.storeName,
+        district: nextTracking.district,
+        statusLabel: nextTracking.statusLabel,
+        totalMnt: nextTracking.totalMnt,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        statusNote: "Sandbox/QPay төлбөр баталгаажсан",
+        items: selectedItems.map((item) => ({
+          label: `${item.name} x${item.quantity}`,
+          amountMnt: String(item.priceMnt * item.quantity),
+        })),
+      },
+      ...current.filter((item) => item.orderNo !== nextTracking.orderNo),
+    ].slice(0, 10));
     setPaymentSuccess("Захиалга амжилттай хийгдлээ");
     window.setTimeout(() => setPaymentSuccess(""), 3000);
     setNotice("");
@@ -1145,7 +1193,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }
 
   function renderTrackingCard() {
-    if (!tracking) {
+    const historyList = orderHistory.filter((item) => item.orderNo !== tracking?.orderNo);
+
+    if (!tracking && !orderHistory.length) {
       return (
         <section className="landing-tracking-card is-empty">
           <div>
@@ -1159,30 +1209,50 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
     return (
       <section className="landing-tracking-card">
-        <div>
-          <span>Миний захиалга</span>
-          <strong>#{tracking.orderNo.slice(-6)}</strong>
-        </div>
-        <ol>
-          {tracking.timeline.map((step) => (
-            <li className={step.state} key={step.title}>
-              <i />
-              <div>
-                <strong>{step.title}</strong>
-                <span>{step.description}</span>
-              </div>
-            </li>
-          ))}
-        </ol>
-        <div className="landing-courier-live">
-          <strong>{tracking.courier.name}</strong>
-          <span>{tracking.courier.etaText || "Courier замд гарахад байршил шууд харагдана"}</span>
-          <b>
-            {tracking.courierLocation
-              ? `${tracking.courierLocation.latitude.toFixed(5)}, ${tracking.courierLocation.longitude.toFixed(5)}`
-              : "Байршил идэвхжихийг хүлээж байна"}
-          </b>
-        </div>
+        {tracking ? (
+          <>
+            <div>
+              <span>Одоогийн захиалга</span>
+              <strong>#{tracking.orderNo.slice(-6)}</strong>
+            </div>
+            <ol>
+              {tracking.timeline.map((step) => (
+                <li className={step.state} key={step.title}>
+                  <i />
+                  <div>
+                    <strong>{step.title}</strong>
+                    <span>{step.description}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <div className="landing-courier-live">
+              <strong>{tracking.courier.name}</strong>
+              <span>{tracking.courier.etaText || "Courier замд гарахад байршил шууд харагдана"}</span>
+              <b>
+                {tracking.courierLocation
+                  ? `${tracking.courierLocation.latitude.toFixed(5)}, ${tracking.courierLocation.longitude.toFixed(5)}`
+                  : "Байршил идэвхжихийг хүлээж байна"}
+              </b>
+            </div>
+          </>
+        ) : null}
+        {orderHistory.length ? (
+          <div className="landing-order-history">
+            <strong>Өмнөх захиалгууд</strong>
+            {historyList.slice(0, 6).map((order) => (
+              <article key={order.orderNo}>
+                <div>
+                  <span>#{order.orderNo.slice(-6)}</span>
+                  <b>{order.statusLabel}</b>
+                </div>
+                <p>{order.storeName} · {formatMnt(Number(order.totalMnt))}</p>
+                <small>{order.statusNote} · {new Date(order.createdAt).toLocaleString("mn-MN")}</small>
+              </article>
+            ))}
+            {!historyList.length && tracking ? <small>Энэ захиалга одоогоор хамгийн сүүлийн түүх байна.</small> : null}
+          </div>
+        ) : null}
       </section>
     );
   }
@@ -1197,7 +1267,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <a className={section === "home" ? "active" : ""} href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>Нүүр</a>
         <button className={section === "market" ? "active" : ""} onClick={openMarket} type="button">Маркет</button>
         <button className={section === "courier" ? "active" : ""} onClick={openCourier} type="button">Хүргэлтийн ажилтан</button>
-        <button className={section === "partner" ? "active" : ""} onClick={openPartner} type="button">БИЗНЕСИЙН ТҮНШЛЭЛ</button>
+        <button className={`landing-partner-nav ${section === "partner" ? "active" : ""}`} onClick={openPartner} type="button">БИЗНЕСИЙН ТҮНШЛЭЛ</button>
         <button className={section === "contact" ? "active" : ""} onClick={openContact} type="button">Холбоо барих</button>
         <div className="landing-nav-actions" aria-label="Хэрэглэгчийн үйлдлүүд">
           <button
@@ -1243,36 +1313,28 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             </svg>
             {session && wishlistItems.length > 0 ? <b>{wishlistItems.length}</b> : null}
           </button>
-          <button
-            className={`landing-order-button ${trackingOpen ? "active" : ""}`}
-            onClick={() => {
-              if (!session) {
-                setAuthMode("login");
-                setAuthOpen(true);
+          {session ? (
+            <button
+              className={`landing-order-button ${trackingOpen ? "active" : ""}`}
+              onClick={() => {
+                setMenuHidden(false);
                 setCartOpen(false);
                 setWishlistOpen(false);
                 setProfileOpen(false);
-                setTrackingOpen(false);
-                return;
-              }
-
-              setMenuHidden(false);
-              setCartOpen(false);
-              setWishlistOpen(false);
-              setProfileOpen(false);
-              setTrackingOpen((open) => !open);
-            }}
-            type="button"
-            aria-expanded={trackingOpen}
-            aria-label="Миний захиалсан"
-          >
-            <svg aria-hidden="true" className="landing-nav-icon" fill="none" viewBox="0 0 24 24">
-              <path d="M12 12C14.4853 12 16.5 9.98528 16.5 7.5C16.5 5.01472 14.4853 3 12 3C9.51472 3 7.5 5.01472 7.5 7.5C7.5 9.98528 9.51472 12 12 12Z" stroke="currentColor" strokeWidth="1.8" />
-              <path d="M4 20C4.8 16.9 7.72 15 12 15C16.28 15 19.2 16.9 20 20" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
-            </svg>
-            <span>Миний захиалсан</span>
-            {session && tracking ? <b className="is-notification">1</b> : null}
-          </button>
+                setTrackingOpen((open) => !open);
+              }}
+              type="button"
+              aria-expanded={trackingOpen}
+              aria-label="Миний захиалсан"
+            >
+              <svg aria-hidden="true" className="landing-nav-icon" fill="none" viewBox="0 0 24 24">
+                <path d="M12 12C14.4853 12 16.5 9.98528 16.5 7.5C16.5 5.01472 14.4853 3 12 3C9.51472 3 7.5 5.01472 7.5 7.5C7.5 9.98528 9.51472 12 12 12Z" stroke="currentColor" strokeWidth="1.8" />
+                <path d="M4 20C4.8 16.9 7.72 15 12 15C16.28 15 19.2 16.9 20 20" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+              </svg>
+              <span>Миний захиалсан</span>
+              {tracking || orderHistory.length ? <b className="is-notification">{Math.min(9, Math.max(1, orderHistory.length))}</b> : null}
+            </button>
+          ) : null}
         </div>
         {session ? (
           <div className="landing-profile-menu">

@@ -2,6 +2,7 @@ import { userIdFromRequest } from "@deliverhub/server-platform/http/request-cont
 import {
   createCustomerOrder,
   getCurrentCustomerTracking,
+  listCustomerOrderHistory,
   listCustomerStores,
   loginCustomer,
   registerCustomer,
@@ -25,4 +26,8 @@ export async function listStores(request, response) {
 
 export async function showCurrentCustomerTracking(request, response) {
   response.json(await getCurrentCustomerTracking(userIdFromRequest(request)));
+}
+
+export async function listOrderHistory(request, response) {
+  response.json(await listCustomerOrderHistory(userIdFromRequest(request), request.query));
 }

@@ -26,3 +26,21 @@ export async function findCustomerWithLatestOrder(userId) {
     },
   });
 }
+
+export async function findCustomerOrderHistory(userId, { limit = 10 } = {}) {
+  return prisma.customer.findUnique({
+    where: { userId },
+    include: {
+      orders: {
+        take: limit,
+        orderBy: { createdAt: "desc" },
+        include: {
+          store: true,
+          customerAddress: true,
+          items: true,
+          statusHistory: { orderBy: { createdAt: "asc" } },
+        },
+      },
+    },
+  });
+}

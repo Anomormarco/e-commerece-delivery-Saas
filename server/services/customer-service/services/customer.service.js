@@ -10,7 +10,7 @@ import {
 import { prisma } from "@deliverhub/server-platform/database/prisma";
 import { signJwt } from "@deliverhub/server-platform/http/jwt";
 import { customerEventBus } from "../messaging.js";
-import { findCustomerWithLatestOrder } from "../repositories/customer.repository.js";
+import { findCustomerOrderHistory, findCustomerWithLatestOrder } from "../repositories/customer.repository.js";
 import { formatTrackingTime, maskPhone } from "../utils/customer-formatting.js";
 
 const demoTenantSlug = "deliverhub-public";
@@ -529,6 +529,31 @@ export async function listCustomerStores(userId, input = {}) {
 }
 export async function getCurrentCustomerTracking(userId) {
   return appCache.remember(`customer:tracking:${userId || "default"}`, () => loadCurrentCustomerTracking(userId), 8_000);
+}
+
+export async function listCustomerOrderHistory(userId, { limit = 10 } = {}) {
+  const customer = await findCustomerOrderHistory(userId, { limit: Math.min(20, Math.max(1, Number(limit) || 10)) });
+
+  return {
+    items: (customer?.orders ?? []).map((order) => {
+      const latestHistory = order.statusHistory[order.statusHistory.length - 1];
+
+      return {
+        orderNo: order.id,
+        storeName: order.store.name,
+        district: order.customerAddress?.address ?? "Хаяг сонгогдоогүй байна",
+        statusLabel: order.status,
+        totalMnt: order.totalMnt.toString(),
+        createdAt: order.createdAt.toISOString(),
+        updatedAt: latestHistory?.createdAt?.toISOString() ?? order.updatedAt.toISOString(),
+        statusNote: latestHistory?.note ?? "Захиалгын явц шинэчлэгдэж байна",
+        items: order.items.map((item) => ({
+          label: `${item.productName} x${item.quantity}`,
+          amountMnt: item.totalMnt.toString(),
+        })),
+      };
+    }),
+  };
 }
 
 async function loadCurrentCustomerTracking(userId) {
