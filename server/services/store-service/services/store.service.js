@@ -7,6 +7,7 @@ import {
   listMatchingEmployees,
   listRecentOrdersByTenant,
   updateOrderStatus,
+  verifyPickupOtpByStore,
 } from "../repositories/store.repository.js";
 
 function createHttpError(statusCode, message, code = "VALIDATION_ERROR") {
@@ -249,5 +250,21 @@ export async function markStoreOrderPrepared(tenantId, orderId) {
     storeName: order.store.name,
     status: order.status,
     message: "Бэлтгэж дууслаа.",
+  };
+}
+
+export async function verifyStorePickup(tenantId, assignmentId, payload = {}) {
+  const assignment = await verifyPickupOtpByStore(tenantId, assignmentId, payload.otp);
+  appCache.clearByPrefix(`store:dashboard:${tenantId}`);
+  appCache.clearByPrefix("courier:dashboard:");
+  appCache.clearByPrefix("customer:tracking:");
+  appCache.del("admin:dashboard");
+
+  return {
+    assignmentId: assignment.id,
+    orderId: assignment.orderId,
+    storeName: assignment.order.store.name,
+    status: "PICKED_UP",
+    message: "Захиалга хүргэлтэнд гарлаа.",
   };
 }

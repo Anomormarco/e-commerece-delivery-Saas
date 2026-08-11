@@ -1,8 +1,11 @@
 import { createNotificationFromEvent } from "@deliverhub/server-platform/notifications/notification-center";
+import { appCache } from "@deliverhub/server-platform/cache/memory-cache";
 import { broadcastCustomerNotificationsUpdated, broadcastCustomerTrackingRefresh } from "../socket.js";
 
 export async function receiveInternalEvent(request, response) {
   const event = request.body ?? {};
+  appCache.clearByPrefix("customer:tracking:");
+
   await createNotificationFromEvent("customer", event).catch((error) => {
     console.warn("[customer-service] notification create failed", error.message);
   });

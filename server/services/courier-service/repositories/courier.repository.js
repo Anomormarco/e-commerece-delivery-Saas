@@ -624,6 +624,23 @@ export async function acceptDeliveryAssignment(userId, assignmentId) {
       throw createHttpError(409, "\u042D\u043D\u044D \u0445\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u0433 \u04E9\u04E9\u0440 \u0430\u0436\u0438\u043B\u0442\u0430\u043D \u0430\u0432\u0441\u0430\u043D \u044D\u0441\u0432\u044D\u043B \u0430\u0432\u0430\u0445 \u0431\u043E\u043B\u043E\u043C\u0436\u0433\u04AF\u0439 \u0431\u0430\u0439\u043D\u0430.");
     }
 
+    const acceptedAssignment = await transaction.deliveryAssignment.findUniqueOrThrow({
+      where: { id: assignmentId },
+      select: { orderId: true },
+    });
+
+    await transaction.order.update({
+      where: { id: acceptedAssignment.orderId },
+      data: { status: "COURIER_ARRIVING" },
+    });
+    await transaction.orderStatusHistory.create({
+      data: {
+        orderId: acceptedAssignment.orderId,
+        status: "COURIER_ARRIVING",
+        note: "Хүргэлтийн ажилтан захиалгыг авч дэлгүүр рүү хөдөллөө.",
+      },
+    });
+
     return transaction.deliveryAssignment.findUniqueOrThrow({
       where: { id: assignmentId },
       include: { order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } } },
@@ -709,10 +726,22 @@ export async function markCourierArrivedAtStore(userId, assignmentId) {
       },
     });
 
+    await transaction.order.update({
+      where: { id: assignment.orderId },
+      data: { status: "PICKUP_VERIFICATION" },
+    });
+    await transaction.orderStatusHistory.create({
+      data: {
+        orderId: assignment.orderId,
+        status: "PICKUP_VERIFICATION",
+        note: "Хүргэлтийн ажилтан дэлгүүр дээр ирж бараа авах OTP хүлээж байна.",
+      },
+    });
+
     return transaction.deliveryAssignment.update({
       where: { id: assignmentId },
       data: { status: "PICKUP_VERIFICATION" },
-      include: { order: { include: { store: true, items: { include: { variant: true } } } } },
+      include: { order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } } },
     });
   });
 }
@@ -737,10 +766,22 @@ export async function verifyCourierPickupOtp(userId, assignmentId, otp) {
       data: { verifiedAt: new Date(), evidence: { otpLength: 6, source: "store" } },
     });
 
+    await transaction.order.update({
+      where: { id: assignment.orderId },
+      data: { status: "PICKED_UP" },
+    });
+    await transaction.orderStatusHistory.create({
+      data: {
+        orderId: assignment.orderId,
+        status: "PICKED_UP",
+        note: "Store OTP баталгаажиж захиалга хүргэлтэнд гарлаа.",
+      },
+    });
+
     return transaction.deliveryAssignment.update({
       where: { id: assignmentId },
       data: { status: "PICKED_UP", pickedUpAt: new Date() },
-      include: { order: { include: { store: true, items: { include: { variant: true } } } } },
+      include: { order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } } },
     });
   });
 }
@@ -770,10 +811,22 @@ export async function verifyCourierDropoffOtp(userId, assignmentId, otp) {
       },
     });
 
+    await transaction.order.update({
+      where: { id: assignment.orderId },
+      data: { status: "DELIVERED" },
+    });
+    await transaction.orderStatusHistory.create({
+      data: {
+        orderId: assignment.orderId,
+        status: "DELIVERED",
+        note: "Хүргэлт хэрэглэгч дээр амжилттай дууслаа.",
+      },
+    });
+
     return transaction.deliveryAssignment.update({
       where: { id: assignmentId },
       data: { status: "DELIVERED", deliveredAt: new Date() },
-      include: { order: { include: { store: true, items: { include: { variant: true } } } } },
+      include: { order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } } },
     });
   });
 }

@@ -115,3 +115,50 @@ export async function updateOrderStatus(tenantId, orderId, status, note) {
     return order;
   });
 }
+
+export async function verifyPickupOtpByStore(tenantId, assignmentId, otp) {
+  if (String(otp) !== "123456") {
+    const error = new Error("Store OTP буруу байна.");
+    error.statusCode = 422;
+    throw error;
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const assignment = await tx.deliveryAssignment.findFirst({
+      where: {
+        id: assignmentId,
+        tenantId,
+        status: "PICKUP_VERIFICATION",
+      },
+      include: { order: { include: { store: true, branch: true, customerAddress: true } } },
+    });
+
+    if (!assignment) {
+      const error = new Error("OTP баталгаажуулах хүргэлт олдсонгүй.");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    await tx.pickupVerification.update({
+      where: { assignmentId },
+      data: { verifiedAt: new Date(), evidence: { otpLength: 6, source: "store-dashboard" } },
+    });
+    await tx.deliveryAssignment.update({
+      where: { id: assignmentId },
+      data: { status: "PICKED_UP", pickedUpAt: new Date() },
+    });
+    await tx.order.update({
+      where: { id: assignment.orderId },
+      data: { status: "PICKED_UP" },
+    });
+    await tx.orderStatusHistory.create({
+      data: {
+        orderId: assignment.orderId,
+        status: "PICKED_UP",
+        note: "Store OTP баталгаажиж захиалга хүргэлтэнд гарлаа.",
+      },
+    });
+
+    return assignment;
+  });
+}

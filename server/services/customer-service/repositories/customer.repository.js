@@ -9,6 +9,7 @@ export async function findCustomerWithLatestOrder(userId) {
         orderBy: { createdAt: "desc" },
         include: {
           store: true,
+          branch: true,
           customerAddress: true,
           items: true,
           statusHistory: { orderBy: { createdAt: "asc" } },

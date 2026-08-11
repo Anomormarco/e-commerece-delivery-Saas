@@ -83,6 +83,11 @@ export type CustomerTracking = {
     plate: string;
     etaText: string;
   };
+  courierLocation?: {
+    latitude: number;
+    longitude: number;
+    updatedAt: string;
+  } | null;
   secretCode: string[];
   maskedPhone: string;
 };

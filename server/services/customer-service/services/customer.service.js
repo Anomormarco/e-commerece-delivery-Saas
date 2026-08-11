@@ -73,6 +73,66 @@ function distanceKm(from, to) {
   return Math.max(0.8, Math.round(earthRadiusKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10);
 }
 
+function toNumber(value, fallback) {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : fallback;
+}
+
+function customerCourierLocation(order, assignment) {
+  const pickup = {
+    latitude: toNumber(order.branch?.latitude, 47.9186),
+    longitude: toNumber(order.branch?.longitude, 106.9176),
+  };
+  const dropoff = {
+    latitude: toNumber(order.customerAddress?.latitude, pickup.latitude + 0.035),
+    longitude: toNumber(order.customerAddress?.longitude, pickup.longitude + 0.052),
+  };
+  const status = assignment?.status;
+
+  if (["PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF", "DELIVERED"].includes(status)) {
+    const progress = status === "DELIVERED" ? 1 : 0.58 + Math.sin(Date.now() / 22000) * 0.18;
+    return {
+      latitude: pickup.latitude + (dropoff.latitude - pickup.latitude) * progress,
+      longitude: pickup.longitude + (dropoff.longitude - pickup.longitude) * progress,
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  const approach = status === "PICKUP_VERIFICATION" ? 1 : status === "ACCEPTED" ? 0.72 : 0.35;
+  return {
+    latitude: pickup.latitude - 0.018 + 0.018 * approach,
+    longitude: pickup.longitude - 0.024 + 0.024 * approach,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function publicOrderStatusLabel(order, assignment) {
+  if (assignment?.status === "DELIVERED" || order.status === OrderStatus.DELIVERED || order.status === OrderStatus.COMPLETED) return "Хүргэлт дууссан";
+  if (["PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF"].includes(assignment?.status) || [OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT, OrderStatus.ARRIVING].includes(order.status)) return "Хүргэлтэнд гарсан";
+  if (assignment?.status === "PICKUP_VERIFICATION" || order.status === OrderStatus.PICKUP_VERIFICATION) return "Дэлгүүр дээр OTP баталгаажуулж байна";
+  if (assignment?.status === "ACCEPTED" || order.status === OrderStatus.COURIER_ARRIVING) return "Хүргэлтийн ажилтан дэлгүүр рүү ирж байна";
+  if (order.status === OrderStatus.READY_FOR_PICKUP || order.status === OrderStatus.COURIER_ASSIGNED) return "Захиалга бэлтгэгдсэн";
+  if (order.status === OrderStatus.PREPARING) return "Захиалга бэлтгэж байна";
+  return "Захиалга баталгаажсан";
+}
+
+function publicTimelineState(order, assignment, stepStatus) {
+  const orderStatus = order.status;
+  const assignmentStatus = assignment?.status;
+  const reached = {
+    confirmed: [OrderStatus.PAID, OrderStatus.CONFIRMED, OrderStatus.PREPARING, OrderStatus.READY_FOR_PICKUP, OrderStatus.COURIER_ASSIGNED, OrderStatus.COURIER_ARRIVING, OrderStatus.PICKUP_VERIFICATION, OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT, OrderStatus.ARRIVING, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(orderStatus),
+    prepared: [OrderStatus.READY_FOR_PICKUP, OrderStatus.COURIER_ASSIGNED, OrderStatus.COURIER_ARRIVING, OrderStatus.PICKUP_VERIFICATION, OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT, OrderStatus.ARRIVING, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(orderStatus),
+    pickedUp: ["PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF", "DELIVERED"].includes(assignmentStatus) || [OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT, OrderStatus.ARRIVING, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(orderStatus),
+    delivered: assignmentStatus === "DELIVERED" || [OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(orderStatus),
+  };
+  const orderKeys = ["confirmed", "prepared", "pickedUp", "delivered"];
+  const currentIndex = Math.max(0, orderKeys.findIndex((key) => !reached[key]));
+  const stepIndex = orderKeys.indexOf(stepStatus);
+
+  if (reached[stepStatus]) return "done";
+  return stepIndex === currentIndex ? "active" : "pending";
+}
+
 function quoteDelivery({ distanceKmValue, weightKg, deliveryType }) {
   const rate = deliveryRates[deliveryType] ?? deliveryRates.bike;
   const feeMnt = money(rate.base + distanceKmValue * rate.perKm + weightKg * rate.perKg);
@@ -570,35 +630,33 @@ async function loadCurrentCustomerTracking(userId) {
   const order = customer?.orders[0];
   if (!order) return null;
 
-  const courier = order.deliveryAssignments[0]?.employee;
+  const assignment = order.deliveryAssignments[0];
+  const courier = assignment?.employee;
   const trackingSteps = [
-    { status: OrderStatus.CONFIRMED, title: "Захиалга баталгаажсан" },
-    { status: OrderStatus.PREPARING, title: "Захиалга бэлтгэгдсэн" },
-    { status: OrderStatus.IN_TRANSIT, title: "Захиалга хүргэлтэнд гарсан" },
-    { status: OrderStatus.COMPLETED, title: "Захиалга амжилттай" },
+    { key: "confirmed", historyStatuses: [OrderStatus.PAID, OrderStatus.CONFIRMED], title: "Захиалга баталгаажсан" },
+    { key: "prepared", historyStatuses: [OrderStatus.READY_FOR_PICKUP, OrderStatus.COURIER_ASSIGNED], title: "Захиалга бэлтгэгдсэн" },
+    { key: "pickedUp", historyStatuses: [OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT], title: "Хүргэлтэнд гарсан" },
+    { key: "delivered", historyStatuses: [OrderStatus.DELIVERED, OrderStatus.COMPLETED], title: "Хүргэлт дууссан" },
   ];
-  const activeIndex = Math.max(
-    0,
-    trackingSteps.findIndex((step) => step.status === order.status),
-  );
 
   return {
     orderNo: order.id,
     storeName: order.store.name,
     district: order.customerAddress?.address ?? "Хаяг сонгогдоогүй байна",
-    statusLabel: order.status,
+    statusLabel: publicOrderStatusLabel(order, assignment),
     items: order.items.map((item) => ({
       label: `${item.productName} x${item.quantity}`,
       amountMnt: item.totalMnt.toString(),
     })),
     totalMnt: order.totalMnt.toString(),
-    timeline: trackingSteps.map((step, index) => {
-      const history = order.statusHistory.find((item) => item.status === step.status);
+    timeline: trackingSteps.map((step) => {
+      const history = order.statusHistory.find((item) => step.historyStatuses.includes(item.status));
+      const state = publicTimelineState(order, assignment, step.key);
       return {
-        state: index < activeIndex ? "done" : index === activeIndex ? "active" : "pending",
-        icon: index < activeIndex ? "ok" : "[]",
+        state,
+        icon: state === "done" ? "ok" : "[]",
         title: step.title,
-        description: history?.note ?? (index === activeIndex ? "Одоогийн төлөв" : "Хүлээгдэж байна"),
+        description: history?.note ?? (state === "active" ? "Одоогийн төлөв" : "Хүлээгдэж байна"),
         time: history ? formatTrackingTime(history.createdAt) : "",
       };
     }),
@@ -607,13 +665,9 @@ async function loadCurrentCustomerTracking(userId) {
       rating: courier?.rating?.toString() ?? "-",
       vehicle: courier?.vehicleType ?? "-",
       plate: courier?.vehiclePlate ?? "-",
-      etaText: [OrderStatus.IN_TRANSIT, OrderStatus.ARRIVING].includes(order.status) ? "Realtime байршил идэвхтэй" : "",
+      etaText: assignment ? "Realtime байршил идэвхтэй" : "Хүргэлтийн ажилтан хүлээгдэж байна",
     },
-    courierLocation: {
-      latitude: 47.9186 + Math.sin(Date.now() / 25000) * 0.018,
-      longitude: 106.9176 + Math.cos(Date.now() / 25000) * 0.018,
-      updatedAt: new Date().toISOString(),
-    },
+    courierLocation: assignment ? customerCourierLocation(order, assignment) : null,
     secretCode: [],
     maskedPhone: maskPhone(customer?.phone),
   };

@@ -292,6 +292,10 @@ function storeOrderStatusLabel(status: string) {
   if (status === storeOrderStatuses.preparing) return "Дэлгүүр хүлээж авлаа - бараа бэлтгэж байна";
   if (status === storeOrderStatuses.prepared) return "Бэлтгэж дууслаа - хүргэлт дуудахад бэлэн";
   if (status === storeOrderStatuses.courierCalled) return "Хүргэлт дуудсан - courier assignment хүлээгдэж байна";
+  if (status === "COURIER_ARRIVING") return "Хүргэлтийн ажилтан дэлгүүр рүү ирж байна";
+  if (status === "PICKUP_VERIFICATION") return "Employee ирсэн - store OTP баталгаажуулна";
+  if (status === "PICKED_UP" || status === "IN_TRANSIT") return "Хүргэлтэнд гарсан";
+  if (status === "DELIVERED" || status === "COMPLETED") return "Хүргэлт дууссан";
   if (status === storeOrderStatuses.rejected) return "Татгалзсан";
   return status;
 }
@@ -315,6 +319,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   const [localOrders, setLocalOrders] = useState<StoreOrder[]>(() => readLocalOrders(store));
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [dispatchTrackings, setDispatchTrackings] = useState<Record<string, StoreDeliveryTracking>>({});
+  const [pickupOtpByAssignment, setPickupOtpByAssignment] = useState<Record<string, string>>({});
 
   useEffect(() => {
     localStorage.setItem("deliverhub-store-theme", themeMode);
@@ -375,6 +380,26 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
       createdAt: new Date().toISOString(),
       routePlan: result.routePlan,
     };
+  }
+
+  async function verifyPickupFromStore(orderId: string, assignmentId: string) {
+    try {
+      await postJson(`/assignments/${assignmentId}/verify-pickup`, { otp: pickupOtpByAssignment[assignmentId] ?? "" });
+      setDispatchTrackings((current) => ({
+        ...current,
+        [orderId]: current[orderId]
+          ? {
+              ...current[orderId],
+              status: "PICKED_UP",
+              statusLabel: "Захиалга хүргэлтэнд гарлаа",
+            }
+          : current[orderId],
+      }));
+      setNotice("Захиалга хүргэлтэнд гарлаа.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "OTP баталгаажуулахад алдаа гарлаа.");
+    }
+    window.setTimeout(() => setNotice(null), 2600);
   }
 
   async function runAction(label: string, target: string) {
@@ -455,19 +480,21 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
 
     const route = tracking.routePlan;
     const isAccepted = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"].includes(tracking.status);
+    const isDelivering = ["PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF"].includes(tracking.status);
     const isWaiting = tracking.status === "OFFERED";
+    const needsStoreOtp = tracking.status === "PICKUP_VERIFICATION";
     const courierName = tracking.courier?.name ?? "Ойрын хүргэлтийн ажилтан";
     const eta = route?.etaMinutes ?? tracking.routePlan?.drivingMinutes ?? 0;
     const toPickupKm = route?.toPickupKm ?? 0;
 
     return (
-      <section className={`store-dispatch-tracker ${isAccepted ? "is-accepted" : "is-searching"}`}>
+      <section className={`store-dispatch-tracker ${isDelivering ? "is-delivering" : isAccepted ? "is-accepted" : "is-searching"}`}>
         <div className="store-dispatch-map" aria-label="Хүргэлтийн газрын зураг">
           <span className="store-dispatch-route route-to-store" aria-hidden="true" />
           <span className="store-dispatch-route route-to-customer" aria-hidden="true" />
           <i className="store-dispatch-pin store-pin" aria-hidden="true" />
           <i className="store-dispatch-pin customer-pin" aria-hidden="true" />
-          <i className={`store-dispatch-pin courier-pin ${isAccepted ? "moving" : ""}`} aria-hidden="true" />
+          <i className={`store-dispatch-pin courier-pin ${isAccepted || isDelivering ? "moving" : ""}`} aria-hidden="true" />
           {isWaiting && <b className="store-dispatch-scan" aria-hidden="true" />}
           <div className="store-dispatch-map-status">
             <strong>{tracking.statusLabel}</strong>
@@ -475,7 +502,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           </div>
         </div>
         <div className="store-dispatch-detail">
-          <span>{isAccepted ? "Хүргэлтийн ажилтан ирж байна" : "Хүргэлтийн ажилтан хайж байна"}</span>
+          <span>{isDelivering ? "Хэрэглэгч рүү хүргэж байна" : isAccepted ? "Хүргэлтийн ажилтан ирж байна" : "Хүргэлтийн ажилтан хайж байна"}</span>
           <h3>{courierName}</h3>
           <p>{tracking.statusLabel}</p>
           <div>
@@ -483,6 +510,24 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             <b>{eta} мин</b>
             <b>{tracking.courier?.vehicleType ?? "AUTO"}</b>
           </div>
+          {needsStoreOtp ? (
+            <label className="store-pickup-otp">
+              <span>Employee өгсөн 6 оронтой OTP</span>
+              <input
+                inputMode="numeric"
+                maxLength={6}
+                onChange={(event) => setPickupOtpByAssignment((current) => ({
+                  ...current,
+                  [tracking.assignmentId]: event.target.value.replace(/\D/g, ""),
+                }))}
+                placeholder="123456"
+                value={pickupOtpByAssignment[tracking.assignmentId] ?? ""}
+              />
+              <button onClick={() => verifyPickupFromStore(order.id, tracking.assignmentId)} type="button">
+                Хүргэлтэнд гаргах
+              </button>
+            </label>
+          ) : null}
         </div>
       </section>
     );
@@ -491,16 +536,26 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   function renderOrders(orders: StoreOrderView[]) {
     const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? orders[0];
     const preparedLabel = "Бэлтгэж дууссан";
+    const selectedTracking = selectedOrder ? selectedOrder.deliveryTracking ?? dispatchTrackings[selectedOrder.id] : null;
+    const workflowStatus = selectedTracking?.status === "PICKED_UP"
+      ? "PICKED_UP"
+      : selectedTracking?.status === "DELIVERED"
+        ? "DELIVERED"
+        : selectedTracking?.status === "PICKUP_VERIFICATION"
+          ? "PICKUP_VERIFICATION"
+          : selectedOrder?.status;
     const workflowSteps = selectedOrder ? [
-      { key: storeOrderStatuses.paid, label: "Захиалга ирсэн" },
+      { key: storeOrderStatuses.paid, aliases: [storeOrderStatuses.confirmed], label: "Захиалга баталгаажсан" },
       { key: storeOrderStatuses.preparing, label: "Дэлгүүр хүлээн авсан" },
-      { key: storeOrderStatuses.prepared, label: preparedLabel },
-      { key: storeOrderStatuses.courierCalled, label: "Хүргэлт дуудсан" },
+      { key: storeOrderStatuses.prepared, aliases: [storeOrderStatuses.courierCalled, "COURIER_ARRIVING", "PICKUP_VERIFICATION"], label: preparedLabel },
+      { key: "PICKED_UP", aliases: ["IN_TRANSIT", "ARRIVING_DROPOFF"], label: "Хүргэлтэнд гарсан" },
+      { key: "DELIVERED", aliases: ["COMPLETED"], label: "Хүргэлт дууссан" },
     ] : [];
-    const activeStepIndex = selectedOrder ? Math.max(0, workflowSteps.findIndex((step) => step.key === selectedOrder.status)) : 0;
+    const activeStepIndex = selectedOrder
+      ? Math.max(0, workflowSteps.findIndex((step) => step.key === workflowStatus || step.aliases?.includes(String(workflowStatus))))
+      : 0;
     const selectedItems = selectedOrder?.items ?? [];
     const selectedAddress = selectedOrder?.addressText || selectedOrder?.district || "Хаяг бүртгэгдээгүй байна";
-    const selectedTracking = selectedOrder ? selectedOrder.deliveryTracking ?? dispatchTrackings[selectedOrder.id] : null;
 
     return (
       <article className="store-dash-card store-dash-wide">

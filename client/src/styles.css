@@ -7554,6 +7554,10 @@ h3 {
   animation: store-courier-arriving 2.6s ease-in-out infinite alternate;
 }
 
+.store-dispatch-tracker.is-delivering .store-dispatch-pin.courier-pin.moving {
+  animation-name: store-courier-delivering;
+}
+
 .store-dispatch-scan {
   position: absolute;
   top: 50%;
@@ -7647,6 +7651,17 @@ h3 {
   }
   to {
     left: 47%;
+  }
+}
+
+@keyframes store-courier-delivering {
+  from {
+    top: 49%;
+    left: 54%;
+  }
+  to {
+    top: 31%;
+    left: 75%;
   }
 }
 
