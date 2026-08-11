@@ -270,6 +270,26 @@ function marketStorePriority(store: StoreDirectoryItem) {
   return 2;
 }
 
+function storeKey(store: Pick<StoreDirectoryItem, "name">) {
+  return store.name.trim().toLowerCase();
+}
+
+function fillStoreProducts(store: StoreDirectoryItem, fallback?: StoreDirectoryItem): StoreDirectoryItem {
+  if (!fallback || store.products.length >= 50) {
+    return { ...store, productCount: store.products.length };
+  }
+
+  const existingIds = new Set(store.products.map((product) => product.id));
+  const fillerProducts = fallback.products.filter((product) => !existingIds.has(product.id));
+  const products = [...store.products, ...fillerProducts].slice(0, 50);
+  return {
+    ...store,
+    coverUrl: store.coverUrl || fallback.coverUrl || products[0]?.imageUrl || "",
+    productCount: products.length,
+    products,
+  };
+}
+
 const initialProducts: Product[] = [
   {
     id: "rice-5kg",
@@ -340,6 +360,7 @@ function fixMojibake(value: string) {
 
 function cleanProductName(value: string) {
   return fixMojibake(value)
+    .replace(/(^|\s)(шинээр нэмэгдсэн|шинээр нэмсэн)(?=\s|$)/gi, " ")
     .replace(/\b(premium)\b/gi, "")
     .replace(/(^|\s)(премиум)(?=\s|$)/gi, " ")
     .replace(/(^|\s)(гэр бүлийн|өдөр тутмын|өдрийн|органик|хэмнэлттэй)(?=\s|$)/gi, " ")
@@ -609,7 +630,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         const result = await apiGet<StoreDirectoryResponse>(`/customer/stores?${params.toString()}`, token);
         if (!closed) {
           setStores(result.items.map(cleanStoreItem));
-          setSelectedStoreId((current) => current || result.items[0]?.id || "");
         }
       } catch (error) {
         if (!closed) setNotice(error instanceof Error ? error.message : "Маркетийн жагсаалт татахад алдаа гарлаа.");
@@ -627,11 +647,17 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
   const demoMarketStores = useMemo(buildDemoMarketStores, []);
   const marketStoreDirectory = useMemo(() => {
-    const realStoreNames = new Set(stores.map((store) => store.name.toLowerCase()));
-    const supplementalStores = demoMarketStores.filter((store) => !realStoreNames.has(store.name.toLowerCase()));
-    return stores.length >= 50 ? stores : [...stores, ...supplementalStores].slice(0, 50);
+    const fallbackByName = new Map(demoMarketStores.map((store) => [storeKey(store), store]));
+    const realStores = stores.map((store) => fillStoreProducts(store, fallbackByName.get(storeKey(store))));
+    const realStoreNames = new Set(realStores.map(storeKey));
+    const supplementalStores = demoMarketStores.filter((store) => !realStoreNames.has(storeKey(store)));
+    return [...realStores, ...supplementalStores].sort((first, second) => {
+      const priorityCompare = marketStorePriority(first) - marketStorePriority(second);
+      if (priorityCompare) return priorityCompare;
+      const categoryCompare = (first.categories[0] ?? "").localeCompare(second.categories[0] ?? "", "mn");
+      return categoryCompare || first.name.localeCompare(second.name, "mn");
+    }).slice(0, 50);
   }, [demoMarketStores, stores]);
-  const selectedStore = marketStoreDirectory.find((store) => store.id === selectedStoreId) ?? marketStoreDirectory[0];
   const filteredStores = useMemo(() => {
     const normalizedSearch = storeSearch.trim().toLowerCase();
     return marketStoreDirectory.filter((store) => (
@@ -650,11 +676,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return categoryCompare || first.name.localeCompare(second.name, "mn");
     });
   }, [marketStoreDirectory, storeFilter, storeSearch]);
+  const selectedStore = filteredStores.find((store) => store.id === selectedStoreId) ?? filteredStores[0];
   const storeProductGroups = useMemo(() => {
     const normalizedProductSearch = productSearch.trim().toLowerCase();
-    return filteredStores.map((store, storeIndex) => ({
+    const activeStores = selectedStore ? [selectedStore] : [];
+    return activeStores.map((store) => ({
       store,
-      storeIndex,
+      storeIndex: filteredStores.findIndex((item) => item.id === store.id),
       products: store.products.map((product) => ({
           id: product.id,
           sku: product.id.slice(-8),
@@ -674,7 +702,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           || store.name.toLowerCase().includes(normalizedProductSearch)
         )),
     })).filter((group) => group.products.length > 0);
-  }, [filteredStores, productSearch]);
+  }, [filteredStores, productSearch, selectedStore]);
   const marketProductRows = useMemo(
     () => storeProductGroups.flatMap((group) => group.products.map((product) => ({
       product,
@@ -1391,6 +1419,23 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     {category}
                   </button>
                 ))}
+              </div>
+              <div className="landing-store-cards">
+                {filteredStores.map((store) => {
+                  const brand = storeBrandFor(store.name);
+                  const isActive = selectedStore?.id === store.id;
+                  return (
+                    <button className={isActive ? "active" : ""} key={store.id} onClick={() => setSelectedStoreId(store.id)} type="button">
+                      <span className="landing-store-logo">
+                        {brand.logoUrl ? <img alt={`${store.name} logo`} src={brand.logoUrl} /> : <b>{brand.initials}</b>}
+                      </span>
+                      <span className="landing-store-card-copy">
+                        <strong>{store.name}</strong>
+                        <small>{store.productCount} бүтээгдэхүүн · {store.categories.join(", ")}</small>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </section>
           </aside>
