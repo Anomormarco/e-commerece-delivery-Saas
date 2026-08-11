@@ -2216,6 +2216,92 @@ h3 {
   color: #020617;
 }
 
+.landing-qpay-sandbox,
+.landing-card-sandbox {
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 18px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.landing-qpay-sandbox {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.landing-qpay-qr {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 3px;
+  width: 88px;
+  height: 88px;
+  border: 6px solid white;
+  border-radius: 12px;
+  padding: 5px;
+  background: white;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.landing-qpay-qr span {
+  border-radius: 2px;
+  background: #e2e8f0;
+}
+
+.landing-qpay-qr span.is-dark {
+  background: #0f172a;
+}
+
+.landing-qpay-sandbox strong,
+.landing-card-sandbox label {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.landing-qpay-sandbox span,
+.landing-card-sandbox small {
+  display: block;
+  margin-top: 4px;
+  color: #f97316;
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.landing-qpay-sandbox p {
+  margin-top: 7px;
+}
+
+.landing-card-sandbox {
+  display: grid;
+  gap: 9px;
+}
+
+.landing-card-sandbox div {
+  display: grid;
+  grid-template-columns: 1fr 0.72fr;
+  gap: 8px;
+}
+
+.landing-card-sandbox label {
+  display: grid;
+  gap: 5px;
+}
+
+.landing-card-sandbox input {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 12px;
+  padding: 0 10px;
+  background: white;
+  color: #0f172a;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .landing-cart-popover footer {
   display: grid;
   grid-template-columns: 1fr;

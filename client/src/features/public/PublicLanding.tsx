@@ -1243,9 +1243,44 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                       ))}
                     </div>
 
+                    {paymentMethod === "qpay" ? (
+                      <section className="landing-qpay-sandbox" aria-label="QPay sandbox">
+                        <div className="landing-qpay-qr" aria-hidden="true">
+                          {Array.from({ length: 49 }, (_, index) => (
+                            <span className={index % 2 === 0 || index % 5 === 0 || [6, 8, 18, 24, 30, 40, 42].includes(index) ? "is-dark" : ""} key={index} />
+                          ))}
+                        </div>
+                        <div>
+                          <strong>QPay Sandbox Invoice</strong>
+                          <span>QP-SBX-{Date.now().toString().slice(-6)}</span>
+                          <p>QPay app-аар уншуулсан мэт sandbox төлбөр баталгаажуулна.</p>
+                        </div>
+                      </section>
+                    ) : (
+                      <section className="landing-card-sandbox" aria-label="Bank card sandbox">
+                        <label>
+                          Картын дугаар
+                          <input inputMode="numeric" placeholder="4242 4242 4242 4242" />
+                        </label>
+                        <div>
+                          <label>
+                            Хүчинтэй
+                            <input inputMode="numeric" placeholder="12/30" />
+                          </label>
+                          <label>
+                            CVC
+                            <input inputMode="numeric" placeholder="123" />
+                          </label>
+                        </div>
+                        <small>Sandbox test card. Бодит мөнгө шилжихгүй.</small>
+                      </section>
+                    )}
+
                     <p>Энд харагдаж байгаа нь урьдчилсан тооцоо. Захиалга баталгаажих үед эцсийн төлбөр тооцогдоно.</p>
                     <footer>
-                      <button onClick={checkoutOrder} type="button">Төлбөр хийх</button>
+                      <button onClick={checkoutOrder} type="button">
+                        {paymentMethod === "qpay" ? "QPay sandbox баталгаажуулах" : "Картаар төлөх"}
+                      </button>
                       <button onClick={() => setCart({})} type="button">Буцах</button>
                     </footer>
                   </aside>
