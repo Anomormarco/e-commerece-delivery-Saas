@@ -26,7 +26,7 @@ type GeoPoint = {
 const fallbackPosition: GeoPoint = { lat: 47.9189, lng: 106.9176 };
 const tileSize = 256;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
-const employeeUiDeployMarker = "employee-work-mode-offer-card-v2";
+const employeeUiDeployMarker = "employee-work-mode-offer-card-v3";
 
 const text = {
   title: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0430\u0436\u0438\u043B\u0442\u0430\u043D",
@@ -374,7 +374,13 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
               <small>{dashboard.data?.vehicleLabel ?? text.vehicle}</small>
             </div>
           </button>
-          <button className={`courier-header-toggle ${isOnline ? "online" : ""}`} onClick={toggleOnline} type="button" aria-label={isOnline ? text.stopWork : text.startWork}>
+          <button
+            className={`courier-header-toggle ${isOnline ? "is-working" : "is-off-work"}`}
+            data-work-mode={isOnline ? "working" : "off-work"}
+            onClick={toggleOnline}
+            type="button"
+            aria-label={isOnline ? text.stopWork : text.startWork}
+          >
             <span>{isOnline ? text.stopWork : text.startWork}</span>
             <i aria-hidden="true" />
           </button>

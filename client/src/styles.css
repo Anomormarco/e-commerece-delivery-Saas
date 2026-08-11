@@ -11329,17 +11329,17 @@ h3 {
   transition: transform 180ms ease;
 }
 
-.courier-header-toggle.online {
+.courier-header-toggle.is-working {
   border-color: rgba(34, 197, 94, 0.24);
   background: #ecfdf5;
   color: #047857;
 }
 
-.courier-header-toggle.online i {
+.courier-header-toggle.is-working i {
   background: #22c55e;
 }
 
-.courier-header-toggle.online i::after {
+.courier-header-toggle.is-working i::after {
   transform: translateX(14px);
 }
 
