@@ -1718,6 +1718,7 @@ h3 {
   border-radius: 12px;
   padding: 10px;
   background: #f8fafc;
+  cursor: pointer;
 }
 
 .notification-panel article.unread {
@@ -7172,6 +7173,7 @@ h3 {
 
 .store-dash-order-list {
   display: grid;
+  margin-top: 16px;
 }
 
 .store-dash-order-list section {
@@ -7180,6 +7182,172 @@ h3 {
   gap: 6px 12px;
   border-bottom: 1px solid rgba(30, 41, 59, 0.78);
   padding: 12px;
+  cursor: pointer;
+}
+
+.store-order-focus {
+  display: grid;
+  gap: 18px;
+  border: 1px solid rgba(249, 115, 22, 0.28);
+  border-radius: 18px;
+  margin-top: 16px;
+  padding: 22px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.14), rgba(15, 23, 42, 0.92));
+  box-shadow: 0 18px 48px rgba(2, 6, 23, 0.2);
+}
+
+.store-order-focus-head,
+.store-order-focus-actions,
+.store-order-workflow {
+  display: flex;
+  gap: 14px;
+}
+
+.store-order-focus-head {
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.store-order-focus-head span,
+.store-order-focus-grid span {
+  color: #93a4bd;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.store-order-focus-head h3 {
+  margin: 4px 0;
+  color: white;
+  font-size: 26px;
+}
+
+.store-order-focus-head p,
+.store-order-focus-grid p {
+  margin: 0;
+  color: #cbd5e1;
+  line-height: 1.55;
+}
+
+.store-order-focus-head strong {
+  color: #fb923c;
+  font-size: 28px;
+  white-space: nowrap;
+}
+
+.store-order-focus-grid {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr 0.7fr;
+  gap: 14px;
+}
+
+.store-order-focus-grid section {
+  min-height: 116px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  padding: 16px;
+  background: rgba(2, 6, 23, 0.24);
+}
+
+.store-order-focus-grid ul {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.store-order-focus-grid li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: white;
+}
+
+.store-order-focus-grid li em {
+  color: #fb923c;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.store-order-workflow {
+  flex-wrap: wrap;
+}
+
+.store-order-workflow span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 999px;
+  padding: 0 14px 0 6px;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.store-order-workflow i {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.18);
+  color: white;
+  font-style: normal;
+}
+
+.store-order-workflow span.done {
+  border-color: rgba(34, 197, 94, 0.42);
+  color: #bbf7d0;
+}
+
+.store-order-workflow span.done i {
+  background: #22c55e;
+  color: #052e16;
+}
+
+.store-order-focus-actions {
+  justify-content: flex-end;
+}
+
+.store-order-focus-actions button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 22px;
+  background: linear-gradient(135deg, #ff8a00, #ff6b00);
+  color: white;
+  font-weight: 950;
+}
+
+.store-order-focus-actions button + button {
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.68);
+  color: #cbd5e1;
+}
+
+.store-order-focus-actions button:disabled {
+  opacity: 0.62;
+}
+
+.store-theme-light .store-order-focus {
+  background: linear-gradient(135deg, #fff7ed, #ffffff);
+}
+
+.store-theme-light .store-order-focus-head h3,
+.store-theme-light .store-order-focus-grid li {
+  color: #0f172a;
+}
+
+.store-theme-light .store-order-focus-head p,
+.store-theme-light .store-order-focus-grid p {
+  color: #475569;
+}
+
+.store-theme-light .store-order-focus-grid section {
+  border-color: #e2e8f0;
+  background: #f8fafc;
 }
 
 .store-dash-order-list section:last-child {
@@ -12451,6 +12619,20 @@ h2 {
 }
 
 @media (max-width: 960px) {
+  .store-order-focus-head,
+  .store-order-focus-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .store-order-focus-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .store-order-focus-head strong {
+    white-space: normal;
+  }
+
   .landing-commerce-nav {
     top: 10px;
     right: 10px;

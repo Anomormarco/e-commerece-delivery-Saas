@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { postJson } from "../shared/api";
 import { useRealtimeResource } from "../shared/useRealtimeResource";
 
-type NotificationItem = {
+export type NotificationItem = {
   id: string;
   title: string;
   body: string;
@@ -47,7 +47,17 @@ function markInboxRead(inbox: NotificationInbox | null, storeId?: string, storeN
   };
 }
 
-export function NotificationBell({ className = "", storeId, storeName }: { className?: string; storeId?: string; storeName?: string }) {
+export function NotificationBell({
+  className = "",
+  storeId,
+  storeName,
+  onNotificationClick,
+}: {
+  className?: string;
+  storeId?: string;
+  storeName?: string;
+  onNotificationClick?: (item: NotificationItem) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [localInbox, setLocalInbox] = useState<NotificationInbox | null>(null);
   const [localItems, setLocalItems] = useState<NotificationItem[]>(() => {
@@ -138,7 +148,22 @@ export function NotificationBell({ className = "", storeId, storeName }: { class
           </div>
           {items.length ? (
             items.slice(0, 6).map((item) => (
-              <article className={item.readAt ? "" : "unread"} key={item.id}>
+              <article
+                className={item.readAt ? "" : "unread"}
+                key={item.id}
+                onClick={() => {
+                  onNotificationClick?.(item);
+                  setOpen(false);
+                }}
+                role={onNotificationClick ? "button" : undefined}
+                tabIndex={onNotificationClick ? 0 : undefined}
+                onKeyDown={(event) => {
+                  if (!onNotificationClick || (event.key !== "Enter" && event.key !== " ")) return;
+                  event.preventDefault();
+                  onNotificationClick(item);
+                  setOpen(false);
+                }}
+              >
                 <strong>{item.title}</strong>
                 <p>{item.body}</p>
                 <time>{new Date(item.createdAt).toLocaleString()}</time>

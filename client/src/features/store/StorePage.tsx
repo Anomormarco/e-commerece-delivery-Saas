@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { NotificationBell } from "../../components/NotificationBell";
+import { NotificationBell, type NotificationItem } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
 import { postJson } from "../../shared/api";
 import { nominCatalogProducts, nominStoreProfile } from "../../shared/nominCatalog";
@@ -34,6 +34,13 @@ type ProductItem = {
   imageUrl: string;
 };
 
+type StoreOrderView = StoreOrder & {
+  addressText?: string;
+  items?: Array<{ name: string; quantity?: string; amountMnt?: string }>;
+  orderTime?: string;
+  sourceBody?: string;
+};
+
 const localStoreOrdersKey = "deliverhub-store-orders";
 const localStoreProductsKey = "deliverhub-store-products";
 const nominLogoUrl = nominStoreProfile.logoUrl;
@@ -56,6 +63,46 @@ function readLocalOrders(store?: StoreIdentity): StoreOrder[] {
   } catch {
     return [];
   }
+}
+
+function fieldFromNotification(body: string, label: string) {
+  const nextLabels = ["Нийт дүн", "Бараа", "Хаяг"].filter((item) => item !== label).join("|");
+  const match = body.match(new RegExp(`${label}:\\s*([\\s\\S]*?)(?=\\s(?:${nextLabels}):|$)`));
+  return match?.[1]?.replace(/\.$/, "").trim() ?? "";
+}
+
+function amountFromNotification(body: string) {
+  return fieldFromNotification(body, "Нийт дүн").replace(/\s*MNT\.?$/i, "").trim() || "0";
+}
+
+function itemsFromNotification(body: string) {
+  const rawItems = fieldFromNotification(body, "Бараа");
+  if (!rawItems) return [];
+  return rawItems.split(",").map((rawItem) => {
+    const trimmed = rawItem.trim();
+    const quantityMatch = trimmed.match(/\s+x\s*(\d+)$/i);
+    return {
+      name: trimmed.replace(/\s+x\s*\d+$/i, "").trim(),
+      quantity: quantityMatch?.[1],
+    };
+  }).filter((item) => item.name);
+}
+
+function notificationToOrder(item: NotificationItem, store?: StoreIdentity): StoreOrderView {
+  const orderIdMatch = `${item.title} ${item.body}`.match(/#([A-Za-z0-9-]+)/);
+  const id = orderIdMatch?.[1] ?? `notif-${item.id}`;
+  return {
+    id,
+    status: storeOrderStatuses.paid,
+    amountMnt: amountFromNotification(item.body),
+    district: fieldFromNotification(item.body, "Хаяг") || "Хаяг хүлээгдэж байна",
+    storeId: item.storeId ?? store?.id,
+    storeName: item.storeName ?? store?.storeName,
+    addressText: fieldFromNotification(item.body, "Хаяг"),
+    items: itemsFromNotification(item.body),
+    orderTime: item.createdAt,
+    sourceBody: item.body,
+  };
 }
 
 const text = {
@@ -249,6 +296,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   const [stockEditor, setStockEditor] = useState<ProductItem | null>(null);
   const [stockDraft, setStockDraft] = useState("0");
   const [localOrders, setLocalOrders] = useState<StoreOrder[]>(() => readLocalOrders(store));
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem("deliverhub-store-theme", themeMode);
@@ -320,6 +368,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
 
       setLocalOrders((current) => {
         const nextOrders = current.map((order) => (order.id === target ? { ...order, status: mappedStatus } : order));
+        localStorage.setItem(localStoreOrdersKey, JSON.stringify(nextOrders));
         return nextOrders;
       });
       setNotice(`${label}: ${target} - ${text.actionDone}`);
@@ -347,16 +396,104 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     window.setTimeout(() => setNotice(null), 2200);
   }
 
-  function renderOrders(orders: StoreOrder[]) {
+  function handleNotificationSelect(item: NotificationItem) {
+    const order = notificationToOrder(item, store);
+    setLocalOrders((current) => {
+      const nextOrders = [order, ...current.filter((currentOrder) => currentOrder.id !== order.id)];
+      localStorage.setItem(localStoreOrdersKey, JSON.stringify(nextOrders));
+      return nextOrders;
+    });
+    setSelectedOrderId(order.id);
+    setActiveTab("orders");
+    setNotice("Шинэ захиалга Захиалга цэс рүү орлоо.");
+    window.setTimeout(() => setNotice(null), 2200);
+  }
+
+  function renderOrders(orders: StoreOrderView[]) {
+    const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? orders[0];
+    const preparedLabel = "Бэлтгэж дууссан";
+    const workflowSteps = selectedOrder ? [
+      { key: storeOrderStatuses.paid, label: "Захиалга ирсэн" },
+      { key: storeOrderStatuses.preparing, label: "Дэлгүүр хүлээн авсан" },
+      { key: storeOrderStatuses.prepared, label: preparedLabel },
+      { key: storeOrderStatuses.courierCalled, label: "Хүргэлт дуудсан" },
+    ] : [];
+    const activeStepIndex = selectedOrder ? Math.max(0, workflowSteps.findIndex((step) => step.key === selectedOrder.status)) : 0;
+    const selectedItems = selectedOrder?.items ?? [];
+    const selectedAddress = selectedOrder?.addressText || selectedOrder?.district || "Хаяг бүртгэгдээгүй байна";
+
     return (
       <article className="store-dash-card store-dash-wide">
         <div className="store-dash-card-head">
           <h2>{text.orderBoard}</h2>
           <span>{orders.length}</span>
         </div>
+        {selectedOrder && (
+          <section className="store-order-focus">
+            <div className="store-order-focus-head">
+              <div>
+                <span>#{selectedOrder.id}</span>
+                <h3>{selectedOrder.storeName ?? store?.storeName ?? text.storeName}</h3>
+                <p>{storeOrderStatusLabel(selectedOrder.status)}</p>
+              </div>
+              <strong>{selectedOrder.amountMnt} MNT</strong>
+            </div>
+            <div className="store-order-focus-grid">
+              <section>
+                <span>Хүргэх хаяг</span>
+                <p>{selectedAddress}</p>
+              </section>
+              <section>
+                <span>Захиалсан бараа</span>
+                {selectedItems.length ? (
+                  <ul>
+                    {selectedItems.map((item) => (
+                      <li key={`${selectedOrder.id}-${item.name}`}>
+                        <b>{item.name}</b>
+                        {item.quantity && <em>x{item.quantity}</em>}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p>{selectedOrder.sourceBody ?? "Барааны мэдээлэл хүлээгдэж байна."}</p>
+                )}
+              </section>
+              <section>
+                <span>Ирсэн цаг</span>
+                <p>{selectedOrder.orderTime ? new Date(selectedOrder.orderTime).toLocaleString() : "Одоо"}</p>
+              </section>
+            </div>
+            <div className="store-order-workflow" aria-label="Захиалгын төлөв">
+              {workflowSteps.map((step, index) => (
+                <span className={index <= activeStepIndex ? "done" : ""} key={step.key}>
+                  <i>{index + 1}</i>
+                  {step.label}
+                </span>
+              ))}
+            </div>
+            <div className="store-order-focus-actions">
+              {selectedOrder.status === storeOrderStatuses.prepared ? (
+                <button onClick={() => runAction(text.callCourier, selectedOrder.id)} type="button">{text.callCourier}</button>
+              ) : selectedOrder.status === storeOrderStatuses.courierCalled ? (
+                <button disabled type="button">Хүргэлт дуудсан</button>
+              ) : selectedOrder.status === storeOrderStatuses.preparing ? (
+                <button onClick={() => runAction(preparedLabel, selectedOrder.id)} type="button">{preparedLabel}</button>
+              ) : (
+                <>
+                  <button onClick={() => runAction(text.confirm, selectedOrder.id)} type="button">{text.confirm}</button>
+                  <button onClick={() => runAction(text.reject, selectedOrder.id)} type="button">{text.reject}</button>
+                </>
+              )}
+            </div>
+          </section>
+        )}
         <div className="store-dash-order-list">
           {orders.map((order, index) => (
-            <section className={index === 0 ? "highlight" : ""} key={order.id}>
+            <section
+              className={order.id === selectedOrder?.id ? "highlight" : ""}
+              key={order.id}
+              onClick={() => setSelectedOrderId(order.id)}
+            >
               <div>
                 <span>#{order.id}</span>
                 <em>{orderLabel(index)}</em>
@@ -366,7 +503,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               <b>{order.amountMnt} MNT</b>
               <div>
                 {order.status === storeOrderStatuses.preparing ? (
-                  <button onClick={() => runAction("Бэлтгэж дууссан", order.id)} type="button">Бэлтгэж дууссан</button>
+                  <button onClick={() => runAction(preparedLabel, order.id)} type="button">{preparedLabel}</button>
                 ) : order.status === storeOrderStatuses.prepared ? (
                   <button onClick={() => runAction(text.callCourier, order.id)} type="button">{text.callCourier}</button>
                 ) : order.status === storeOrderStatuses.courierCalled ? (
@@ -612,7 +749,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             <span>{text.lightMode}</span>
             <i aria-hidden="true" />
           </button>
-          <NotificationBell storeId={store?.id} storeName={store?.storeName} />
+          <NotificationBell onNotificationClick={handleNotificationSelect} storeId={store?.id} storeName={store?.storeName} />
         </header>
 
         <div className="store-dash-canvas">
