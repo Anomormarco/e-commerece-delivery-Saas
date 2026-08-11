@@ -799,7 +799,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setMenuHidden(false);
     setProfileOpen(false);
     setWishlistOpen(false);
-    setCartOpen(true);
   }
 
   function toggleWishlist(productId: string) {
@@ -1126,7 +1125,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               <circle cx="9.5" cy="19" fill="currentColor" r="1.4" />
               <circle cx="17.5" cy="19" fill="currentColor" r="1.4" />
             </svg>
-            {session && cartItemCount > 0 ? <b>{cartItemCount}</b> : null}
+            {cartItemCount > 0 ? <b>{cartItemCount}</b> : null}
           </button>
           <button
             className={wishlistOpen ? "active" : ""}
