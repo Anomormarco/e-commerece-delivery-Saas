@@ -26,7 +26,7 @@ type GeoPoint = {
 const fallbackPosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const tileSize = 256;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
-const employeeUiDeployMarker = "employee-work-mode-offer-card-v5";
+const employeeUiDeployMarker = "employee-work-mode-offer-card-v6";
 
 const text = {
   title: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0430\u0436\u0438\u043B\u0442\u0430\u043D",
@@ -363,7 +363,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
         </aside>
         {sidebarOpen && <button className="employee-drawer-backdrop" onClick={() => setSidebarOpen(false)} type="button" aria-label="Close menu" />}
 
-        <header className="employee-app-header" data-header-version="profile-left-v5">
+        <header className="employee-app-header" data-header-version="work-mode-v6">
           <button className="employee-menu-button" onClick={() => setSidebarOpen(true)} type="button" aria-label={text.menu}>
             <span />
             <span />
