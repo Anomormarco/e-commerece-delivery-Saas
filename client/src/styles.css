@@ -7580,6 +7580,176 @@ h3 {
   font-weight: 850;
 }
 
+.store-live-map {
+  position: relative;
+  min-height: 260px;
+  overflow: hidden;
+  border-radius: 14px;
+  background: #e5eef7;
+  isolation: isolate;
+}
+
+.store-real-ready-map {
+  grid-column: 1 / -1;
+  min-height: 280px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.store-real-ready-map + .store-ready-map:not(.store-live-map),
+.store-dispatch-tracker > .store-live-map + .store-dispatch-map:not(.store-live-map) {
+  display: none;
+}
+
+.store-live-map.store-dispatch-map::before,
+.store-live-map.store-dispatch-map::after {
+  display: none;
+}
+
+.store-live-map-tiles {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0.98;
+}
+
+.store-live-map-tiles img {
+  position: absolute;
+  width: 256px;
+  height: 256px;
+  max-width: none;
+  user-select: none;
+  transform: translate(-128px, -128px);
+}
+
+.store-live-map::after {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, rgba(2, 6, 23, 0.04), rgba(2, 6, 23, 0.18)),
+    radial-gradient(circle at 50% 50%, transparent 30%, rgba(15, 23, 42, 0.08));
+  content: "";
+  pointer-events: none;
+}
+
+.store-live-radius {
+  position: absolute;
+  z-index: 2;
+  width: 168px;
+  height: 168px;
+  border: 2px solid rgba(249, 115, 22, 0.45);
+  border-radius: 50%;
+  background: rgba(249, 115, 22, 0.11);
+  transform: translate(-50%, -50%);
+  animation: store-dispatch-scan 2s ease-out infinite;
+}
+
+.store-live-pin,
+.store-live-courier {
+  position: absolute;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  border: 3px solid white;
+  border-radius: 50%;
+  box-shadow: 0 14px 30px rgba(2, 6, 23, 0.26);
+  transform: translate(-50%, -50%);
+}
+
+.store-live-pin {
+  width: 34px;
+  height: 34px;
+}
+
+.store-live-pin::before {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: white;
+  content: "";
+}
+
+.store-live-pin.store-pin {
+  background: #f97316;
+}
+
+.store-live-pin.customer-pin {
+  background: #22c55e;
+}
+
+.store-live-pin.courier-pin {
+  background: #2563eb;
+}
+
+.store-live-pin.courier-pin.moving {
+  animation: store-courier-arriving 2.6s ease-in-out infinite alternate;
+}
+
+.store-dispatch-tracker.is-delivering .store-live-pin.courier-pin.moving {
+  animation-name: store-courier-delivering;
+}
+
+.store-live-courier {
+  width: 24px;
+  height: 24px;
+  background: #38bdf8;
+  color: #082f49;
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 950;
+}
+
+.store-live-courier.matched {
+  background: #22c55e;
+  color: #052e16;
+}
+
+.store-live-scan {
+  position: absolute;
+  z-index: 3;
+  width: 150px;
+  height: 150px;
+  border: 1px solid rgba(249, 115, 22, 0.36);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  animation: store-dispatch-scan 1.8s ease-out infinite;
+}
+
+.store-live-map-status {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  left: 14px;
+  z-index: 5;
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 12px;
+  padding: 11px 12px;
+  background: rgba(15, 23, 42, 0.82);
+  backdrop-filter: blur(14px);
+}
+
+.store-live-map-status strong,
+.store-live-map-status span {
+  position: static;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.store-live-map-status strong {
+  color: white;
+  font-size: 14px;
+}
+
+.store-live-map-status span {
+  color: #cbd5e1;
+  font-size: 12px;
+  font-weight: 800;
+}
+
 .store-dispatch-tracker {
   display: grid;
   grid-template-columns: minmax(360px, 1.2fr) minmax(220px, 0.8fr);
@@ -7780,6 +7950,16 @@ h3 {
   font-weight: 850;
 }
 
+.store-live-map.store-dispatch-map {
+  background: #e5eef7;
+  background-size: auto;
+}
+
+.store-live-map.store-dispatch-map::before,
+.store-live-map.store-dispatch-map::after {
+  display: none;
+}
+
 .store-dispatch-detail {
   display: grid;
   align-content: center;
@@ -7880,6 +8060,15 @@ h3 {
   to {
     top: 31%;
     left: 75%;
+  }
+}
+
+@keyframes store-live-courier-pulse {
+  from {
+    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.28), 0 0 0 0 rgba(37, 99, 235, 0.28);
+  }
+  to {
+    box-shadow: 0 14px 30px rgba(37, 99, 235, 0.36), 0 0 0 12px rgba(37, 99, 235, 0);
   }
 }
 

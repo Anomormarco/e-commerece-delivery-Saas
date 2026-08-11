@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useState } from "react";
 import { NotificationBell, type NotificationItem } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
 import { postJson } from "../../shared/api";
@@ -23,6 +23,11 @@ type StoreDashboard = {
 type StoreTab = "overview" | "orders" | "products" | "reports" | "settings";
 type ThemeMode = "night" | "light";
 type ProductTone = "success" | "warning" | "danger";
+
+type GeoPoint = {
+  lat: number;
+  lng: number;
+};
 
 type ProductItem = {
   name: string;
@@ -62,6 +67,9 @@ type StoreDispatchResponse = {
 const localStoreOrdersKey = "deliverhub-store-orders";
 const localStoreProductsKey = "deliverhub-store-products";
 const nominLogoUrl = nominStoreProfile.logoUrl;
+const fallbackStorePosition: GeoPoint = { lat: 47.9189, lng: 106.9176 };
+const mapTileSize = 256;
+const storeMapZoom = 14;
 
 type StoreIdentity = {
   id: string;
@@ -307,6 +315,51 @@ function orderLabel(index: number) {
   return "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u044D\u0434 \u0433\u0430\u0440\u0441\u0430\u043D";
 }
 
+function longitudeToTileX(lng: number, zoomLevel: number) {
+  return ((lng + 180) / 360) * 2 ** zoomLevel;
+}
+
+function latitudeToTileY(lat: number, zoomLevel: number) {
+  const latitudeRadians = (lat * Math.PI) / 180;
+  return ((1 - Math.log(Math.tan(latitudeRadians) + 1 / Math.cos(latitudeRadians)) / Math.PI) / 2) * 2 ** zoomLevel;
+}
+
+function getMapTileUrl(x: number, y: number, zoomLevel: number) {
+  return `https://tile.openstreetmap.org/${zoomLevel}/${x}/${y}.png`;
+}
+
+function getStoreMapTiles(center: GeoPoint, zoomLevel: number) {
+  const centerX = longitudeToTileX(center.lng, zoomLevel);
+  const centerY = latitudeToTileY(center.lat, zoomLevel);
+  const baseX = Math.floor(centerX);
+  const baseY = Math.floor(centerY);
+
+  return [-1, 0, 1].flatMap((offsetY) =>
+    [-1, 0, 1].map((offsetX) => {
+      const x = baseX + offsetX;
+      const y = baseY + offsetY;
+      return {
+        key: `${zoomLevel}-${x}-${y}`,
+        urlX: x,
+        urlY: y,
+        style: {
+          left: `calc(50% + ${(x - centerX) * mapTileSize}px)`,
+          top: `calc(50% + ${(y - centerY) * mapTileSize}px)`,
+        } as CSSProperties,
+      };
+    }),
+  );
+}
+
+function mapPointStyle(point: GeoPoint, center: GeoPoint, zoomLevel: number): CSSProperties {
+  const offsetX = (longitudeToTileX(point.lng, zoomLevel) - longitudeToTileX(center.lng, zoomLevel)) * mapTileSize;
+  const offsetY = (latitudeToTileY(point.lat, zoomLevel) - latitudeToTileY(center.lat, zoomLevel)) * mapTileSize;
+  return {
+    left: `calc(50% + ${offsetX}px)`,
+    top: `calc(50% + ${offsetY}px)`,
+  };
+}
+
 export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: StoreIdentity }) {
   const dashboard = useRealtimeResource<StoreDashboard>("/dashboard", ["store.dashboard.refresh"]);
   const [activeTab, setActiveTab] = useState<StoreTab>("overview");
@@ -321,6 +374,8 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [dispatchTrackings, setDispatchTrackings] = useState<Record<string, StoreDeliveryTracking>>({});
   const [pickupOtpByAssignment, setPickupOtpByAssignment] = useState<Record<string, string>>({});
+  const [storePosition, setStorePosition] = useState<GeoPoint | null>(null);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem("deliverhub-store-theme", themeMode);
@@ -333,6 +388,31 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   useEffect(() => {
     setProductPage(1);
   }, [productSearch]);
+
+  useEffect(() => {
+    if (!("geolocation" in navigator)) {
+      setLocationError("GPS байршил авах боломжгүй байна");
+      return;
+    }
+
+    const watchId = navigator.geolocation.watchPosition(
+      (nextPosition) => {
+        setLocationError(null);
+        setStorePosition({
+          lat: nextPosition.coords.latitude,
+          lng: nextPosition.coords.longitude,
+        });
+      },
+      () => setLocationError("GPS эрх нээгээгүй байна"),
+      {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 12000,
+      },
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
 
   useEffect(() => {
     function refreshLocalOrders(event?: Event) {
@@ -474,6 +554,67 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     window.setTimeout(() => setNotice(null), 2200);
   }
 
+  function renderLiveStoreMap(options: {
+    tracking?: StoreDeliveryTracking | null;
+    statusLabel?: string;
+    orderId?: string;
+    className?: string;
+  } = {}) {
+    const route = options.tracking?.routePlan;
+    const center = route?.pickup ?? storePosition ?? fallbackStorePosition;
+    const tiles = getStoreMapTiles(center, storeMapZoom);
+    const nearbyCouriers = options.tracking?.nearbyCouriers ?? [];
+    const storePoint = route?.pickup ?? storePosition ?? fallbackStorePosition;
+    const courierPoint = route?.courier;
+    const dropoffPoint = route?.dropoff;
+    const courierName = options.tracking?.courier?.name ?? "Ойрын employee";
+
+    return (
+      <div className={`store-live-map ${options.className ?? ""}`} aria-label="Дэлгүүрийн газрын зураг">
+        <div className="store-live-map-tiles" aria-hidden="true">
+          {tiles.map((tile) => (
+            <img
+              alt=""
+              draggable={false}
+              key={tile.key}
+              src={getMapTileUrl(tile.urlX, tile.urlY, storeMapZoom)}
+              style={tile.style}
+            />
+          ))}
+        </div>
+        <span className="store-live-radius" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-hidden="true" />
+        <i className="store-live-pin store-pin" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-label="Дэлгүүр" />
+        {dropoffPoint && <i className="store-live-pin customer-pin" style={mapPointStyle(dropoffPoint, center, storeMapZoom)} aria-label="Хүргэх хаяг" />}
+        {courierPoint && <i className="store-live-pin courier-pin moving" style={mapPointStyle(courierPoint, center, storeMapZoom)} aria-label={courierName} />}
+        {nearbyCouriers.slice(0, 8).map((courier, index) => {
+          const point = courier.location ?? {
+            lat: storePoint.lat + (index % 2 === 0 ? 0.004 : -0.003) * (index + 1),
+            lng: storePoint.lng + (index % 3 === 0 ? -0.004 : 0.003) * (index + 1),
+          };
+          return (
+            <i
+              aria-label={courier.name}
+              className={`store-live-courier ${options.tracking?.courier?.id === courier.employeeId ? "matched" : ""}`}
+              key={courier.employeeId}
+              style={mapPointStyle(point, center, storeMapZoom)}
+              title={`${courier.name} · ${courier.toPickupKm.toFixed(1)} км`}
+            >
+              {index + 1}
+            </i>
+          );
+        })}
+        {options.tracking?.status === "OFFERED" && <b className="store-live-scan" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-hidden="true" />}
+        <div className="store-live-map-status">
+          <strong>{options.statusLabel ?? options.tracking?.statusLabel ?? "Дэлгүүрийн байршил"}</strong>
+          <span>
+            {options.orderId ? `#${options.orderId} · ` : ""}
+            {locationError ?? (storePosition ? "GPS live · employee хайхад бэлэн" : "GPS авч байна")}
+          </span>
+        </div>
+      </div>
+    );
+  }
+
   function renderDeliveryTracking(order: StoreOrderView, tracking?: StoreDeliveryTracking | null) {
     if (!tracking) return null;
 
@@ -489,6 +630,8 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
 
     return (
       <section className={`store-dispatch-tracker ${isDelivering ? "is-delivering" : isAccepted ? "is-accepted" : "is-searching"}`}>
+        {renderLiveStoreMap({ tracking, orderId: order.id, className: "store-dispatch-map" })}
+        {false && (
         <div className="store-dispatch-map" aria-label="Хүргэлтийн газрын зураг">
           <span className="store-dispatch-route route-to-store" aria-hidden="true" />
           <span className="store-dispatch-route route-to-customer" aria-hidden="true" />
@@ -505,10 +648,11 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           ))}
           {isWaiting && <b className="store-dispatch-scan" aria-hidden="true" />}
           <div className="store-dispatch-map-status">
-            <strong>{tracking.statusLabel}</strong>
+            <strong>{tracking?.statusLabel}</strong>
             <span>#{order.id} · {courierName}</span>
           </div>
         </div>
+        )}
         <div className="store-dispatch-detail">
           <span>{isDelivering ? "Хэрэглэгч рүү хүргэж байна" : isAccepted ? "Хүргэлтийн ажилтан ирж байна" : "Хүргэлтийн ажилтан хайж байна"}</span>
           <h3>{courierName}</h3>
@@ -631,6 +775,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               <span>Хүргэлтэнд гаргахын өмнө courier employee хайж хүргэлт дуудна.</span>
             </div>
             <button onClick={() => runAction(text.callCourier, selectedOrder.id)} type="button">{text.callCourier}</button>
+            {renderLiveStoreMap({ statusLabel: "Дэлгүүрийн байршил", className: "store-real-ready-map" })}
             <div className="store-ready-map" aria-label="Дэлгүүрийн байршил">
               <span className="store-ready-radius" aria-hidden="true" />
               <i className="store-ready-pin" aria-hidden="true" />
