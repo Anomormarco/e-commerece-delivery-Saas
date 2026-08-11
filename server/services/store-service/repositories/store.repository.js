@@ -56,11 +56,17 @@ export async function createDeliveryOffer(tenantId, orderId) {
 
 export async function updateOrderStatus(tenantId, orderId, status, note) {
   return prisma.$transaction(async (tx) => {
-    const order = await tx.order.update({
+    await tx.order.updateMany({
       where: { id: orderId, tenantId },
       data: { status },
+    });
+
+    const order = await tx.order.findFirst({
+      where: { id: orderId, tenantId },
       include: { store: true },
     });
+
+    if (!order) throw new Error("Order not found.");
 
     await tx.orderStatusHistory.create({
       data: {
