@@ -496,6 +496,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             : null;
 
     if (mappedStatus) {
+      let usedLocalFallback = false;
       try {
         if (label === text.confirm) {
           await postJson(`/orders/${target}/accept`);
@@ -507,17 +508,22 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "";
-        const hasLocalOrder = localOrders.some((order) => order.id === target);
-        const canContinueLocally = message.startsWith("404:") && hasLocalOrder && label !== text.callCourier;
+        const canContinueLocally = message.startsWith("404:") && label !== text.callCourier;
         if (!canContinueLocally) {
           setNotice(error instanceof Error ? error.message : "Захиалгын төлөв шинэчлэхэд алдаа гарлаа.");
           window.setTimeout(() => setNotice(null), 2600);
           return;
         }
+        usedLocalFallback = true;
       }
 
       setLocalOrders((current) => {
-        const nextOrders = current.map((order) => (order.id === target ? { ...order, status: mappedStatus } : order));
+        const hasExistingOrder = current.some((order) => order.id === target);
+        const nextOrders = hasExistingOrder
+          ? current.map((order) => (order.id === target ? { ...order, status: mappedStatus } : order))
+          : usedLocalFallback
+            ? [{ id: target, status: mappedStatus, amountMnt: "0", district: "Захиалгын мэдээлэл шинэчлэгдэж байна" }, ...current]
+            : current;
         localStorage.setItem(localStoreOrdersKey, JSON.stringify(nextOrders));
         return nextOrders;
       });
