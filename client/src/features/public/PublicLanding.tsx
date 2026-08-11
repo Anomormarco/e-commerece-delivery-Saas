@@ -471,6 +471,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [profileOpen, setProfileOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const cartPanelRef = useRef<HTMLElement | null>(null);
+  const cartReturnRef = useRef<{ section: LandingSection; scrollY: number }>({ section: page, scrollY: 0 });
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", phone: "", login: "", password: "" });
@@ -1019,7 +1020,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setWishlistOpen(false);
     setProfileOpen(false);
     setTrackingOpen(true);
-    setSection("market");
+    setSection(cartReturnRef.current.section);
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: cartReturnRef.current.scrollY, behavior: "smooth" });
+    });
   }
 
   function useCurrentLocation() {
@@ -1276,7 +1280,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               setMenuHidden(false);
               setProfileOpen(false);
               setWishlistOpen(false);
-              setCartOpen((open) => !open);
+              setCartOpen((open) => {
+                if (!open) {
+                  cartReturnRef.current = { section, scrollY: window.scrollY };
+                }
+                return !open;
+              });
             }}
             type="button"
             aria-expanded={cartOpen}
@@ -1470,7 +1479,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     <p>Энд харагдаж байгаа нь урьдчилсан тооцоо. Захиалга баталгаажих үед эцсийн төлбөр тооцогдоно.</p>
                     <footer>
                       <button onClick={checkoutOrder} type="button">
-                        {paymentMethod === "qpay" ? "QPay sandbox баталгаажуулах" : "Картаар төлөх"}
+                        Төлбөр төлөх
                       </button>
                       <button onClick={() => setCart({})} type="button">Буцах</button>
                     </footer>
