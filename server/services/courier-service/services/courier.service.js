@@ -85,6 +85,16 @@ function dropoffLocation(order, pickup) {
   };
 }
 
+function pickupAddress(order) {
+  return order.branch?.address ?? order.store?.name ?? "\u0414\u044D\u043B\u0433\u04AF\u04AF\u0440\u0438\u0439\u043D \u0431\u0430\u0439\u0440\u0448\u0438\u043B";
+}
+
+function dropoffAddress(order) {
+  return order.customerAddress?.address
+    ?? order.customerAddress?.label
+    ?? "\u0425\u04AF\u0440\u0433\u04AF\u04AF\u043B\u044D\u0445 \u0445\u0430\u044F\u0433 \u0431\u04AF\u0440\u0442\u0433\u044D\u0433\u0434\u044D\u044D\u0433\u04AF\u0439";
+}
+
 function haversineKm(from, to) {
   const earthKm = 6371;
   const dLat = ((to.lat - from.lat) * Math.PI) / 180;
@@ -166,6 +176,8 @@ function formatCourierDashboard(employee) {
         id: assignment.id,
         state: assignment.status,
         name: assignment.order.store.name,
+        pickupAddress: pickupAddress(assignment.order),
+        dropoffAddress: dropoffAddress(assignment.order),
         distance: `${distanceKm.toFixed(1)} \u043A\u043C`,
         weightKg,
         requiredVehicle: requirement,
@@ -202,6 +214,8 @@ function formatCourierAssignment(assignment) {
     id: assignment.id,
     state: assignment.status,
     name: assignment.order.store.name,
+    pickupAddress: pickupAddress(assignment.order),
+    dropoffAddress: dropoffAddress(assignment.order),
     distance: `${distanceKm.toFixed(1)} \u043A\u043C`,
     weightKg,
     requiredVehicle: requirement,

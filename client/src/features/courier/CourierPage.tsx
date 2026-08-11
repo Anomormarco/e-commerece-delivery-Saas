@@ -34,7 +34,7 @@ const text = {
   confirmStop: "\u0410\u0436\u043B\u0430\u0430\u0441 \u0431\u0443\u0443\u0445 \u04AF\u04AF?",
   map: "\u041E\u0439\u0440\u043E\u043B\u0446\u043E\u043E\u0445 pickup \u0445\u04AF\u0441\u044D\u043B\u0442\u04AF\u04AF\u0434",
   accept: "\u0410\u0436\u0438\u043B \u0430\u0432\u0430\u0445",
-  reject: "\u0422\u0430\u0442\u0433\u0430\u043B\u0437\u0430\u0445",
+  reject: "\u0410\u043B\u0433\u0430\u0441\u0430\u0445",
   vehicle: "\u0422\u04E9\u0440\u04E9\u043B",
   weight: "\u0416\u0438\u043D",
   payout: "\u0425\u04E9\u043B\u0441",
@@ -60,7 +60,7 @@ const text = {
   deliveringOrders: "\u0425\u04AF\u0440\u0433\u044D\u0433\u0434\u044D\u0436 \u0431\u0443\u0439",
   deliveredOrders: "\u0425\u04AF\u0440\u0433\u044D\u0433\u0434\u0441\u044D\u043D",
   urgent: "\u042F\u0430\u0440\u0430\u043B\u0442\u0430\u0439",
-  newRequest: "\u0428\u0438\u043D\u044D \u0445\u04AF\u0441\u044D\u043B\u0442",
+  newRequest: "\u0428\u0438\u043D\u044D \u0445\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0445\u04AF\u0441\u044D\u043B\u0442",
   offline: "\u041E\u0444\u0444\u043B\u0430\u0439\u043D",
   online: "\u041E\u043D\u043B\u0430\u0439\u043D",
   approximate: "\u041E\u0439\u0440\u043E\u043B\u0446\u043E\u043E\u0433\u043E\u043E\u0440",
@@ -336,14 +336,14 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     <div className="courier-map-request-head">
                       <div>
                         <span>{text.newRequest}</span>
-                        <strong>{text.urgent}</strong>
+                        <strong>{typeof primaryJob.offerExpiresInSec === "number" ? `${primaryJob.offerExpiresInSec}s` : text.urgent}</strong>
                       </div>
                       <b>{primaryJob.payoutMnt ?? "0"} MNT</b>
                     </div>
                     <div className="courier-map-route">
-                      <p><span aria-hidden="true">{"\u25A0"}</span>{primaryJob.name}</p>
+                      <p><span aria-hidden="true">{"\u25A0"}</span>{primaryJob.pickupAddress ?? primaryJob.name}</p>
                       <i aria-hidden="true" />
-                      <p><span aria-hidden="true">{"\u25C6"}</span>17-r khoroo, 12-r bair</p>
+                      <p><span aria-hidden="true">{"\u25C6"}</span>{primaryJob.dropoffAddress ?? text.dropoff}</p>
                     </div>
                     <div className="courier-map-request-meta">
                       <span>{primaryJob.distance}</span>
@@ -417,14 +417,14 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     <i className="pickup" />
                     <div>
                       <span>{text.pickup}</span>
-                      <strong>{job.name}</strong>
+                      <strong>{job.pickupAddress ?? job.name}</strong>
                     </div>
                   </div>
                   <div className="employee-address-row">
                     <i className="dropoff" />
                     <div>
                       <span>{text.dropoff}</span>
-                      <strong>17-r khoroo, 12-r bair</strong>
+                      <strong>{job.dropoffAddress ?? text.dropoff}</strong>
                     </div>
                   </div>
                   <div className="employee-request-meta">

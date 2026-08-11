@@ -405,7 +405,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   }
 
   async function runAction(label: string, target: string) {
-    const isLocalNotificationOrder = localOrders.some((order) => order.id === target && Boolean((order as StoreOrderView).sourceBody));
     const mappedStatus = label === text.confirm
       ? storeOrderStatuses.preparing
       : label === "Бэлтгэж дууссан"
@@ -418,9 +417,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
 
     if (mappedStatus) {
       try {
-        if (isLocalNotificationOrder) {
-          // Notification-created orders may only have the short order number shown to the store UI.
-        } else if (label === text.confirm) {
+        if (label === text.confirm) {
           await postJson(`/orders/${target}/accept`);
         } else if (label === "Бэлтгэж дууссан") {
           await postJson(`/orders/${target}/prepared`);
@@ -628,13 +625,19 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               ))}
             </div>
             {selectedOrder.status === storeOrderStatuses.prepared ? (
-              <section className="store-dispatch-ready">
-                <div>
-                  <strong>Бэлтгэж дууссан</strong>
-                  <span>Хүргэлтэнд гаргахын өмнө courier employee хайж хүргэлт дуудна.</span>
-                </div>
-                <button onClick={() => runAction(text.callCourier, selectedOrder.id)} type="button">{text.callCourier}</button>
-              </section>
+          <section className="store-dispatch-ready">
+            <div>
+              <strong>Бэлтгэж дууссан</strong>
+              <span>Хүргэлтэнд гаргахын өмнө courier employee хайж хүргэлт дуудна.</span>
+            </div>
+            <button onClick={() => runAction(text.callCourier, selectedOrder.id)} type="button">{text.callCourier}</button>
+            <div className="store-ready-map" aria-label="Дэлгүүрийн байршил">
+              <span className="store-ready-radius" aria-hidden="true" />
+              <i className="store-ready-pin" aria-hidden="true" />
+              <strong>{store?.storeName ?? text.storeName}</strong>
+              <small>2 км радиус дотор ойрын employee хайна</small>
+            </div>
+          </section>
             ) : null}
             {renderDeliveryTracking(selectedOrder, selectedTracking)}
             <div className="store-order-focus-actions">
@@ -643,6 +646,8 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               ) : selectedOrder.status === storeOrderStatuses.courierCalled ? (
                 <button disabled type="button">Хүргэлт дуудсан</button>
               ) : selectedOrder.status === storeOrderStatuses.preparing ? (
+                <button onClick={() => runAction(preparedLabel, selectedOrder.id)} type="button">{preparedLabel}</button>
+              ) : [storeOrderStatuses.paid, storeOrderStatuses.confirmed].includes(selectedOrder.status) ? (
                 <button onClick={() => runAction(preparedLabel, selectedOrder.id)} type="button">{preparedLabel}</button>
               ) : (
                 <>
@@ -669,6 +674,8 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               <b>{order.amountMnt} MNT</b>
               <div>
                 {order.status === storeOrderStatuses.preparing ? (
+                  <button onClick={() => runAction(preparedLabel, order.id)} type="button">{preparedLabel}</button>
+                ) : [storeOrderStatuses.paid, storeOrderStatuses.confirmed].includes(order.status) ? (
                   <button onClick={() => runAction(preparedLabel, order.id)} type="button">{preparedLabel}</button>
                 ) : order.status === storeOrderStatuses.prepared ? (
                   <button onClick={() => runAction(text.callCourier, order.id)} type="button">{text.callCourier}</button>

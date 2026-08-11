@@ -10,6 +10,8 @@ export type QueueItem = {
   id: string;
   state: string;
   name: string;
+  pickupAddress?: string;
+  dropoffAddress?: string;
   distance: string;
   weightKg?: number;
   requiredVehicle?: "WALK" | "MOPED" | "CAR";
