@@ -2,15 +2,18 @@ import { apiErrorMessage } from "./errors";
 
 const roleApiModes = ["admin", "store", "courier", "customer"];
 const mode = import.meta.env.MODE;
-const defaultApiBaseUrl = roleApiModes.includes(mode) ? `http://127.0.0.1:3000/api/${mode}` : "http://127.0.0.1:3000/api";
+const productionGatewayUrl = "https://deliverhub-gateway.onrender.com/api";
+const localGatewayUrl = "http://127.0.0.1:3000/api";
+const defaultGatewayUrl = import.meta.env.PROD ? productionGatewayUrl : localGatewayUrl;
+const defaultApiBaseUrl = roleApiModes.includes(mode) ? `${defaultGatewayUrl}/${mode}` : defaultGatewayUrl;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl;
 const courierTokenStorageKey = "deliverhub-courier-access-token";
 
 const defaultRealtimeBaseUrls: Record<string, string> = {
-  admin: "ws://127.0.0.1:3101/realtime",
-  store: "ws://127.0.0.1:3102/realtime",
-  courier: "ws://127.0.0.1:3103/realtime",
-  customer: "ws://127.0.0.1:3104/realtime",
+  admin: import.meta.env.PROD ? "wss://deliverhub-admin-service.onrender.com/realtime" : "ws://127.0.0.1:3101/realtime",
+  store: import.meta.env.PROD ? "wss://deliverhub-store-service.onrender.com/realtime" : "ws://127.0.0.1:3102/realtime",
+  courier: import.meta.env.PROD ? "wss://deliverhub-courier-service.onrender.com/realtime" : "ws://127.0.0.1:3103/realtime",
+  customer: import.meta.env.PROD ? "wss://deliverhub-customer-service.onrender.com/realtime" : "ws://127.0.0.1:3104/realtime",
 };
 
 export const REALTIME_URL = import.meta.env.VITE_REALTIME_URL ?? defaultRealtimeBaseUrls[mode] ?? "";
