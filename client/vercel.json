@@ -1,6 +1,6 @@
 {
-  "buildCommand": "npm run build:store",
-  "outputDirectory": "dist/store",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/(.*)",
