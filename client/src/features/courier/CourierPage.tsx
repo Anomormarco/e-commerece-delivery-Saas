@@ -285,7 +285,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
         </aside>
         {sidebarOpen && <button className="employee-drawer-backdrop" onClick={() => setSidebarOpen(false)} type="button" aria-label="Close menu" />}
 
-        <header className="employee-app-header" data-header-version="profile-left-v2">
+        <header className="employee-app-header" data-header-version="profile-left-v3">
           <button className="employee-menu-button" onClick={() => setSidebarOpen(true)} type="button" aria-label={text.menu}>
             <span />
             <span />
