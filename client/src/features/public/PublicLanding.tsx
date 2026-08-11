@@ -920,14 +920,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return;
     }
 
-    if (!addressText.trim() && !location) {
-      setNotice("Хүргэлтийн хаяг эсвэл GPS байршлаа оруулна уу.");
-      openMarket();
-      return;
-    }
-
     const paymentLabel = paymentMethods.find((method) => method.id === paymentMethod)?.label ?? "QPay";
-    const district = addressSuggestions.join(" · ") || "Хаяг баталгаажиж байна";
+    const fallbackAddress = "Улаанбаатар хот, хэрэглэгчийн сонгосон хүргэлтийн хаяг";
+    const deliveryAddressText = addressText.trim() || addressSuggestions.join(" · ") || fallbackAddress;
+    const district = addressSuggestions.join(" · ") || deliveryAddressText;
     const storeName = selectedItems[0]?.storeName ?? selectedStore?.name ?? "DeliverHub market";
     let orderResult: {
       orderNo: string;
@@ -949,7 +945,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           quantity: item.quantity,
           weightGrams: item.weightGrams,
         })),
-        addressText: addressText.trim() || district,
+        addressText: deliveryAddressText,
         addressLabel,
         location,
         deliveryType,
