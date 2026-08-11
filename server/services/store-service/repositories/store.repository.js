@@ -64,6 +64,21 @@ export async function listMatchingEmployees(tenantId, vehicleTypes) {
   });
 }
 
+export async function listMatchingEmployeesAnyTenant(vehicleTypes) {
+  return prisma.deliveryEmployee.findMany({
+    where: {
+      online: true,
+      verificationStatus: "ACTIVE",
+      vehicleType: { in: vehicleTypes },
+      assignments: {
+        none: { status: { in: busyAssignmentStatuses } },
+      },
+    },
+    include: { user: true },
+    orderBy: { id: "asc" },
+  });
+}
+
 export async function countMatchingEmployees(tenantId, vehicleTypes) {
   return prisma.deliveryEmployee.count({
     where: {

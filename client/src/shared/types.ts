@@ -43,6 +43,14 @@ export type StoreOrder = {
       name: string;
       vehicleType: string;
     } | null;
+    nearbyCouriers?: Array<{
+      employeeId: string;
+      name: string;
+      vehicleType: string;
+      toPickupKm: number;
+      etaMinutes: number;
+      location?: { lat: number; lng: number };
+    }>;
     acceptedAt?: string | null;
     createdAt?: string | null;
     routePlan?: {

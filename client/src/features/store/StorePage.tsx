@@ -54,6 +54,7 @@ type StoreDispatchResponse = {
     toPickupKm?: number;
     etaMinutes?: number;
   } | null;
+  nearbyCouriers?: StoreDeliveryTracking["nearbyCouriers"];
   routePlan?: StoreDeliveryTracking["routePlan"];
   message?: string;
 };
@@ -378,6 +379,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           }
         : null,
       createdAt: new Date().toISOString(),
+      nearbyCouriers: result.nearbyCouriers ?? [],
       routePlan: result.routePlan,
     };
   }
@@ -486,6 +488,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const courierName = tracking.courier?.name ?? "Ойрын хүргэлтийн ажилтан";
     const eta = route?.etaMinutes ?? tracking.routePlan?.drivingMinutes ?? 0;
     const toPickupKm = route?.toPickupKm ?? 0;
+    const nearbyCouriers = tracking.nearbyCouriers ?? [];
 
     return (
       <section className={`store-dispatch-tracker ${isDelivering ? "is-delivering" : isAccepted ? "is-accepted" : "is-searching"}`}>
@@ -495,6 +498,14 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           <i className="store-dispatch-pin store-pin" aria-hidden="true" />
           <i className="store-dispatch-pin customer-pin" aria-hidden="true" />
           <i className={`store-dispatch-pin courier-pin ${isAccepted || isDelivering ? "moving" : ""}`} aria-hidden="true" />
+          {nearbyCouriers.slice(0, 5).map((courier, index) => (
+            <i
+              aria-hidden="true"
+              className={`store-dispatch-nearby nearby-${index}`}
+              key={courier.employeeId}
+              title={courier.name}
+            />
+          ))}
           {isWaiting && <b className="store-dispatch-scan" aria-hidden="true" />}
           <div className="store-dispatch-map-status">
             <strong>{tracking.statusLabel}</strong>
@@ -510,6 +521,17 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             <b>{eta} мин</b>
             <b>{tracking.courier?.vehicleType ?? "AUTO"}</b>
           </div>
+          {nearbyCouriers.length ? (
+            <div className="store-nearby-couriers">
+              {nearbyCouriers.slice(0, 4).map((courier, index) => (
+                <span className={tracking.courier?.id === courier.employeeId ? "matched" : ""} key={courier.employeeId}>
+                  <i>{index + 1}</i>
+                  {courier.name}
+                  <b>{courier.toPickupKm.toFixed(1)} км · {courier.etaMinutes} мин</b>
+                </span>
+              ))}
+            </div>
+          ) : null}
           {needsStoreOtp ? (
             <label className="store-pickup-otp">
               <span>Employee өгсөн 6 оронтой OTP</span>

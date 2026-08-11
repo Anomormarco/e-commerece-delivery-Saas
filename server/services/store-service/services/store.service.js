@@ -5,6 +5,7 @@ import {
   findEmployeeInAdminReview,
   findDispatchOrder,
   listMatchingEmployees,
+  listMatchingEmployeesAnyTenant,
   listRecentOrdersByTenant,
   updateOrderStatus,
   verifyPickupOtpByStore,
@@ -109,6 +110,19 @@ function selectNearestEmployee(order, employees, distanceKm) {
     .sort((left, right) => left.score - right.score)[0] ?? null;
 }
 
+function rankNearbyEmployees(order, employees, distanceKm) {
+  return employees
+    .map((employee) => {
+      const routePlan = routePlanFor(order, employee, distanceKm);
+      return {
+        employee,
+        routePlan,
+        score: routePlan.toPickupKm,
+      };
+    })
+    .sort((left, right) => left.score - right.score);
+}
+
 function formatAssignmentTracking(order) {
   const assignment = order.deliveryAssignments?.[0];
   if (!assignment) return null;
@@ -190,11 +204,13 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
   }
 
   const rule = dispatchRule(weightKg, distanceKm);
-  const [eligibleEmployeeCount, eligibleEmployees] = await Promise.all([
+  const [eligibleEmployeeCount, sameTenantEmployees] = await Promise.all([
     countMatchingEmployees(tenantId, rule.eligibleVehicles),
     listMatchingEmployees(tenantId, rule.eligibleVehicles),
   ]);
-  const nearest = selectNearestEmployee(order, eligibleEmployees, distanceKm);
+  const eligibleEmployees = sameTenantEmployees.length ? sameTenantEmployees : await listMatchingEmployeesAnyTenant(rule.eligibleVehicles);
+  const rankedEmployees = rankNearbyEmployees(order, eligibleEmployees, distanceKm);
+  const nearest = rankedEmployees[0] ?? selectNearestEmployee(order, eligibleEmployees, distanceKm);
   const assignment = await createDeliveryOffer(tenantId, order.id, nearest?.employee.id ?? null);
   const routePlan = nearest?.routePlan ?? routePlanFor(order, null, distanceKm);
   await updateOrderStatus(tenantId, order.id, "COURIER_ASSIGNED", "Дэлгүүр хүргэлт дуудлаа.");
@@ -212,7 +228,15 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
     distanceKm,
     requiredVehicle: rule.requiredVehicle,
     requiredVehicleLabel: vehicleLabels[rule.requiredVehicle],
-    eligibleEmployeeCount,
+    eligibleEmployeeCount: Math.max(eligibleEmployeeCount, eligibleEmployees.length),
+    nearbyCouriers: rankedEmployees.slice(0, 8).map(({ employee, routePlan: candidateRoute }) => ({
+      employeeId: employee.id,
+      name: employee.user?.fullName ?? "Хүргэлтийн ажилтан",
+      vehicleType: employee.vehicleType,
+      toPickupKm: candidateRoute.toPickupKm,
+      etaMinutes: candidateRoute.etaMinutes,
+      location: candidateRoute.courier,
+    })),
     nearestCourier: nearest
       ? {
           employeeId: nearest.employee.id,

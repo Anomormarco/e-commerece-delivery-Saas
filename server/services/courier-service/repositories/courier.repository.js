@@ -10,8 +10,8 @@ const activeAssignmentStatuses = [
 ];
 
 const defaultTenant = {
-  name: "DeliverHub Demo",
-  slug: "deliverhub-demo",
+  name: "DeliverHub Public",
+  slug: "deliverhub-public",
 };
 
 const offerTimeoutMs = 10_000;
@@ -114,7 +114,7 @@ async function createNextCourierOffer(transaction, { tenantId, orderId }) {
   const weightKg = assignmentOrderWeightKg(order);
   const distanceKm = assignmentOrderDistanceKm(order);
   const requirement = requiredVehicle(weightKg, distanceKm);
-  const candidates = await transaction.deliveryEmployee.findMany({
+  let candidates = await transaction.deliveryEmployee.findMany({
     where: {
       tenantId,
       online: true,
@@ -126,6 +126,19 @@ async function createNextCourierOffer(transaction, { tenantId, orderId }) {
     },
     include: { user: true },
   });
+  if (!candidates.length) {
+    candidates = await transaction.deliveryEmployee.findMany({
+      where: {
+        online: true,
+        verificationStatus: "ACTIVE",
+        ...(excludedEmployeeIds.length ? { id: { notIn: excludedEmployeeIds } } : {}),
+        assignments: {
+          none: { status: { in: activeAssignmentStatuses } },
+        },
+      },
+      include: { user: true },
+    });
+  }
   const nextEmployee = candidates
     .filter((employee) => canVehicleServe(employee.vehicleType, requirement))
     .map((employee) => ({ employee, toPickupKm: employeeToPickupKm(order, employee) }))
