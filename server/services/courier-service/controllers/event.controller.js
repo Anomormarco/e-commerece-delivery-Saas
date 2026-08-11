@@ -9,8 +9,7 @@ const jobEvents = new Set([
   "delivery.job.dropoff_verified",
 ]);
 
-export async function receiveInternalEvent(request, response) {
-  const event = request.body ?? {};
+export async function handleCourierEvent(event = {}) {
   await createNotificationFromEvent("courier", event).catch((error) => {
     console.warn("[courier-service] notification create failed", error.message);
   });
@@ -27,6 +26,11 @@ export async function receiveInternalEvent(request, response) {
     broadcastCourierDashboardRefresh(payload);
   }
   broadcastCourierNotificationsUpdated({ eventId: event.id, action: event.type });
+}
+
+export async function receiveInternalEvent(request, response) {
+  const event = request.body ?? {};
+  await handleCourierEvent(event);
 
   response.json({ ok: true, service: "courier-service", eventId: event.id });
 }
