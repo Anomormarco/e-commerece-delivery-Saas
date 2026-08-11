@@ -413,7 +413,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
   }
 
   return (
-    <main className="admin-auth-page employee-auth-page">
+    <main className={`admin-auth-page employee-auth-page employee-auth-${mode}`}>
       <nav className="auth-floating-nav">
         <BrandLogo showText size={32} />
         <button className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")} type="button">{text.login}</button>

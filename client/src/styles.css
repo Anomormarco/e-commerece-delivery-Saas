@@ -599,6 +599,83 @@ h3 {
   background: rgba(249, 115, 22, 0.45);
 }
 
+.employee-auth-page.employee-auth-register {
+  grid-template-columns: minmax(0, 980px);
+  justify-content: center;
+  align-items: start;
+  overflow-y: auto;
+  padding-top: 96px;
+}
+
+.employee-auth-page.employee-auth-register::before {
+  width: 100%;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(249, 115, 22, 0.18), transparent 26%),
+    radial-gradient(circle at 84% 12%, rgba(37, 99, 235, 0.16), transparent 28%);
+}
+
+.employee-auth-page.employee-auth-register .auth-visual {
+  display: none;
+}
+
+.employee-auth-page.employee-auth-register .auth-panel {
+  width: min(980px, calc(100vw - 48px));
+  max-height: none;
+  overflow: visible;
+  border-radius: 22px;
+  padding: 32px;
+}
+
+.employee-auth-page.employee-auth-register .auth-copy {
+  max-width: 680px;
+  justify-self: center;
+}
+
+.employee-auth-page.employee-auth-register .auth-copy h1 {
+  font-size: clamp(28px, 3vw, 38px);
+}
+
+.employee-auth-page.employee-auth-register .auth-copy p {
+  font-size: 14px;
+}
+
+.employee-auth-page.employee-auth-register .auth-form {
+  gap: 16px;
+}
+
+.employee-auth-page.employee-auth-register .employee-form-grid,
+.employee-auth-page.employee-auth-register .employee-file-grid {
+  gap: 16px;
+}
+
+.employee-auth-page.employee-auth-register .auth-input-wrap {
+  min-height: 50px;
+}
+
+.employee-auth-page.employee-auth-register .auth-input-wrap input,
+.employee-auth-page.employee-auth-register .auth-input-wrap select {
+  min-height: 48px;
+  font-size: 15px;
+}
+
+.employee-auth-page.employee-auth-register .employee-camera-check {
+  grid-template-columns: minmax(320px, 0.85fr) minmax(0, 1fr);
+  padding: 16px;
+}
+
+.employee-auth-page.employee-auth-register .employee-camera-preview,
+.employee-auth-page.employee-auth-register .employee-camera-preview video {
+  min-height: 260px;
+}
+
+.employee-auth-page.employee-auth-register .employee-camera-copy strong {
+  font-size: 18px;
+}
+
+.employee-auth-page.employee-auth-register .employee-camera-copy p {
+  font-size: 13px;
+}
+
 .employee-mode-field {
   display: grid;
   grid-template-columns: 20px 1fr;
@@ -10124,6 +10201,22 @@ h3 {
 
 @media (max-width: 720px) {
   .employee-camera-check {
+    grid-template-columns: 1fr;
+  }
+
+  .employee-auth-page.employee-auth-register {
+    grid-template-columns: 1fr;
+    padding: 76px 12px 24px;
+  }
+
+  .employee-auth-page.employee-auth-register .auth-panel {
+    width: 100%;
+    padding: 18px;
+  }
+
+  .employee-auth-page.employee-auth-register .employee-form-grid,
+  .employee-auth-page.employee-auth-register .employee-file-grid,
+  .employee-auth-page.employee-auth-register .employee-camera-check {
     grid-template-columns: 1fr;
   }
 
