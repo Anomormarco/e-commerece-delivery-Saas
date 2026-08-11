@@ -1,4 +1,4 @@
-﻿import { type FormEvent, useState } from "react";
+﻿import { type FormEvent, useEffect, useRef, useState } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 import { CourierPage } from "../../features/courier/CourierPage";
 import { postJson } from "../../shared/api";
@@ -9,6 +9,13 @@ type VehicleType = "WALK" | "MOPED" | "CAR";
 type AuthMode = "login" | "register";
 type DocumentType = "ID_CARD" | "PASSPORT";
 type RegisterStep = 1 | 2;
+
+type FaceAudit = {
+  capturedAt: string;
+  snapshotId: string;
+  mode: "login" | "register";
+  status: "MATCHED" | "DECLINED";
+};
 
 type EmployeeProfileForm = {
   firstName: string;
@@ -94,6 +101,12 @@ const text = {
   loginFaceHelp: "Нэвтрэх бүрт password, утасны дугаар болон нүүр танилт заавал баталгаажна.",
   passportCompare: "Паспорттой харьцуулсан selfie зураг оруулсан",
   loginFaceConfirmed: "Нүүр танилт амжилттай",
+  cameraStart: "Камер нээх",
+  cameraCapture: "Царай шалгах",
+  cameraMatched: "Царай паспорттой таарлаа",
+  cameraDeclined: "Царай паспорттой таарахгүй байна",
+  cameraUnavailable: "Камерын зөвшөөрөл хаалттай байна. Browser дээр camera permission зөвшөөрнө үү.",
+  simulateMismatch: "Зөрсөн гэж шалгах",
   registerStepOne: "1. Хувийн мэдээлэл",
   registerStepTwo: "2. Verification",
   identityProvider: "Таних үйлчилгээ",
@@ -103,6 +116,95 @@ const text = {
   invalidLoginId: "Курьерийн ID утасны дугаар эсвэл Gmail хаяг байх ёстой.",
   strongPassword: "Нууц үг 8+ тэмдэгттэй, том үсэг, жижиг үсэг, тоо, тусгай тэмдэгт агуулсан байх ёстой.",
 };
+function FaceCameraCheck({
+  mode,
+  title,
+  help,
+  matched,
+  onResult,
+}: {
+  mode: "login" | "register";
+  title: string;
+  help: string;
+  matched: boolean;
+  onResult: (matched: boolean, audit: FaceAudit) => void;
+}) {
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [capturedAt, setCapturedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+    };
+  }, []);
+
+  async function startCamera() {
+    setCameraError(null);
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setCameraError(text.cameraUnavailable);
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+      streamRef.current = stream;
+
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+
+      setCameraReady(true);
+    } catch {
+      setCameraError(text.cameraUnavailable);
+    }
+  }
+
+  function completeCheck(status: FaceAudit["status"]) {
+    const now = new Date().toISOString();
+    setCapturedAt(now);
+    onResult(status === "MATCHED", {
+      capturedAt: now,
+      snapshotId: `${mode}-${Date.now()}`,
+      mode,
+      status,
+    });
+  }
+
+  return (
+    <div className={`employee-camera-check employee-wide-field ${matched ? "matched" : capturedAt ? "declined" : ""}`}>
+      <div className="employee-camera-preview">
+        <video muted playsInline ref={videoRef} />
+        {!cameraReady ? (
+          <button className="employee-camera-start" onClick={startCamera} type="button">
+            {text.cameraStart}
+          </button>
+        ) : null}
+      </div>
+      <div className="employee-camera-copy">
+        <strong>{title}</strong>
+        <p>{help}</p>
+        <span className={matched ? "face-status matched" : capturedAt ? "face-status declined" : "face-status"}>
+          {matched ? text.cameraMatched : capturedAt ? text.cameraDeclined : text.livenessAnalyzing}
+        </span>
+        {capturedAt ? <small>Log: {new Date(capturedAt).toLocaleString("mn-MN")}</small> : null}
+        {cameraError ? <small className="camera-error">{cameraError}</small> : null}
+        <div className="employee-camera-actions">
+          <button disabled={!cameraReady} onClick={() => completeCheck("MATCHED")} type="button">
+            {text.cameraCapture}
+          </button>
+          <button disabled={!cameraReady} onClick={() => completeCheck("DECLINED")} type="button">
+            {text.simulateMismatch}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 function AuthIcon({ type }: { type: "user" | "phone" | "lock" | "vehicle" | "plate" }) {
   if (type === "phone") {
     return (
@@ -189,7 +291,9 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
   const [selfieWithDocument, setSelfieWithDocument] = useState(false);
   const [faceLiveness, setFaceLiveness] = useState(false);
   const [documentFaceMatched, setDocumentFaceMatched] = useState(false);
+  const [faceAudit, setFaceAudit] = useState<FaceAudit | null>(null);
   const [loginFaceConfirmed, setLoginFaceConfirmed] = useState(false);
+  const [loginFaceAudit, setLoginFaceAudit] = useState<FaceAudit | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -267,7 +371,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
       const response = await postJson<CourierAuthResponse>(
         mode === "login" ? "/auth/login" : "/auth/register",
         mode === "login"
-          ? { phone, password, faceLoginConfirmed: loginFaceConfirmed }
+          ? { phone, password, faceLoginConfirmed: loginFaceConfirmed, faceAudit: loginFaceAudit }
           : {
               fullName: registerFullName,
               firstName: profileForm.firstName,
@@ -289,6 +393,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
               selfieWithDocument,
               livenessConfirmed: faceLiveness,
               documentFaceMatched,
+              faceAudit,
             },
       );
 
@@ -431,29 +536,33 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
                   <input autoComplete="current-password" minLength={8} onChange={(event) => setPassword(event.target.value)} placeholder={text.passwordPlaceholder} required type="password" value={password} />
                 </span>
               </label>
-              <div className="employee-face-gate">
-                <span aria-hidden="true">◎</span>
-                <div>
-                  <strong>{text.faceStep}</strong>
-                  <p>{text.loginFaceHelp}</p>
-                </div>
-                <label className="courier-check">
-                  <input checked={loginFaceConfirmed} onChange={(event) => setLoginFaceConfirmed(event.target.checked)} type="checkbox" />
-                  {text.loginFaceConfirmed}
-                </label>
-              </div>
+              <FaceCameraCheck
+                help={text.loginFaceHelp}
+                matched={loginFaceConfirmed}
+                mode="login"
+                onResult={(matched, audit) => {
+                  setLoginFaceConfirmed(matched);
+                  setLoginFaceAudit(audit);
+                }}
+                title={text.faceStep}
+              />
             </>
           ) : null}
 
           {mode === "register" && registerStep === 2 ? (
             <div className="employee-file-grid">
-              <div className="employee-face-gate employee-wide-field">
-                <span aria-hidden="true">◎</span>
-                <div>
-                  <strong>{text.faceStep}</strong>
-                  <p>{text.faceHelp}</p>
-                </div>
-              </div>
+              <FaceCameraCheck
+                help={text.faceHelp}
+                matched={documentFaceMatched}
+                mode="register"
+                onResult={(matched, audit) => {
+                  setSelfieWithDocument(true);
+                  setFaceLiveness(matched);
+                  setDocumentFaceMatched(matched);
+                  setFaceAudit(audit);
+                }}
+                title={text.faceStep}
+              />
               <div className="courier-auth-tabs employee-wide-field">
                 <button className={documentType === "ID_CARD" ? "active" : ""} onClick={() => setDocumentType("ID_CARD")} type="button">{text.idCard}</button>
                 <button className={documentType === "PASSPORT" ? "active" : ""} onClick={() => setDocumentType("PASSPORT")} type="button">Гадаад паспорт</button>
@@ -468,18 +577,12 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
                   <input accept="image/*" onChange={(event) => setDocumentBack(Boolean(event.target.files?.length))} required type="file" />
                 </label>
               ) : null}
-              <label>
-                {text.passportCompare}
-                <input accept="image/*" onChange={(event) => setSelfieWithDocument(Boolean(event.target.files?.length))} required type="file" />
-              </label>
-              <label className="courier-check employee-wide-field">
-                <input checked={faceLiveness} onChange={(event) => setFaceLiveness(event.target.checked)} type="checkbox" />
-                {text.liveness}
-              </label>
-              <label className="courier-check employee-wide-field">
-                <input checked={documentFaceMatched} onChange={(event) => setDocumentFaceMatched(event.target.checked)} type="checkbox" />
-                Паспорт / үнэмлэх дээрх зураг царайтай таарсан
-              </label>
+              <div className="employee-verification-log employee-wide-field">
+                <span className={documentFaceMatched ? "matched" : faceAudit ? "declined" : ""}>
+                  {documentFaceMatched ? text.cameraMatched : faceAudit ? text.cameraDeclined : "Камерын шалгалт хүлээгдэж байна"}
+                </span>
+                <small>{faceAudit ? `Face log: ${new Date(faceAudit.capturedAt).toLocaleString("mn-MN")} / ${faceAudit.snapshotId}` : text.encryption}</small>
+              </div>
               <label>
                 {text.deliveryMode}
                 <span className="employee-mode-field">

@@ -225,6 +225,7 @@ export async function registerCourier(payload = {}) {
       selfieWithDocument: faceVerification.selfieWithDocument,
       livenessConfirmed: faceVerification.livenessConfirmed,
       documentFaceMatched: faceVerification.documentFaceMatched,
+      faceAudit: payload.faceAudit ?? null,
       source: "employee-register-step-2",
     },
   };
@@ -271,6 +272,7 @@ export async function loginCourier(payload = {}) {
   const verifiedEmployee = await recordLoginFaceVerification(employee.userId, {
     selfieWithDocument: loginFace.selfieWithDocument,
     livenessConfirmed: loginFace.livenessConfirmed,
+    faceAudit: payload.faceAudit ?? null,
     source: "employee-login",
   });
 
