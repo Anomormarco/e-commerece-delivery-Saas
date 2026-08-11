@@ -788,7 +788,7 @@ export function CourierApp() {
     return localStorage.getItem(sessionStorageKey) ?? sessionStorage.getItem(sessionStorageKey);
   });
   const [verificationStatus, setVerificationStatus] = useState<string | null>(null);
-  const needsVerification = userId && verificationStatus !== "ACTIVE";
+  const needsVerification = Boolean(userId && verificationStatus && verificationStatus !== "ACTIVE");
 
   function handleAuthenticated(nextUserId: string, nextVerificationStatus?: string) {
     setUserId(nextUserId);
