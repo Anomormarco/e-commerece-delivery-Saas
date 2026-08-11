@@ -12,7 +12,7 @@ import heroWatchImage from "../../assets/geed-hero/watch.avif";
 type AuthMode = "login" | "register";
 type PartnerAuthMode = "login" | "register";
 type DeliveryType = "bike" | "car" | "foot";
-type PaymentMethod = "stripe" | "qpay";
+type PaymentMethod = "toki" | "lend" | "storepay" | "qpay" | "card";
 type LandingSection = "home" | "market" | "contact" | "courier" | "partner";
 
 type PublicLandingProps = {
@@ -119,6 +119,13 @@ const storeSessionStorageKey = "deliverhub-store-session";
 const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
 const marketRowsPerPage = 15;
 const marketCardsPerRow = 3;
+const paymentMethods: Array<{ id: PaymentMethod; label: string; mark: string }> = [
+  { id: "toki", label: "Toki", mark: "Toki" },
+  { id: "lend", label: "Lend", mark: "✓" },
+  { id: "storepay", label: "StorePay", mark: "SP" },
+  { id: "qpay", label: "QPay", mark: "QP" },
+  { id: "card", label: "Bank Card", mark: "CC" },
+];
 const productsPerMarketPage = marketRowsPerPage * marketCardsPerRow;
 const landingHeroImages = [
   heroPromaxImage,
@@ -453,7 +460,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return [];
     }
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("qpay");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("toki");
   const [stores, setStores] = useState<StoreDirectoryItem[]>([]);
   const [storeSearch, setStoreSearch] = useState("");
   const [storeFilter, setStoreFilter] = useState("Бүгд");
@@ -799,7 +806,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       const nextQuantity = Math.min(maxQuantity, (current[productId] ?? 0) + selectedQuantity);
       return { ...current, [productId]: nextQuantity };
     });
+    setMenuHidden(false);
+    setProfileOpen(false);
     setWishlistOpen(false);
+    setCartOpen(true);
   }
 
   function toggleWishlist(productId: string) {
@@ -856,14 +866,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
     const total = subtotal + deliveryFee;
     const orderNo = `DH-${Date.now().toString().slice(-8)}`;
-    const paymentLabel = paymentMethod === "stripe" ? "Stripe" : "QPay";
+    const paymentLabel = paymentMethods.find((method) => method.id === paymentMethod)?.label ?? "QPay";
     const district = addressSuggestions.join(" · ") || "Хаяг баталгаажиж байна";
     const storeName = selectedItems[0]?.storeName ?? selectedStore?.name ?? "DeliverHub market";
     const storeRecipient = readStoreUsers().find((user) => user.storeName.toLowerCase() === storeName.toLowerCase());
     const storeId = storeRecipient?.id ?? selectedItems[0]?.storeId ?? selectedStore?.id ?? "deliverhub-market";
     appendJsonStorage(storeOrdersStorageKey, {
       id: orderNo,
-      status: paymentMethod === "stripe" ? "Stripe гүйлгээ амжилттай - дэлгүүр баталгаажуулна" : "QPay төлбөр амжилттай - дэлгүүр баталгаажуулна",
+      status: `${paymentLabel} төлбөр амжилттай - дэлгүүр баталгаажуулна`,
       amountMnt: String(total),
       district,
       storeId,
@@ -881,7 +891,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     });
     appendJsonStorage(storeNotificationsStorageKey, {
       id: `notif-${orderNo}`,
-      title: paymentMethod === "stripe" ? "Stripe гүйлгээ амжилттай" : "Төлбөртэй захиалга",
+      title: `${paymentLabel} төлбөр амжилттай`,
       body: `${storeName}: ${paymentLabel}-ээр ${formatMnt(total)} төлөгдсөн захиалга ирлээ. Хаяг: ${district}`,
       storeId,
       storeName,
@@ -920,9 +930,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         etaText: `${etaMinutes} минутын тооцоололтой`,
       },
     });
-    setPaymentSuccess(paymentMethod === "stripe"
-      ? "Stripe гүйлгээ амжилттай. Захиалга тухайн дэлгүүрийн notification руу очлоо."
-      : "QPay төлбөр амжилттай. Захиалга тухайн дэлгүүрийн notification руу очлоо.");
+    setPaymentSuccess(`${paymentLabel} төлбөр амжилттай. Захиалга тухайн дэлгүүрийн notification руу очлоо.`);
     window.setTimeout(() => setPaymentSuccess(""), 3600);
     setNotice("Захиалга дэлгүүрийн notification руу илгээгдлээ.");
     setCart({});
@@ -1099,9 +1107,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }
 
   return (
-    <main className={`nomad-scroll-page ${section === "market" ? "is-market-route" : ""} ${section === "contact" ? "is-contact-route" : ""} ${section === "courier" ? "is-courier-route" : ""}`} id="hero">
+    <main className={`nomad-scroll-page ${section === "market" ? "is-market-route" : ""} ${section === "contact" ? "is-contact-route" : ""} ${section === "courier" ? "is-courier-route" : ""} ${cartOpen ? "is-cart-open" : ""}`} id="hero">
       {paymentSuccess ? <div className="landing-payment-success" role="status">{paymentSuccess}</div> : null}
-      <nav className={`landing-commerce-nav ${menuHidden ? "is-hidden" : ""}`} aria-label="Landing navigation">
+      <nav className={`landing-commerce-nav ${menuHidden && !cartOpen ? "is-hidden" : ""}`} aria-label="Landing navigation">
         <a className="landing-commerce-brand" href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>
           <BrandLogo showText size={32} />
         </a>
@@ -1204,8 +1212,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <section className="landing-cart-popover" aria-label="Сагс" aria-modal="true" ref={cartPanelRef} role="dialog" tabIndex={-1}>
             <header>
               <div>
-                <span>Миний сагс</span>
-                <strong>{selectedItems.length ? `${selectedItems.length} бараа` : "Хоосон байна"}</strong>
+                <strong>Таны сагс</strong>
+                <span>{selectedItems.length ? `${selectedItems.length} бүтээгдэхүүн` : "Хоосон байна"}</span>
               </div>
               <button onClick={() => setCartOpen(false)} type="button" aria-label="Сагс хаах">×</button>
             </header>
@@ -1224,9 +1232,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                       <article key={item.id}>
                         <img alt={item.name} src={productImageFor(item)} />
                         <div>
-                          <small>{item.category}</small>
+                          <small className="landing-cart-category">{item.category}</small>
                           <strong>{item.name}</strong>
-                          <small>{formatMnt(item.priceMnt)} · {item.quantity} ш</small>
+                          <small>Ангилал: {item.category}</small>
+                          <small>Нэгж үнэ: {formatMnt(item.priceMnt)}</small>
                         </div>
                         <div className="landing-cart-stepper">
                           <button onClick={() => updateCart(item.id, -1)} type="button" aria-label="Хасах">−</button>
@@ -1251,21 +1260,20 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                       <span><em>Нийт төлөх дүн</em><strong>{formatMnt(subtotal + deliveryFee)}</strong></span>
                     </div>
 
+                    <strong className="landing-payment-title">Төлбөрийн аргууд</strong>
                     <div className="landing-payment-methods" aria-label="Төлбөрийн арга">
-                      <button className={paymentMethod === "qpay" ? "active" : ""} onClick={() => setPaymentMethod("qpay")} type="button">
-                        <span>QP</span>
-                        <strong>QPay</strong>
-                      </button>
-                      <button className={paymentMethod === "stripe" ? "active" : ""} onClick={() => setPaymentMethod("stripe")} type="button">
-                        <span>CC</span>
-                        <strong>Bank Card</strong>
-                      </button>
+                      {paymentMethods.map((method) => (
+                        <button className={paymentMethod === method.id ? "active" : ""} key={method.id} onClick={() => setPaymentMethod(method.id)} type="button">
+                          <span className={`payment-mark payment-${method.id}`}>{method.mark}</span>
+                          <strong>{method.label}</strong>
+                        </button>
+                      ))}
                     </div>
 
-                    <p>Захиалга баталгаажих үед дэлгүүрт мэдэгдэл очиж, хүргэлтийн явц идэвхжинэ.</p>
+                    <p>Энд харагдаж байгаа нь урьдчилсан тооцоо. Захиалга баталгаажих үед эцсийн төлбөр тооцогдоно.</p>
                     <footer>
-                      <button onClick={() => setCart({})} type="button">Цэвэрлэх</button>
                       <button onClick={checkoutOrder} type="button">Төлбөр хийх</button>
+                      <button onClick={() => setCart({})} type="button">Буцах</button>
                     </footer>
                   </aside>
                 </div>
