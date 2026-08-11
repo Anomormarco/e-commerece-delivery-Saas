@@ -140,7 +140,7 @@ const text = {
   edit: "\u0417\u0430\u0441\u0430\u0445",
   delete: "\u0423\u0441\u0442\u0433\u0430\u0445",
   page: "\u0425\u0443\u0443\u0434\u0430\u0441",
-  confirm: "\u0411\u0430\u0442\u043B\u0430\u0445",
+  confirm: "\u0411\u0430\u0442\u0430\u043B\u0433\u0430\u0430\u0436\u0443\u0443\u043B\u0441\u0430\u043D",
   reject: "\u0422\u0430\u0442\u0433\u0430\u043B\u0437\u0430\u0445",
   callCourier: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442 \u0434\u0443\u0443\u0434\u0430\u0445",
   urgentPending: "\u042F\u0430\u0440\u0430\u043B\u0442\u0430\u0439 \u0445\u04AF\u043B\u044D\u044D\u0433\u0434\u044D\u0436 \u0431\u0443\u0439",
@@ -341,6 +341,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   }
 
   async function runAction(label: string, target: string) {
+    const isLocalNotificationOrder = localOrders.some((order) => order.id === target && Boolean((order as StoreOrderView).sourceBody));
     const mappedStatus = label === text.confirm
       ? storeOrderStatuses.preparing
       : label === "Бэлтгэж дууссан"
@@ -353,7 +354,9 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
 
     if (mappedStatus) {
       try {
-        if (label === text.confirm) {
+        if (isLocalNotificationOrder) {
+          // Notification-created orders may only have the short order number shown to the store UI.
+        } else if (label === text.confirm) {
           await postJson(`/orders/${target}/accept`);
         } else if (label === "Бэлтгэж дууссан") {
           await postJson(`/orders/${target}/prepared`);
