@@ -112,8 +112,6 @@ const storePortalUrl = import.meta.env.VITE_SHOP_APP_URL ?? "http://127.0.0.1:51
 const tokenStorageKey = "deliverhub-customer-access-token";
 const customerStorageKey = "deliverhub-customer-profile";
 const wishlistStorageKey = "deliverhub-customer-wishlist";
-const storeOrdersStorageKey = "deliverhub-store-orders";
-const storeNotificationsStorageKey = "deliverhub-store-notifications";
 const storeUsersStorageKey = "deliverhub-store-users";
 const storeSessionStorageKey = "deliverhub-store-session";
 const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
@@ -834,18 +832,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setWishlistOpen(false);
   }
 
-  function appendJsonStorage<T>(key: string, item: T) {
-    try {
-      const raw = localStorage.getItem(key);
-      const current = raw ? (JSON.parse(raw) as T[]) : [];
-      localStorage.setItem(key, JSON.stringify([item, ...current]));
-      window.dispatchEvent(new StorageEvent("storage", { key, newValue: localStorage.getItem(key) }));
-    } catch {
-      localStorage.setItem(key, JSON.stringify([item]));
-    }
-  }
-
-  function checkoutOrder() {
+  async function checkoutOrder() {
     if (!session) {
       setAuthMode("login");
       setAuthOpen(true);
@@ -864,51 +851,54 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return;
     }
 
-    const total = subtotal + deliveryFee;
-    const orderNo = `DH-${Date.now().toString().slice(-8)}`;
     const paymentLabel = paymentMethods.find((method) => method.id === paymentMethod)?.label ?? "QPay";
     const district = addressSuggestions.join(" · ") || "Хаяг баталгаажиж байна";
     const storeName = selectedItems[0]?.storeName ?? selectedStore?.name ?? "DeliverHub market";
-    const storeRecipient = readStoreUsers().find((user) => user.storeName.toLowerCase() === storeName.toLowerCase());
-    const storeId = storeRecipient?.id ?? selectedItems[0]?.storeId ?? selectedStore?.id ?? "deliverhub-market";
-    appendJsonStorage(storeOrdersStorageKey, {
-      id: orderNo,
-      status: `${paymentLabel} төлбөр төлөгдсөн - дэлгүүр баталгаажуулна`,
-      amountMnt: String(total),
-      district,
-      storeId,
-      storeName,
-      paymentMethod: paymentLabel,
-      customerName: session.customer.fullName,
-      customerPhone: session.customer.phone,
-      address: addressText.trim() || district,
-      items: selectedItems.map((item) => ({
-        name: item.name,
-        quantity: item.quantity,
-        amountMnt: item.priceMnt * item.quantity,
-      })),
-      createdAt: new Date().toISOString(),
-    });
-    appendJsonStorage(storeNotificationsStorageKey, {
-      id: `notif-${orderNo}`,
-      title: "Шинэ захиалга ирлээ",
-      body: `${storeName}: ${paymentLabel}-ээр ${formatMnt(total)} төлөгдсөн. Захиалгыг хүлээж аваад бэлтгэнэ үү. Хаяг: ${district}`,
-      storeId,
-      storeName,
-      readAt: null,
-      createdAt: new Date().toISOString(),
-    });
+    let orderResult: {
+      orderNo: string;
+      totalMnt: number;
+      quote: { deliveryTypeLabel: string };
+    };
+
+    try {
+      setLoading(true);
+      orderResult = await apiPost<{
+        orderNo: string;
+        totalMnt: number;
+        quote: { deliveryTypeLabel: string };
+      }>("/customer/orders", {
+        items: selectedItems.map((item) => ({
+          id: item.id,
+          name: item.name,
+          priceMnt: item.priceMnt,
+          quantity: item.quantity,
+          weightGrams: item.weightGrams,
+        })),
+        addressText: addressText.trim() || district,
+        addressLabel,
+        location,
+        deliveryType,
+        paymentMethod: paymentLabel,
+        qpayInvoiceId: paymentMethod === "qpay" ? qpaySandboxInvoice.id : undefined,
+      }, session.token);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Захиалга үүсгэхэд алдаа гарлаа.");
+      return;
+    } finally {
+      setLoading(false);
+    }
+
     setTracking({
-      orderNo,
+      orderNo: orderResult.orderNo,
       storeName,
       district,
       statusLabel: "Төлбөр амжилттай",
-      totalMnt: String(total),
+      totalMnt: String(orderResult.totalMnt),
       timeline: [
         {
           state: "done",
           title: `${paymentLabel} төлбөр амжилттай`,
-          description: `${formatMnt(total)} төлөгдөж дэлгүүрт notification очлоо.`,
+          description: `${formatMnt(orderResult.totalMnt)} төлөгдөж RabbitMQ event store-service рүү илгээгдлээ.`,
           time: "Одоо",
         },
         {
@@ -926,7 +916,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       ],
       courier: {
         name: "Courier assignment хүлээгдэж байна",
-        vehicle: activeDelivery.label,
+        vehicle: orderResult.quote.deliveryTypeLabel,
         etaText: `${etaMinutes} минутын тооцоололтой`,
       },
     });

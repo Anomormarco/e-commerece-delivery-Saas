@@ -9,6 +9,7 @@ import {
 } from "@deliverhub/server-platform/auth/credentials";
 import { prisma } from "@deliverhub/server-platform/database/prisma";
 import { signJwt } from "@deliverhub/server-platform/http/jwt";
+import { customerEventBus } from "../messaging.js";
 import { findCustomerWithLatestOrder } from "../repositories/customer.repository.js";
 import { formatTrackingTime, maskPhone } from "../utils/customer-formatting.js";
 
@@ -356,7 +357,7 @@ export async function createCustomerOrder(userId, input) {
         branchId: branch.id,
         customerId: customer.id,
         customerAddressId: address.id,
-        status: OrderStatus.CONFIRMED,
+        status: OrderStatus.PAID,
         subtotalMnt: BigInt(subtotalMnt),
         deliveryFeeMnt: BigInt(quote.deliveryFeeMnt),
         serviceFeeMnt: BigInt(serviceFeeMnt),
@@ -380,8 +381,7 @@ export async function createCustomerOrder(userId, input) {
 
     await tx.orderStatusHistory.createMany({
       data: [
-        { orderId: createdOrder.id, status: OrderStatus.CONFIRMED, note: "Захиалга баталгаажсан" },
-        { orderId: createdOrder.id, status: OrderStatus.PREPARING, note: "Маркет захиалгыг бэлтгэж байна" },
+        { orderId: createdOrder.id, status: OrderStatus.PAID, note: "Төлбөр төлөгдсөн" },
       ],
     });
 
@@ -407,6 +407,27 @@ export async function createCustomerOrder(userId, input) {
   });
 
   appCache.forget?.(`customer:tracking:${userId}`);
+  customerEventBus.publishSoon("order.paid", {
+    orderId: order.id,
+    storeId: store.id,
+    storeName: store.name,
+    customerId: customer.id,
+    customerName: customer.fullName,
+    customerPhone: customer.phone,
+    addressText: input.addressText.trim(),
+    addressLabel: String(input.addressLabel ?? "Одоогийн байршил"),
+    paymentMethod: String(input.paymentMethod ?? "QPay"),
+    amountMnt: String(totalMnt),
+    subtotalMnt: String(subtotalMnt),
+    deliveryFeeMnt: String(quote.deliveryFeeMnt),
+    deliveryType: quote.deliveryType,
+    deliveryTypeLabel: quote.deliveryTypeLabel,
+    items: items.map((item) => ({
+      name: String(item.name),
+      quantity: money(item.quantity),
+      amountMnt: String(money(item.priceMnt) * money(item.quantity)),
+    })),
+  });
 
   return {
     success: true,

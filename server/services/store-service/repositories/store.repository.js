@@ -53,3 +53,23 @@ export async function createDeliveryOffer(tenantId, orderId) {
     include: { order: { include: { store: true } } },
   });
 }
+
+export async function updateOrderStatus(tenantId, orderId, status, note) {
+  return prisma.$transaction(async (tx) => {
+    const order = await tx.order.update({
+      where: { id: orderId, tenantId },
+      data: { status },
+      include: { store: true },
+    });
+
+    await tx.orderStatusHistory.create({
+      data: {
+        orderId,
+        status,
+        note,
+      },
+    });
+
+    return order;
+  });
+}

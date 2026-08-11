@@ -5,6 +5,7 @@ import {
   findEmployeeInAdminReview,
   findDispatchOrder,
   listRecentOrdersByTenant,
+  updateOrderStatus,
 } from "../repositories/store.repository.js";
 
 function createHttpError(statusCode, message, code = "VALIDATION_ERROR") {
@@ -73,6 +74,7 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
   const rule = dispatchRule(weightKg, distanceKm);
   const eligibleEmployeeCount = await countMatchingEmployees(tenantId, rule.eligibleVehicles);
   const assignment = await createDeliveryOffer(tenantId, order.id);
+  await updateOrderStatus(tenantId, order.id, "COURIER_ASSIGNED", "Дэлгүүр хүргэлт дуудлаа.");
 
   appCache.clearByPrefix(`store:dashboard:${tenantId}`);
   appCache.clearByPrefix("courier:dashboard:");
@@ -89,5 +91,29 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
     requiredVehicleLabel: vehicleLabels[rule.requiredVehicle],
     eligibleEmployeeCount,
     message: `${vehicleLabels[rule.requiredVehicle]} төрлийн ажилтанд дуудлага илгээлээ.`,
+  };
+}
+
+export async function acceptStoreOrder(tenantId, orderId) {
+  const order = await updateOrderStatus(tenantId, orderId, "PREPARING", "Дэлгүүр захиалгыг хүлээж аваад бэлтгэж эхэллээ.");
+  appCache.clearByPrefix(`store:dashboard:${tenantId}`);
+  appCache.clearByPrefix("customer:tracking:");
+  return {
+    orderId: order.id,
+    storeName: order.store.name,
+    status: order.status,
+    message: "Захиалга хүлээж авлаа.",
+  };
+}
+
+export async function markStoreOrderPrepared(tenantId, orderId) {
+  const order = await updateOrderStatus(tenantId, orderId, "READY_FOR_PICKUP", "Бараа бэлтгэж дууслаа.");
+  appCache.clearByPrefix(`store:dashboard:${tenantId}`);
+  appCache.clearByPrefix("customer:tracking:");
+  return {
+    orderId: order.id,
+    storeName: order.store.name,
+    status: order.status,
+    message: "Бэлтгэж дууслаа.",
   };
 }

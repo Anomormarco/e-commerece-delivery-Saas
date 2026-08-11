@@ -55,6 +55,35 @@ async function publishRabbitEvent(event) {
   );
 }
 
+async function subscribeRabbitEvents({ serviceName, patterns, handler }) {
+  const channel = await rabbitChannel();
+  if (!channel) return null;
+
+  const queueName = process.env.RABBITMQ_QUEUE_PREFIX
+    ? `${process.env.RABBITMQ_QUEUE_PREFIX}.${serviceName}`
+    : `${serviceName}.events`;
+
+  await channel.assertQueue(queueName, { durable: true });
+  for (const pattern of patterns) {
+    await channel.bindQueue(queueName, process.env.RABBITMQ_EXCHANGE ?? "deliverhub.events", pattern);
+  }
+
+  await channel.consume(queueName, async (message) => {
+    if (!message) return;
+    try {
+      const event = JSON.parse(message.content.toString("utf8"));
+      await handler(event);
+      channel.ack(message);
+    } catch (error) {
+      console.warn(`[${serviceName}] RabbitMQ event consume failed: ${error.message}`);
+      channel.nack(message, false, false);
+    }
+  });
+
+  console.log(`[${serviceName}] RabbitMQ queue bound: ${queueName} -> ${patterns.join(", ")}`);
+  return queueName;
+}
+
 export function internalEventSecret() {
   return process.env.INTERNAL_EVENT_SECRET ?? "deliverhub-local-events";
 }
@@ -113,5 +142,11 @@ export function createEventBus({ serviceName, endpoints = eventEndpointsFromEnv(
     void publish(type, payload);
   }
 
-  return { publish, publishSoon };
+  function subscribe(patterns, handler) {
+    if (!process.env.RABBITMQ_URL) return null;
+    const patternList = Array.isArray(patterns) ? patterns : [patterns];
+    return subscribeRabbitEvents({ serviceName, patterns: patternList, handler });
+  }
+
+  return { publish, publishSoon, subscribe };
 }

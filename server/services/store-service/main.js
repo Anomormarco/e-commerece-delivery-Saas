@@ -1,5 +1,7 @@
 import { startService } from "@deliverhub/server-platform/runtime/start-service";
 import { createStoreServiceApp } from "./app/store.app.js";
+import { handleStoreEvent } from "./controllers/event.controller.js";
+import { storeEventBus } from "./messaging.js";
 import { storeSocket } from "./socket.js";
 
 startService({
@@ -8,3 +10,5 @@ startService({
   port: Number(process.env.PORT ?? process.env.STORE_SERVICE_PORT ?? 3102),
   onUpgrade: storeSocket.handleUpgrade,
 });
+
+storeEventBus.subscribe?.(["order.paid", "order.status.updated"], handleStoreEvent);

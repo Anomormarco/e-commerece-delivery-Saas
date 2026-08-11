@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 import { NotificationBell } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
+import { postJson } from "../../shared/api";
 import type { StoreOrder } from "../../shared/types";
 import { useRealtimeResource } from "../../shared/useRealtimeResource";
 
@@ -135,11 +136,22 @@ function productStatus(product: ProductItem): { status: string; stock: string; t
 }
 
 const storeOrderStatuses = {
-  accepted: "Дэлгүүр хүлээж авлаа - бараа бэлтгэж байна",
-  prepared: "Бэлтгэж дууслаа - хүргэлт дуудахад бэлэн",
-  courierCalled: "Хүргэлт дуудсан - courier assignment хүлээгдэж байна",
-  rejected: "Татгалзсан",
+  paid: "PAID",
+  confirmed: "CONFIRMED",
+  preparing: "PREPARING",
+  prepared: "READY_FOR_PICKUP",
+  courierCalled: "COURIER_ASSIGNED",
+  rejected: "PAYMENT_FAILED",
 };
+
+function storeOrderStatusLabel(status: string) {
+  if (status === storeOrderStatuses.paid || status === storeOrderStatuses.confirmed) return "Төлбөр төлөгдсөн - дэлгүүр баталгаажуулна";
+  if (status === storeOrderStatuses.preparing) return "Дэлгүүр хүлээж авлаа - бараа бэлтгэж байна";
+  if (status === storeOrderStatuses.prepared) return "Бэлтгэж дууслаа - хүргэлт дуудахад бэлэн";
+  if (status === storeOrderStatuses.courierCalled) return "Хүргэлт дуудсан - courier assignment хүлээгдэж байна";
+  if (status === storeOrderStatuses.rejected) return "Татгалзсан";
+  return status;
+}
 
 function orderLabel(index: number) {
   if (index === 0) return "\u0428\u0438\u043D\u044D";
@@ -175,9 +187,9 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     };
   }, [store?.id, store?.storeName]);
 
-  function runAction(label: string, target: string) {
+  async function runAction(label: string, target: string) {
     const mappedStatus = label === text.confirm
-      ? storeOrderStatuses.accepted
+      ? storeOrderStatuses.preparing
       : label === "Бэлтгэж дууссан"
         ? storeOrderStatuses.prepared
         : label === text.callCourier
@@ -187,10 +199,22 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             : null;
 
     if (mappedStatus) {
+      try {
+        if (label === text.confirm) {
+          await postJson(`/orders/${target}/accept`);
+        } else if (label === "Бэлтгэж дууссан") {
+          await postJson(`/orders/${target}/prepared`);
+        } else if (label === text.callCourier) {
+          await postJson("/dispatch-request", { orderId: target });
+        }
+      } catch (error) {
+        setNotice(error instanceof Error ? error.message : "Захиалгын төлөв шинэчлэхэд алдаа гарлаа.");
+        window.setTimeout(() => setNotice(null), 2600);
+        return;
+      }
+
       setLocalOrders((current) => {
         const nextOrders = current.map((order) => (order.id === target ? { ...order, status: mappedStatus } : order));
-        localStorage.setItem(localStoreOrdersKey, JSON.stringify(nextOrders));
-        window.dispatchEvent(new StorageEvent("storage", { key: localStoreOrdersKey, newValue: JSON.stringify(nextOrders) }));
         return nextOrders;
       });
       setNotice(`${label}: ${target} - ${text.actionDone}`);
@@ -246,10 +270,10 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
                 <em>{orderLabel(index)}</em>
               </div>
               <strong>{order.district}</strong>
-              <p>{order.status}</p>
+              <p>{storeOrderStatusLabel(order.status)}</p>
               <b>{order.amountMnt} MNT</b>
               <div>
-                {order.status === storeOrderStatuses.accepted ? (
+                {order.status === storeOrderStatuses.preparing ? (
                   <button onClick={() => runAction("Бэлтгэж дууссан", order.id)} type="button">Бэлтгэж дууссан</button>
                 ) : order.status === storeOrderStatuses.prepared ? (
                   <button onClick={() => runAction(text.callCourier, order.id)} type="button">{text.callCourier}</button>
