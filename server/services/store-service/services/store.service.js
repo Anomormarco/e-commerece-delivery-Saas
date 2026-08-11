@@ -123,7 +123,7 @@ function formatAssignmentTracking(order) {
     PICKED_UP: "Бараа аваад хүргэлтэнд гарсан",
     IN_TRANSIT: "Хэрэглэгч рүү хүргэж байна",
     ARRIVING_DROPOFF: "Хүлээн авагчид ойртож байна",
-    DELIVERED: "Хүргэлт дууссан",
+    DELIVERED: "Захиалга дууссан",
     REJECTED: "Санал татгалзсан, дараагийн ажилтан руу шилжинэ",
   };
 

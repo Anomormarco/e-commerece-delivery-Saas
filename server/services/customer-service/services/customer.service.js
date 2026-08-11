@@ -107,11 +107,11 @@ function customerCourierLocation(order, assignment) {
 }
 
 function publicOrderStatusLabel(order, assignment) {
-  if (assignment?.status === "DELIVERED" || order.status === OrderStatus.DELIVERED || order.status === OrderStatus.COMPLETED) return "Хүргэлт дууссан";
+  if (assignment?.status === "DELIVERED" || order.status === OrderStatus.DELIVERED || order.status === OrderStatus.COMPLETED) return "Захиалга дууссан";
   if (["PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF"].includes(assignment?.status) || [OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT, OrderStatus.ARRIVING].includes(order.status)) return "Хүргэлтэнд гарсан";
   if (assignment?.status === "PICKUP_VERIFICATION" || order.status === OrderStatus.PICKUP_VERIFICATION) return "Дэлгүүр дээр OTP баталгаажуулж байна";
   if (assignment?.status === "ACCEPTED" || order.status === OrderStatus.COURIER_ARRIVING) return "Хүргэлтийн ажилтан дэлгүүр рүү ирж байна";
-  if (order.status === OrderStatus.READY_FOR_PICKUP || order.status === OrderStatus.COURIER_ASSIGNED) return "Захиалга бэлтгэгдсэн";
+  if (order.status === OrderStatus.READY_FOR_PICKUP || order.status === OrderStatus.COURIER_ASSIGNED) return "Бэлтгэж дууссан";
   if (order.status === OrderStatus.PREPARING) return "Захиалга бэлтгэж байна";
   return "Захиалга баталгаажсан";
 }
@@ -634,9 +634,9 @@ async function loadCurrentCustomerTracking(userId) {
   const courier = assignment?.employee;
   const trackingSteps = [
     { key: "confirmed", historyStatuses: [OrderStatus.PAID, OrderStatus.CONFIRMED], title: "Захиалга баталгаажсан" },
-    { key: "prepared", historyStatuses: [OrderStatus.READY_FOR_PICKUP, OrderStatus.COURIER_ASSIGNED], title: "Захиалга бэлтгэгдсэн" },
+    { key: "prepared", historyStatuses: [OrderStatus.READY_FOR_PICKUP, OrderStatus.COURIER_ASSIGNED], title: "Бэлтгэж дууссан" },
     { key: "pickedUp", historyStatuses: [OrderStatus.PICKED_UP, OrderStatus.IN_TRANSIT], title: "Хүргэлтэнд гарсан" },
-    { key: "delivered", historyStatuses: [OrderStatus.DELIVERED, OrderStatus.COMPLETED], title: "Хүргэлт дууссан" },
+    { key: "delivered", historyStatuses: [OrderStatus.DELIVERED, OrderStatus.COMPLETED], title: "Захиалга дууссан" },
   ];
 
   return {

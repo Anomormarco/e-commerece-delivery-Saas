@@ -295,7 +295,7 @@ function storeOrderStatusLabel(status: string) {
   if (status === "COURIER_ARRIVING") return "Хүргэлтийн ажилтан дэлгүүр рүү ирж байна";
   if (status === "PICKUP_VERIFICATION") return "Employee ирсэн - store OTP баталгаажуулна";
   if (status === "PICKED_UP" || status === "IN_TRANSIT") return "Хүргэлтэнд гарсан";
-  if (status === "DELIVERED" || status === "COMPLETED") return "Хүргэлт дууссан";
+  if (status === "DELIVERED" || status === "COMPLETED") return "Захиалга дууссан";
   if (status === storeOrderStatuses.rejected) return "Татгалзсан";
   return status;
 }
@@ -546,10 +546,9 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           : selectedOrder?.status;
     const workflowSteps = selectedOrder ? [
       { key: storeOrderStatuses.paid, aliases: [storeOrderStatuses.confirmed], label: "Захиалга баталгаажсан" },
-      { key: storeOrderStatuses.preparing, label: "Дэлгүүр хүлээн авсан" },
-      { key: storeOrderStatuses.prepared, aliases: [storeOrderStatuses.courierCalled, "COURIER_ARRIVING", "PICKUP_VERIFICATION"], label: preparedLabel },
+      { key: storeOrderStatuses.prepared, aliases: [storeOrderStatuses.preparing, storeOrderStatuses.courierCalled, "COURIER_ARRIVING", "PICKUP_VERIFICATION"], label: preparedLabel },
       { key: "PICKED_UP", aliases: ["IN_TRANSIT", "ARRIVING_DROPOFF"], label: "Хүргэлтэнд гарсан" },
-      { key: "DELIVERED", aliases: ["COMPLETED"], label: "Хүргэлт дууссан" },
+      { key: "DELIVERED", aliases: ["COMPLETED"], label: "Захиалга дууссан" },
     ] : [];
     const activeStepIndex = selectedOrder
       ? Math.max(0, workflowSteps.findIndex((step) => step.key === workflowStatus || step.aliases?.includes(String(workflowStatus))))
