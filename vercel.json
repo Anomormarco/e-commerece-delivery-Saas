@@ -1,5 +1,6 @@
 {
   "buildCommand": "npm run build:vercel --workspace @deliverhub/client",
+  "ignoreCommand": "node client/scripts/vercel-ignore.mjs",
   "outputDirectory": "client/dist",
   "rewrites": [
     {
