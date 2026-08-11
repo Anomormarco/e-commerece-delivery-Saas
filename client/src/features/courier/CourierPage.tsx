@@ -291,19 +291,19 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
             <span />
             <span />
           </button>
-          <div className="employee-header-brand">
-            <BrandLogo showText size={32} />
-            <span className="employee-header-subtitle">{dashboard.data?.vehicleLabel ?? text.vehicle}</span>
-          </div>
+          <button className="employee-header-profile" onClick={() => setActiveTab("profile")} type="button">
+            <span aria-hidden="true">{(dashboard.data?.employeeName ?? text.title).slice(0, 1)}</span>
+            <div>
+              <strong>{dashboard.data?.employeeName ?? text.title}</strong>
+              <small>{dashboard.data?.vehicleLabel ?? text.vehicle}</small>
+            </div>
+          </button>
           <button className={`courier-header-toggle ${isOnline ? "online" : ""}`} onClick={toggleOnline} type="button" aria-label={isOnline ? text.stopWork : text.startWork}>
             <span>{text.offline}</span>
             <i aria-hidden="true" />
             <span>{text.online}</span>
           </button>
           <NotificationBell />
-          <button className="employee-profile-button" onClick={() => setActiveTab("profile")} type="button" aria-label={text.profileTab}>
-            <span aria-hidden="true">{(dashboard.data?.employeeName ?? text.title).slice(0, 1)}</span>
-          </button>
         </header>
         <StateBlock loading={dashboard.loading} error={dashboard.error} empty={!dashboard.data}>
           {dashboard.data && (
@@ -372,16 +372,6 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                 </section>
               )}
 
-              <section className="employee-shift-card">
-                <div>
-                  <span>{text.earning}</span>
-                  <strong>{dashboard.data.expectedEarningMnt} MNT</strong>
-                </div>
-                <button className={isOnline ? "online" : ""} onClick={toggleOnline} type="button">
-                  <span>{isOnline ? text.stopWork : text.startWork}</span>
-                  <i aria-hidden="true" />
-                </button>
-              </section>
               {isOnline && hasActiveDelivery && <p className="courier-rule-note">{text.activeDeliveryRule}</p>}
               {actionError && <p className="courier-rule-note danger">{actionError}</p>}
 
