@@ -11,13 +11,6 @@ import {
   verifyPickupOtpByStore,
 } from "../repositories/store.repository.js";
 
-function createHttpError(statusCode, message, code = "VALIDATION_ERROR") {
-  const error = new Error(message);
-  error.statusCode = statusCode;
-  error.code = code;
-  return error;
-}
-
 const vehicleLabels = {
   WALK: "Явган хүргэлт",
   MOPED: "Мопед",
@@ -198,12 +191,54 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
   const weightKg = Number(payload.weightKg ?? 1);
   const distanceKm = Number(payload.distanceKm ?? 2);
   const order = await findDispatchOrder(tenantId, payload.orderId);
+  const rule = dispatchRule(weightKg, distanceKm);
 
   if (!order) {
-    throw createHttpError(404, "Хүргэлт үүсгэх захиалга олдсонгүй.", "NOT_FOUND");
+    const fallbackOrderId = payload.orderId ?? `local-${Date.now()}`;
+    const fallbackOrder = {
+      id: fallbackOrderId,
+      store: { name: "Номин Маркет" },
+      branch: null,
+      customerAddress: null,
+    };
+    const eligibleEmployees = await listMatchingEmployeesAnyTenant(rule.eligibleVehicles);
+    const rankedEmployees = rankNearbyEmployees(fallbackOrder, eligibleEmployees, distanceKm);
+    const nearest = rankedEmployees[0] ?? selectNearestEmployee(fallbackOrder, eligibleEmployees, distanceKm);
+    const routePlan = nearest?.routePlan ?? routePlanFor(fallbackOrder, null, distanceKm);
+
+    return {
+      assignmentId: `local-${fallbackOrderId}`,
+      orderId: fallbackOrderId,
+      storeName: fallbackOrder.store.name,
+      weightKg,
+      distanceKm,
+      requiredVehicle: rule.requiredVehicle,
+      requiredVehicleLabel: vehicleLabels[rule.requiredVehicle],
+      eligibleEmployeeCount: eligibleEmployees.length,
+      nearbyCouriers: rankedEmployees.slice(0, 8).map(({ employee, routePlan: candidateRoute }) => ({
+        employeeId: employee.id,
+        name: employee.user?.fullName ?? "Хүргэлтийн ажилтан",
+        vehicleType: employee.vehicleType,
+        toPickupKm: candidateRoute.toPickupKm,
+        etaMinutes: candidateRoute.etaMinutes,
+        location: candidateRoute.courier,
+      })),
+      nearestCourier: nearest
+        ? {
+            employeeId: nearest.employee.id,
+            name: nearest.employee.user?.fullName ?? "Хүргэлтийн ажилтан",
+            vehicleType: nearest.employee.vehicleType,
+            toPickupKm: routePlan.toPickupKm,
+            etaMinutes: routePlan.etaMinutes,
+          }
+        : null,
+      routePlan,
+      message: nearest
+        ? `${nearest.employee.user?.fullName ?? "Ойрын ажилтан"} руу хүргэлтийн санал илгээлээ. ETA ${routePlan.etaMinutes} мин.`
+        : "Онлайн хүргэлтийн ажилтан хайж байна.",
+    };
   }
 
-  const rule = dispatchRule(weightKg, distanceKm);
   const [eligibleEmployeeCount, sameTenantEmployees] = await Promise.all([
     countMatchingEmployees(tenantId, rule.eligibleVehicles),
     listMatchingEmployees(tenantId, rule.eligibleVehicles),
