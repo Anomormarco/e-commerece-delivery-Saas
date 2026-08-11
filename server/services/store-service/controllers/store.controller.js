@@ -14,6 +14,8 @@ export async function createStoreDeliveryRequest(request, response) {
     status: "COURIER_ASSIGNED",
     requiredVehicle: result.requiredVehicle,
     requiredVehicleLabel: result.requiredVehicleLabel,
+    nearestCourier: result.nearestCourier,
+    routePlan: result.routePlan,
   });
   response.status(201).json(result);
 }

@@ -353,6 +353,13 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                       <span>{primaryJob.distance}</span>
                       <span>{text.approximate} {text.eta}</span>
                     </div>
+                    {primaryJob.routePlan && (
+                      <div className="employee-route-preview">
+                        <strong>{primaryJob.routePlan.label}</strong>
+                        <span>{primaryJob.routePlan.totalKm} км · ETA {primaryJob.routePlan.etaMinutes} мин</span>
+                        <small>Явган {primaryJob.routePlan.walkingMinutes} мин / Авто зам {primaryJob.routePlan.drivingMinutes} мин</small>
+                      </div>
+                    )}
                     <div className="courier-map-request-actions">
                       <button onClick={() => rejectJob(primaryJob.id)} type="button">{text.reject}</button>
                       <button disabled={!isOnline || primaryJob.canAccept === false} onClick={() => acceptJob(primaryJob.id)} type="button">{text.acceptOrder}</button>
@@ -429,6 +436,13 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     <span>{job.weightKg ?? 1} kg</span>
                     <b>{job.requiredVehicleLabel}</b>
                   </div>
+                  {job.routePlan && (
+                    <div className="employee-route-preview">
+                      <strong>{job.routePlan.label}</strong>
+                      <span>{job.routePlan.totalKm} км · ETA {job.routePlan.etaMinutes} мин</span>
+                      <small>Явган {job.routePlan.walkingMinutes} мин / Авто зам {job.routePlan.drivingMinutes} мин</small>
+                    </div>
+                  )}
                   {job.state === "ACCEPTED" && (
                     <button className="employee-full-action" onClick={() => postJobAction(job.id, "arrive-store")} type="button">
                       {text.arrivedStore}

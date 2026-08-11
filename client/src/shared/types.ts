@@ -16,6 +16,14 @@ export type QueueItem = {
   requiredVehicleLabel?: string;
   payoutMnt?: string;
   canAccept?: boolean;
+  routePlan?: {
+    totalKm: number;
+    walkingMinutes: number;
+    drivingMinutes: number;
+    fastestMode: "WALKING" | "AUTO_ROAD";
+    etaMinutes: number;
+    label: string;
+  };
 };
 
 export type StoreOrder = {

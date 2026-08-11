@@ -25,7 +25,7 @@ function includeCourierDashboard() {
     assignments: {
       take: 12,
       orderBy: { createdAt: "desc" },
-      include: { order: { include: { store: true, items: { include: { variant: true } } } } },
+      include: { order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } } },
     },
     wallet: true,
     user: true,
@@ -413,7 +413,7 @@ export async function acceptDeliveryAssignment(userId, assignmentId) {
       where: {
         id: assignmentId,
         status: "OFFERED",
-        employeeId: null,
+        OR: [{ employeeId: null }, { employeeId: employee.id }],
       },
       data: {
         employeeId: employee.id,
@@ -428,7 +428,7 @@ export async function acceptDeliveryAssignment(userId, assignmentId) {
 
     return transaction.deliveryAssignment.findUniqueOrThrow({
       where: { id: assignmentId },
-      include: { order: { include: { store: true, items: { include: { variant: true } } } } },
+      include: { order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } } },
     });
   });
 }
@@ -446,7 +446,7 @@ export async function rejectDeliveryAssignment(userId, assignmentId) {
     where: {
       id: assignmentId,
       status: "OFFERED",
-      employeeId: null,
+      employeeId: employee.id,
     },
     data: { status: "REJECTED" },
   });

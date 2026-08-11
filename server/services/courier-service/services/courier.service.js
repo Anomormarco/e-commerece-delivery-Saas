@@ -59,7 +59,60 @@ function assignmentWeightKg(assignment) {
 }
 
 function assignmentDistanceKm(assignment) {
-  return assignment.order.customerAddressId ? 4.8 : 2.4;
+  const pickup = pickupLocation(assignment.order);
+  const dropoff = dropoffLocation(assignment.order, pickup);
+  return Number(haversineKm(pickup, dropoff).toFixed(1)) || (assignment.order.customerAddressId ? 4.8 : 2.4);
+}
+
+const defaultStoreLocation = { lat: 47.9189, lng: 106.9176 };
+
+function toNumber(value, fallback) {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : fallback;
+}
+
+function pickupLocation(order) {
+  return {
+    lat: toNumber(order.branch?.latitude, defaultStoreLocation.lat),
+    lng: toNumber(order.branch?.longitude, defaultStoreLocation.lng),
+  };
+}
+
+function dropoffLocation(order, pickup) {
+  return {
+    lat: toNumber(order.customerAddress?.latitude, pickup.lat + 0.043),
+    lng: toNumber(order.customerAddress?.longitude, pickup.lng + 0.064),
+  };
+}
+
+function haversineKm(from, to) {
+  const earthKm = 6371;
+  const dLat = ((to.lat - from.lat) * Math.PI) / 180;
+  const dLng = ((to.lng - from.lng) * Math.PI) / 180;
+  const lat1 = (from.lat * Math.PI) / 180;
+  const lat2 = (to.lat * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function assignmentRoutePlan(assignment) {
+  const pickup = pickupLocation(assignment.order);
+  const dropoff = dropoffLocation(assignment.order, pickup);
+  const totalKm = haversineKm(pickup, dropoff);
+  const walkingMinutes = Math.max(4, Math.round(totalKm * 13));
+  const drivingMinutes = Math.max(3, Math.round(totalKm * 4.2 + 3));
+  const fastestMode = drivingMinutes < walkingMinutes ? "AUTO_ROAD" : "WALKING";
+
+  return {
+    pickup,
+    dropoff,
+    totalKm: Number(totalKm.toFixed(2)),
+    walkingMinutes,
+    drivingMinutes,
+    fastestMode,
+    etaMinutes: Math.min(walkingMinutes, drivingMinutes),
+    label: fastestMode === "AUTO_ROAD" ? "Авто замаар хамгийн хурдан" : "Явган хамгийн ойр зам",
+  };
 }
 
 function requiredVehicle(weightKg, distanceKm) {
@@ -107,6 +160,7 @@ function formatCourierDashboard(employee) {
       const weightKg = assignmentWeightKg(assignment);
       const distanceKm = assignmentDistanceKm(assignment);
       const requirement = requiredVehicle(weightKg, distanceKm);
+      const routePlan = assignmentRoutePlan(assignment);
 
       return {
         id: assignment.id,
@@ -118,6 +172,7 @@ function formatCourierDashboard(employee) {
         requiredVehicleLabel: vehicleLabels[requirement],
         payoutMnt: String(5500 + Math.round(distanceKm * 900) + weightKg * 180),
         canAccept: assignment.employeeId === employee.id || canVehicleServe(vehicleType, requirement),
+        routePlan,
       };
     })
     .filter((job) => job.state !== "OFFERED" || job.canAccept);
@@ -138,6 +193,7 @@ function formatCourierAssignment(assignment) {
   const weightKg = assignmentWeightKg(assignment);
   const distanceKm = assignmentDistanceKm(assignment);
   const requirement = requiredVehicle(weightKg, distanceKm);
+  const routePlan = assignmentRoutePlan(assignment);
 
   return {
     id: assignment.id,
@@ -149,6 +205,7 @@ function formatCourierAssignment(assignment) {
     requiredVehicleLabel: vehicleLabels[requirement],
     payoutMnt: String(5500 + Math.round(distanceKm * 900) + weightKg * 180),
     canAccept: true,
+    routePlan,
   };
 }
 

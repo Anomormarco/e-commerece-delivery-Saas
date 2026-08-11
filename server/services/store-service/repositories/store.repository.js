@@ -28,7 +28,20 @@ export async function findDispatchOrder(tenantId, orderId) {
       ...(orderId ? { id: orderId } : {}),
     },
     orderBy: { createdAt: "desc" },
-    include: { store: true },
+    include: { store: true, branch: true, customerAddress: true },
+  });
+}
+
+export async function listMatchingEmployees(tenantId, vehicleTypes) {
+  return prisma.deliveryEmployee.findMany({
+    where: {
+      tenantId,
+      online: true,
+      verificationStatus: "ACTIVE",
+      vehicleType: { in: vehicleTypes },
+    },
+    include: { user: true },
+    orderBy: { id: "asc" },
   });
 }
 
@@ -43,14 +56,15 @@ export async function countMatchingEmployees(tenantId, vehicleTypes) {
   });
 }
 
-export async function createDeliveryOffer(tenantId, orderId) {
+export async function createDeliveryOffer(tenantId, orderId, employeeId = null) {
   return prisma.deliveryAssignment.create({
     data: {
       tenantId,
       orderId,
+      employeeId,
       status: "OFFERED",
     },
-    include: { order: { include: { store: true } } },
+    include: { employee: { include: { user: true } }, order: { include: { store: true, branch: true, customerAddress: true } } },
   });
 }
 

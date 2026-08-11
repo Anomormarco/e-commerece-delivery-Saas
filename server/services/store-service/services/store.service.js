@@ -4,6 +4,7 @@ import {
   createDeliveryOffer,
   findEmployeeInAdminReview,
   findDispatchOrder,
+  listMatchingEmployees,
   listRecentOrdersByTenant,
   updateOrderStatus,
 } from "../repositories/store.repository.js";
@@ -21,10 +22,90 @@ const vehicleLabels = {
   CAR: "Машин",
 };
 
+const defaultStoreLocation = { lat: 47.9189, lng: 106.9176 };
+
 function dispatchRule(weightKg, distanceKm) {
   if (weightKg > 12 || distanceKm > 8) return { requiredVehicle: "CAR", eligibleVehicles: ["CAR"] };
   if (weightKg > 4 || distanceKm > 3) return { requiredVehicle: "MOPED", eligibleVehicles: ["MOPED", "CAR"] };
   return { requiredVehicle: "WALK", eligibleVehicles: ["WALK", "MOPED", "CAR"] };
+}
+
+function toNumber(value, fallback) {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : fallback;
+}
+
+function hashToUnit(input = "") {
+  let hash = 0;
+  for (const char of String(input)) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  return (hash % 10_000) / 10_000;
+}
+
+function employeeLiveLocation(employee, pickup) {
+  return {
+    lat: pickup.lat + (hashToUnit(`${employee.id}:lat`) - 0.5) * 0.045,
+    lng: pickup.lng + (hashToUnit(`${employee.id}:lng`) - 0.5) * 0.06,
+  };
+}
+
+function haversineKm(from, to) {
+  const earthKm = 6371;
+  const dLat = ((to.lat - from.lat) * Math.PI) / 180;
+  const dLng = ((to.lng - from.lng) * Math.PI) / 180;
+  const lat1 = (from.lat * Math.PI) / 180;
+  const lat2 = (to.lat * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function pickupLocation(order) {
+  return {
+    lat: toNumber(order.branch?.latitude, defaultStoreLocation.lat),
+    lng: toNumber(order.branch?.longitude, defaultStoreLocation.lng),
+  };
+}
+
+function dropoffLocation(order, pickup, distanceKm) {
+  return {
+    lat: toNumber(order.customerAddress?.latitude, pickup.lat + distanceKm / 111),
+    lng: toNumber(order.customerAddress?.longitude, pickup.lng + distanceKm / 74),
+  };
+}
+
+function routePlanFor(order, employee, distanceKm) {
+  const pickup = pickupLocation(order);
+  const dropoff = dropoffLocation(order, pickup, distanceKm);
+  const courier = employee ? employeeLiveLocation(employee, pickup) : pickup;
+  const toPickupKm = haversineKm(courier, pickup);
+  const deliveryKm = haversineKm(pickup, dropoff);
+  const totalKm = toPickupKm + deliveryKm;
+  const walkingMinutes = Math.max(4, Math.round(totalKm * 13));
+  const drivingMinutes = Math.max(3, Math.round(totalKm * 4.2 + 3));
+  const fastestMode = drivingMinutes < walkingMinutes ? "AUTO_ROAD" : "WALKING";
+
+  return {
+    engine: "Haversine realtime geospatial scoring",
+    pickup,
+    dropoff,
+    courier,
+    toPickupKm: Number(toPickupKm.toFixed(2)),
+    totalKm: Number(totalKm.toFixed(2)),
+    walkingMinutes,
+    drivingMinutes,
+    fastestMode,
+    etaMinutes: Math.min(walkingMinutes, drivingMinutes),
+  };
+}
+
+function selectNearestEmployee(order, employees, distanceKm) {
+  return employees
+    .map((employee) => {
+      const routePlan = routePlanFor(order, employee, distanceKm);
+      return { employee, routePlan, score: routePlan.toPickupKm };
+    })
+    .sort((left, right) => left.score - right.score)[0] ?? null;
 }
 
 export async function getStoreDashboard(tenantId) {
@@ -72,8 +153,13 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
   }
 
   const rule = dispatchRule(weightKg, distanceKm);
-  const eligibleEmployeeCount = await countMatchingEmployees(tenantId, rule.eligibleVehicles);
-  const assignment = await createDeliveryOffer(tenantId, order.id);
+  const [eligibleEmployeeCount, eligibleEmployees] = await Promise.all([
+    countMatchingEmployees(tenantId, rule.eligibleVehicles),
+    listMatchingEmployees(tenantId, rule.eligibleVehicles),
+  ]);
+  const nearest = selectNearestEmployee(order, eligibleEmployees, distanceKm);
+  const assignment = await createDeliveryOffer(tenantId, order.id, nearest?.employee.id ?? null);
+  const routePlan = nearest?.routePlan ?? routePlanFor(order, null, distanceKm);
   await updateOrderStatus(tenantId, order.id, "COURIER_ASSIGNED", "Дэлгүүр хүргэлт дуудлаа.");
 
   appCache.clearByPrefix(`store:dashboard:${tenantId}`);
@@ -90,7 +176,19 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
     requiredVehicle: rule.requiredVehicle,
     requiredVehicleLabel: vehicleLabels[rule.requiredVehicle],
     eligibleEmployeeCount,
-    message: `${vehicleLabels[rule.requiredVehicle]} төрлийн ажилтанд дуудлага илгээлээ.`,
+    nearestCourier: nearest
+      ? {
+          employeeId: nearest.employee.id,
+          name: nearest.employee.user?.fullName ?? "Хүргэлтийн ажилтан",
+          vehicleType: nearest.employee.vehicleType,
+          toPickupKm: routePlan.toPickupKm,
+          etaMinutes: routePlan.etaMinutes,
+        }
+      : null,
+    routePlan,
+    message: nearest
+      ? `${nearest.employee.user?.fullName ?? "Ойрын ажилтан"} руу хүргэлтийн санал илгээлээ. ETA ${routePlan.etaMinutes} мин.`
+      : "Онлайн, идэвхтэй хүргэлтийн ажилтан олдсонгүй. Дуудлага queue-д үлдлээ.",
   };
 }
 

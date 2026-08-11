@@ -11290,6 +11290,34 @@ h3 {
   color: #2563eb;
 }
 
+.employee-route-preview {
+  display: grid;
+  gap: 5px;
+  border: 1px solid #bfdbfe;
+  border-radius: 14px;
+  padding: 11px 12px;
+  background:
+    linear-gradient(90deg, rgba(37, 99, 235, 0.09), rgba(249, 115, 22, 0.08)),
+    white;
+}
+
+.employee-route-preview strong {
+  color: #1d4ed8;
+  font-size: 13px;
+}
+
+.employee-route-preview span {
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.employee-route-preview small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
 .employee-full-action,
 .employee-otp-panel button {
   min-height: 44px;
