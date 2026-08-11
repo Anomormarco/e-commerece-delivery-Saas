@@ -37,7 +37,6 @@ type Product = {
   imageUrl?: string;
   storeId?: string;
   storeName?: string;
-  privacyLabel?: string;
 };
 
 type CustomerSession = {
@@ -116,7 +115,6 @@ type StoreDirectoryItem = {
     weightGrams: number;
     imageUrl?: string;
     stockCount?: number;
-    privacyLabel?: string;
   }>;
 };
 
@@ -316,7 +314,6 @@ function syncedNominStore(base?: Partial<StoreDirectoryItem>): StoreDirectoryIte
     weightGrams: product.weightGrams,
     imageUrl: product.imageUrl,
     stockCount: product.stockCount,
-    privacyLabel: product.privacyLabel,
   }));
 
   return {
@@ -779,7 +776,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           stockCount: product.stockCount ?? stableStockCount(product.id),
           description: `${store.name} - ${product.category.toLowerCase()} ангилал.`,
           imageUrl: product.imageUrl || productPhotoUrl(keywordForProduct(product)),
-          privacyLabel: product.privacyLabel,
           storeId: store.id,
           storeName: store.name,
         })).filter((product) => (
@@ -1812,7 +1808,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           <em className={product.stockCount <= 0 ? "is-empty" : product.stockCount <= 12 ? "is-low" : ""}>
                             Үлдэгдэл: {product.stockCount} ш
                           </em>
-                          {product.privacyLabel ? <small className="landing-product-privacy">Нууцлал: {product.privacyLabel}</small> : null}
                           <div className="landing-product-actions">
                             <div className="landing-product-stepper" aria-label={`${product.name} тоо ширхэг`}>
                               <button className="landing-product-qty" onClick={() => updateProductQuantity(product.id, -1)} type="button">−</button>

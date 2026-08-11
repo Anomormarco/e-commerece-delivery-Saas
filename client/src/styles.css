@@ -3531,13 +3531,6 @@ h3 {
   text-align: center;
 }
 
-.landing-product-privacy {
-  color: #93c5fd;
-  font-size: 10px;
-  font-weight: 850;
-  line-height: 1.35;
-}
-
 .landing-price-summary,
 .landing-tracking-card,
 .landing-auth-modal form {
@@ -7468,19 +7461,44 @@ h3 {
   -webkit-line-clamp: 2;
 }
 
-.store-product-privacy {
-  color: #93c5fd;
-  font-size: 10px;
-  font-weight: 850;
-  line-height: 1.4;
-}
-
 .store-product-body > div {
   display: flex;
   justify-content: space-between;
   gap: 10px;
   border-top: 1px solid rgba(30, 41, 59, 0.78);
   padding-top: 10px;
+}
+
+.store-product-body .store-product-stock-controls {
+  display: grid;
+  grid-template-columns: 34px 1fr 34px;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid rgba(30, 41, 59, 0.78);
+  padding-top: 10px;
+}
+
+.store-product-stock-controls button {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.18);
+  color: #fed7aa;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.store-product-stock-controls button:disabled {
+  opacity: 0.45;
+}
+
+.store-product-stock-controls strong {
+  color: white;
+  font-size: 13px;
+  text-align: center;
 }
 
 .store-product-body label {

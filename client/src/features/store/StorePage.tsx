@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { NotificationBell } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
 import { postJson } from "../../shared/api";
-import { nominCatalogProducts, nominSecurityBadges, nominStoreProfile } from "../../shared/nominCatalog";
+import { nominCatalogProducts, nominStoreProfile } from "../../shared/nominCatalog";
 import type { StoreOrder } from "../../shared/types";
 import { useRealtimeResource } from "../../shared/useRealtimeResource";
 
@@ -368,6 +368,13 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const currentProductPage = Math.min(productPage, totalProductPages);
     const pageStart = (currentProductPage - 1) * productsPerPage;
     const pagedProducts = filteredProducts.slice(pageStart, pageStart + productsPerPage);
+    const updateProductStock = (sku: string, delta: number) => {
+      setProducts((current) => current.map((product) => (
+        product.sku === sku
+          ? { ...product, stockCount: Math.max(0, product.stockCount + delta) }
+          : product
+      )));
+    };
 
     return (
       <section className="store-inventory-experience">
@@ -406,7 +413,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
                 <span>{product.category}</span>
                 <h3>{product.name}</h3>
                 <p>{product.description}</p>
-                <small className="store-product-privacy">Нууцлал: {nominSecurityBadges.join(" · ")}</small>
                 <div>
                   <label>
                     {text.price}
@@ -416,6 +422,11 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
                     {text.stock}
                     <strong>{presentation.stock}</strong>
                   </label>
+                </div>
+                <div className="store-product-stock-controls" aria-label={`${product.name} үлдэгдэл`}>
+                  <button onClick={() => updateProductStock(product.sku, -1)} type="button" disabled={product.stockCount <= 0}>−</button>
+                  <strong>{product.stockCount} ш</strong>
+                  <button onClick={() => updateProductStock(product.sku, 1)} type="button">+</button>
                 </div>
               </div>
             </article>

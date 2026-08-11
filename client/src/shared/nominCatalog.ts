@@ -7,7 +7,6 @@ export type NominCatalogProduct = {
   stockCount: number;
   description: string;
   imageUrl: string;
-  privacyLabel: string;
 };
 
 export const nominStoreProfile = {
@@ -17,8 +16,6 @@ export const nominStoreProfile = {
   address: "Улаанбаатар, Сүхбаатар дүүрэг",
   logoUrl: "https://www.mongoliansaddle.com/partners/Nomin%20supermarket.JPG",
 };
-
-export const nominSecurityBadges = ["Vendor verified", "Price locked", "Synced catalog"];
 
 const imageBase = "https://images.unsplash.com";
 
@@ -84,5 +81,4 @@ export const nominCatalogProducts: NominCatalogProduct[] = nominCatalogRows.map(
   stockCount: index % 17 === 0 ? 0 : 8 + ((index * 7) % 68),
   description: `Номин Маркет - ${category.toLowerCase()} ангиллын баталгаатай бараа.`,
   imageUrl: `${imageBase}/${imageId}?auto=format&fit=crop&w=900&q=80`,
-  privacyLabel: nominSecurityBadges.join(" · "),
 }));

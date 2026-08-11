@@ -59,6 +59,7 @@ export function NotificationBell({ className = "", storeId, storeName }: { class
     }
   });
   const inbox = useRealtimeResource<NotificationInbox>("/notifications", ["notifications.updated"]);
+  const { refetch } = inbox;
   const visibleInbox = localInbox ?? inbox.data;
   const scopedLocalItems = localItems.filter((item) => isForStore(item, storeId, storeName));
   const scopedRemoteItems = (visibleInbox?.items ?? []).filter((item) => isForStore(item, storeId, storeName));
@@ -70,11 +71,19 @@ export function NotificationBell({ className = "", storeId, storeName }: { class
   }, [inbox.data]);
 
   useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void refetch();
+    }, 5000);
+    return () => window.clearInterval(intervalId);
+  }, [refetch]);
+
+  useEffect(() => {
     function refreshLocalItems(event?: Event) {
       if (event instanceof StorageEvent && event.key && event.key !== localNotificationKey) return;
       try {
         const raw = localStorage.getItem(localNotificationKey);
         setLocalItems(raw ? (JSON.parse(raw) as NotificationItem[]) : []);
+        void refetch();
       } catch {
         setLocalItems([]);
       }
@@ -86,7 +95,7 @@ export function NotificationBell({ className = "", storeId, storeName }: { class
       window.removeEventListener("storage", refreshLocalItems);
       window.removeEventListener("focus", refreshLocalItems);
     };
-  }, []);
+  }, [refetch]);
 
   async function markRead() {
     const readAt = new Date().toISOString();
