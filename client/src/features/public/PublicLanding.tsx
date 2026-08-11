@@ -180,7 +180,7 @@ function stableStockCount(seed: string) {
 }
 
 const marketTemplates = [
-  { category: "Хүнс", stores: ["Номин Супермаркет", "Fresh Mart", "Good Price Market", "Оргил Хүнс", "Minii Delguur"], products: [["Цагаан будаа", "rice bag"], ["Гурил", "flour"], ["Сүү", "milk bottle"], ["Өндөг", "eggs carton"], ["Алим", "apples"], ["Төмс", "potatoes"], ["Лууван", "carrots"], ["Үхрийн мах", "beef meat"], ["Тахианы мах", "chicken breast"], ["Бяслаг", "cheese"]] },
+  { category: "Хүнс", stores: ["Номин Маркет", "Fresh Mart", "Good Price Market", "Оргил Хүнс", "Minii Delguur"], products: [["Цагаан будаа", "rice bag"], ["Гурил", "flour"], ["Сүү", "milk bottle"], ["Өндөг", "eggs carton"], ["Алим", "apples"], ["Төмс", "potatoes"], ["Лууван", "carrots"], ["Үхрийн мах", "beef meat"], ["Тахианы мах", "chicken breast"], ["Бяслаг", "cheese"]] },
   { category: "24/7 дэлгүүр", stores: ["CU Mongolia", "GS25 Mongolia", "Quick Stop", "City Express", "Night Mart"], products: [["Сэндвич", "sandwich"], ["Кимбап", "kimbap"], ["Рамен", "instant ramen"], ["Ус", "water bottle"], ["Кола", "cola can"], ["Чипс", "potato chips"], ["Шоколад", "chocolate bar"], ["Зайрмаг", "ice cream"], ["Салат", "fresh salad"], ["Бэлэн хоол", "ready meal"]] },
   { category: "Гэр ахуй", stores: ["Home Plaza", "Ger Ahuin Tuv", "Cozy Home", "Kitchen House", "Houseware Hub"], products: [["Тавагны сет", "dinnerware"], ["Аяга", "mug"], ["Хайруулын таваг", "frying pan"], ["Сав суулга", "cookware"], ["Хутганы сет", "kitchen knife"], ["Алчуур", "towel"], ["Орны даавуу", "bed sheets"], ["Дэр", "pillow"], ["Сагс", "storage basket"], ["Цэвэрлэгээний багц", "cleaning supplies"]] },
   { category: "Цахилгаан бараа", stores: ["Tech Hub", "Digital Mall", "Phone Center", "Smart Store", "Electro Shop"], products: [["Чихэвч", "headphones"], ["Speaker", "bluetooth speaker"], ["Phone case", "phone case"], ["Цэнэглэгч", "phone charger"], ["Power bank", "power bank"], ["Keyboard", "keyboard"], ["Mouse", "computer mouse"], ["Web camera", "webcam"], ["Smart watch", "smart watch"], ["Desk lamp", "desk lamp"]] },
@@ -261,6 +261,13 @@ function buildDemoMarketStores(): StoreDirectoryItem[] {
       };
     }),
   );
+}
+
+function marketStorePriority(store: StoreDirectoryItem) {
+  const normalizedName = store.name.toLowerCase();
+  if (normalizedName === "номин маркет" || normalizedName === "nomin market") return 0;
+  if (normalizedName.includes("номин") || normalizedName.includes("nomin")) return 1;
+  return 2;
 }
 
 const initialProducts: Product[] = [
@@ -637,6 +644,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         || store.categories.some((category) => category.toLowerCase().includes(normalizedSearch))
       )
     )).sort((first, second) => {
+      const priorityCompare = marketStorePriority(first) - marketStorePriority(second);
+      if (priorityCompare) return priorityCompare;
       const categoryCompare = (first.categories[0] ?? "").localeCompare(second.categories[0] ?? "", "mn");
       return categoryCompare || first.name.localeCompare(second.name, "mn");
     });
@@ -655,7 +664,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           weightGrams: product.weightGrams,
           stockCount: stableStockCount(product.id),
           description: `${store.name} - ${product.category.toLowerCase()} ангилал.`,
-          imageUrl: productPhotoUrl(keywordForProduct(product)),
+          imageUrl: product.imageUrl || productPhotoUrl(keywordForProduct(product)),
           storeId: store.id,
           storeName: store.name,
         })).filter((product) => (

@@ -4007,7 +4007,7 @@ h3 {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: 142px auto auto auto;
+  grid-template-rows: 142px auto auto auto auto;
   gap: 7px;
   min-height: 0;
   overflow: hidden;
@@ -4021,12 +4021,16 @@ h3 {
 .market-page .landing-product-grid article > img,
 .market-page .landing-product-image-fallback {
   grid-column: 1 / -1;
+  display: block;
   width: 100%;
   height: 142px;
   margin: 0 -12px;
   width: calc(100% + 24px);
+  max-width: none;
+  aspect-ratio: 16 / 10;
   border-radius: 0;
   object-fit: cover;
+  object-position: center;
   background: #e8edf5;
 }
 
