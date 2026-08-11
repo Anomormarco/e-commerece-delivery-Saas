@@ -15,7 +15,15 @@ const projectHint = [
   process.env.npm_package_name,
 ].filter(Boolean).join(" ").toLowerCase();
 
-const mode = explicitMode || (projectHint.includes("store") ? "store" : "public");
+function modeFromProjectHint(hint) {
+  if (hint.includes("store")) return "store";
+  if (hint.includes("employee") || hint.includes("courier")) return "courier";
+  if (hint.includes("customer")) return "customer";
+  if (hint.includes("admin")) return "admin";
+  return "public";
+}
+
+const mode = explicitMode || modeFromProjectHint(projectHint);
 
 function binPath(packageName, binaryPath) {
   const candidates = [
