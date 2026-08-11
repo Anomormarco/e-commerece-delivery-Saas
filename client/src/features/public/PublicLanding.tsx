@@ -742,7 +742,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     [allMarketProducts, session, wishlist],
   );
   const subtotal = selectedItems.reduce((sum, product) => sum + product.priceMnt * product.quantity, 0);
-  const cartItemCount = selectedItems.reduce((sum, product) => sum + product.quantity, 0);
+  const cartItemCount = Object.values(cart).reduce((sum, quantity) => sum + Math.max(0, quantity), 0);
   const weightKg = Math.round(selectedItems.reduce((sum, product) => sum + product.weightGrams * product.quantity, 0) / 100) / 10;
   const activeDelivery = deliveryOptions.find((option) => option.id === deliveryType) ?? deliveryOptions[0];
   const customerLocation = location ?? { latitude: 47.9212, longitude: 106.9186 };
@@ -823,6 +823,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       const product = allMarketProducts.find((item) => item.id === productId);
       const maxQuantity = product?.stockCount ?? 0;
       const nextQuantity = Math.min(maxQuantity, Math.max(0, (current[productId] ?? 0) + delta));
+      if (nextQuantity <= 0) {
+        const { [productId]: _removed, ...nextCart } = current;
+        return nextCart;
+      }
       return { ...current, [productId]: nextQuantity };
     });
   }
