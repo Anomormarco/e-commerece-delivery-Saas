@@ -516,6 +516,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [addressText, setAddressText] = useState("");
   const [addressLabel, setAddressLabel] = useState("Одоогийн байршил");
+  const [addressError, setAddressError] = useState("");
   const [notice, setNotice] = useState("");
   const [paymentSuccess, setPaymentSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -920,9 +921,19 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return;
     }
 
+    if (!location) {
+      setAddressError("Одоогийн GPS байршлаа заавал авна уу.");
+      return;
+    }
+
+    if (!addressText.trim()) {
+      setAddressError("Дэлгэрэнгүй хаягаа заавал бөглөнө үү.");
+      return;
+    }
+
+    setAddressError("");
     const paymentLabel = paymentMethods.find((method) => method.id === paymentMethod)?.label ?? "QPay";
-    const fallbackAddress = "Улаанбаатар хот, хэрэглэгчийн сонгосон хүргэлтийн хаяг";
-    const deliveryAddressText = addressText.trim() || addressSuggestions.join(" · ") || fallbackAddress;
+    const deliveryAddressText = addressText.trim();
     const district = addressSuggestions.join(" · ") || deliveryAddressText;
     const storeName = selectedItems[0]?.storeName ?? selectedStore?.name ?? "DeliverHub market";
     let orderResult: {
@@ -1042,12 +1053,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           accuracy: position.coords.accuracy,
         };
         setLocation(nextLocation);
-        setAddressText((current) => current || `Lat ${nextLocation.latitude.toFixed(6)}, Lng ${nextLocation.longitude.toFixed(6)} - орц, давхар, хаалгаа нэмнэ үү`);
+        setAddressError("");
         setNotice("Байршил авлаа. Одоо KFC шиг давхар хаягаа текстээр баталгаажуул.");
         setLoading(false);
       },
       () => {
-        setNotice("Location зөвшөөрөгдсөнгүй. Хаягаа текстээр оруулаад үргэлжлүүлж болно.");
+        setAddressError("GPS зөвшөөрөгдсөнгүй. Хүргэлт хийхийн тулд одоогийн байршлаа заавал зөвшөөрнө үү.");
         setLoading(false);
       },
       { enableHighAccuracy: true, timeout: 12000 },
@@ -1420,6 +1431,40 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                       <span><em>Хүргэлт</em><strong>{formatMnt(deliveryFee)}</strong></span>
                       <span><em>Нийт төлөх дүн</em><strong>{formatMnt(subtotal + deliveryFee)}</strong></span>
                     </div>
+
+                    <section className={`landing-checkout-address ${addressError ? "has-error" : ""}`} aria-label="Хүргэлтийн хаяг">
+                      <div>
+                        <strong>Хүргэлтийн хаяг</strong>
+                        <button onClick={useCurrentLocation} type="button" disabled={loading}>
+                          {location ? "GPS шинэчлэх" : "Одоогийн байршил авах"}
+                        </button>
+                      </div>
+                      <span>
+                        {location
+                          ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`
+                          : "GPS байршил аваагүй байна"}
+                      </span>
+                      <label>
+                        Хаягийн нэр
+                        <input
+                          value={addressLabel}
+                          onChange={(event) => setAddressLabel(event.target.value)}
+                          placeholder="Гэр, ажил, хотхон..."
+                        />
+                      </label>
+                      <label>
+                        Дэлгэрэнгүй хаяг
+                        <input
+                          value={addressText}
+                          onChange={(event) => {
+                            setAddressText(event.target.value);
+                            if (event.target.value.trim()) setAddressError("");
+                          }}
+                          placeholder="Байр, орц, давхар, тоот..."
+                        />
+                      </label>
+                      {addressError ? <p role="alert">{addressError}</p> : null}
+                    </section>
 
                     <strong className="landing-payment-title">Төлбөрийн аргууд</strong>
                     <div className="landing-payment-methods" aria-label="Төлбөрийн арга">
