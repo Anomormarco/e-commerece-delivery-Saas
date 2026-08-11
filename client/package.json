@@ -14,6 +14,7 @@
     "build:all": "tsc -b && vite build --mode public --outDir dist/public && vite build --mode admin --outDir dist/admin && vite build --mode store --outDir dist/store && vite build --mode courier --outDir dist/courier && vite build --mode customer --outDir dist/customer",
     "build:public": "tsc -b && vite build --mode public --outDir dist/public",
     "build:vercel-public": "tsc -b && vite build --mode public --outDir dist",
+    "build:vercel": "node scripts/build-vercel.mjs",
     "build:admin": "tsc -b && vite build --mode admin --outDir dist/admin",
     "build:store": "tsc -b && vite build --mode store --outDir dist/store",
     "build:courier": "tsc -b && vite build --mode courier --outDir dist/courier",
