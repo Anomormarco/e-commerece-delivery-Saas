@@ -10536,6 +10536,74 @@ h3 {
   font-weight: 800;
 }
 
+.employee-header-spacer {
+  min-width: 0;
+}
+
+.employee-header-work {
+  display: grid;
+  grid-template-columns: minmax(120px, auto) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.employee-header-work > div {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.employee-header-work > div span {
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.employee-header-work > div strong {
+  color: #0f172a;
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.employee-header-work button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 148px;
+  min-height: 38px;
+  border: 1px solid rgba(249, 115, 22, 0.28);
+  border-radius: 999px;
+  padding: 4px 12px 4px 40px;
+  background: #fff7ed;
+  color: var(--color-secondary);
+  font-size: 11px;
+  font-weight: 950;
+}
+
+.employee-header-work button i {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: white;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.16);
+  transition: transform 180ms ease;
+}
+
+.employee-header-work button.online {
+  border-color: #86efac;
+  background: #ecfdf5;
+  color: #059669;
+  padding: 4px 40px 4px 12px;
+}
+
+.employee-header-work button.online i {
+  transform: translateX(106px);
+}
+
 .courier-header-toggle {
   display: inline-flex;
   align-items: center;
@@ -13958,17 +14026,26 @@ h2 {
   }
 
   .employee-app-header {
-    grid-template-columns: 42px minmax(0, 1fr) auto auto auto;
+    grid-template-columns: 42px minmax(0, 1fr) auto auto;
+    gap: 8px;
   }
 
-  .courier-header-toggle {
-    grid-column: 2 / 4;
-    justify-self: start;
-    min-height: 30px;
+  .employee-header-work {
+    grid-column: 2 / 5;
+    grid-template-columns: minmax(0, 1fr) auto;
+    width: 100%;
   }
 
-  .courier-header-toggle span {
-    font-size: 9px;
+  .employee-header-work > div {
+    justify-items: start;
+  }
+
+  .employee-header-work button {
+    width: 128px;
+  }
+
+  .employee-header-work button.online i {
+    transform: translateX(86px);
   }
 
   .employee-live-map {
