@@ -1221,53 +1221,110 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
   function renderTrackingCard() {
     const historyList = orderHistory.filter((item) => item.orderNo !== tracking?.orderNo);
+    const currentHistory = orderHistory.find((item) => item.orderNo === tracking?.orderNo);
+    const statusText = tracking?.statusLabel ?? currentHistory?.statusLabel ?? "Хүлээгдэж байна";
+    const createdText = currentHistory?.createdAt ? new Date(currentHistory.createdAt).toLocaleString("mn-MN") : "Одоо";
+    const updatedText = currentHistory?.updatedAt ? new Date(currentHistory.updatedAt).toLocaleString("mn-MN") : "Шинэчлэгдэж байна";
 
     if (!tracking && !orderHistory.length) {
       return (
-        <section className="landing-tracking-card is-empty">
-          <div>
-            <span>Миний захиалга</span>
-            <strong>Одоогоор идэвхтэй захиалга алга</strong>
-          </div>
-          <p>Маркетээс бараа сонгоод sandbox төлбөр баталгаажуулахад захиалгын явц энд харагдана.</p>
+        <section className="landing-orders-page is-empty">
+          <header>
+            <div>
+              <span>Миний захиалга</span>
+              <h2>Одоогоор идэвхтэй захиалга алга</h2>
+            </div>
+            <button onClick={() => setTrackingOpen(false)} type="button">Хаах</button>
+          </header>
+          <p>Маркетээс бараа сонгоод төлбөр төлөхөд захиалгын явц, дэлгүүр, өдөр цаг энд бүртгэгдэнэ.</p>
         </section>
       );
     }
 
     return (
-      <section className="landing-tracking-card">
+      <section className="landing-orders-page">
+        <header>
+          <div>
+            <span>Миний захиалсан</span>
+            <h2>Захиалгын явц</h2>
+          </div>
+          <button onClick={() => setTrackingOpen(false)} type="button">Хаах</button>
+        </header>
         {tracking ? (
-          <>
-            <div>
-              <span>Одоогийн захиалга</span>
+          <div className="landing-order-current">
+            <section>
+              <span>Төлөв</span>
+              <strong>{statusText}</strong>
+            </section>
+            <section>
+              <span>Холбоотой дэлгүүр</span>
+              <strong>{tracking.storeName}</strong>
+            </section>
+            <section>
+              <span>Үүссэн</span>
+              <strong>{createdText}</strong>
+            </section>
+            <section>
+              <span>Сүүлд шинэчлэгдсэн</span>
+              <strong>{updatedText}</strong>
+            </section>
+            <section>
+              <span>Нийт дүн</span>
+              <strong>{formatMnt(Number(tracking.totalMnt))}</strong>
+            </section>
+            <section>
+              <span>Захиалга</span>
               <strong>#{tracking.orderNo.slice(-6)}</strong>
-            </div>
-            <ol>
-              {tracking.timeline.map((step) => (
-                <li className={step.state} key={step.title}>
-                  <i />
-                  <div>
-                    <strong>{step.title}</strong>
-                    <span>{step.description}</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-            <div className="landing-courier-live">
-              <strong>{tracking.courier.name}</strong>
-              <span>{tracking.courier.etaText || "Courier замд гарахад байршил шууд харагдана"}</span>
+            </section>
+          </div>
+        ) : null}
+        {tracking ? (
+          <div className="landing-orders-grid">
+            <article className="landing-order-progress">
+              <div>
+                <span>Төлөвтэй захиалгын явц</span>
+                <strong>{tracking.courier.etaText || "Хүлээгдэж байна"}</strong>
+              </div>
+              <ol>
+                {tracking.timeline.map((step) => (
+                  <li className={step.state} key={step.title}>
+                    <i />
+                    <div>
+                      <strong>{step.title}</strong>
+                      <span>{step.description}</span>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </article>
+            <article className="landing-order-store">
+              <span>Холбоотой дэлгүүр</span>
+              <strong>{tracking.storeName}</strong>
+              <p>{tracking.district}</p>
               <b>
                 {tracking.courierLocation
-                  ? `${tracking.courierLocation.latitude.toFixed(5)}, ${tracking.courierLocation.longitude.toFixed(5)}`
+                  ? `Realtime: ${tracking.courierLocation.latitude.toFixed(5)}, ${tracking.courierLocation.longitude.toFixed(5)}`
                   : "Байршил идэвхжихийг хүлээж байна"}
               </b>
-            </div>
-          </>
+              <small>{tracking.courier.name}</small>
+            </article>
+          </div>
+        ) : null}
+        {currentHistory?.items?.length ? (
+          <section className="landing-order-items">
+            <strong>Захиалсан бараа</strong>
+            {currentHistory.items.map((item) => (
+              <div key={item.label}>
+                <span>{item.label}</span>
+                <b>{formatMnt(Number(item.amountMnt))}</b>
+              </div>
+            ))}
+          </section>
         ) : null}
         {orderHistory.length ? (
-          <div className="landing-order-history">
-            <strong>Өмнөх захиалгууд</strong>
-            {historyList.slice(0, 6).map((order) => (
+          <section className="landing-order-history">
+            <strong>Захиалгын түүх</strong>
+            {historyList.slice(0, 10).map((order) => (
               <article key={order.orderNo}>
                 <div>
                   <span>#{order.orderNo.slice(-6)}</span>
@@ -1278,7 +1335,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               </article>
             ))}
             {!historyList.length && tracking ? <small>Энэ захиалга одоогоор хамгийн сүүлийн түүх байна.</small> : null}
-          </div>
+          </section>
         ) : null}
       </section>
     );
