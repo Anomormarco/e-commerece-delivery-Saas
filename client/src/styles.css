@@ -1823,7 +1823,7 @@ h3 {
 .landing-cart-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 39;
+  z-index: 90;
   background:
     radial-gradient(circle at top, rgba(255, 255, 255, 0.06), transparent 30%),
     linear-gradient(180deg, #1f2834 0%, #202936 52%, #1f2732 100%);
@@ -1832,7 +1832,7 @@ h3 {
 .landing-cart-popover {
   position: fixed;
   inset: 0;
-  z-index: 41;
+  z-index: 91;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 22px;
@@ -1843,7 +1843,7 @@ h3 {
   overflow: auto;
   border: 0;
   border-radius: 0;
-  padding: 122px 32px 28px;
+  padding: 54px 32px 28px;
   background: transparent;
   box-shadow: none;
   transform: none;
@@ -1851,6 +1851,8 @@ h3 {
 }
 
 .landing-wishlist-popover {
+  inset: 96px 32px auto auto;
+  z-index: 91;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.68);
   border-radius: 28px;
@@ -1859,6 +1861,7 @@ h3 {
   box-shadow: 0 34px 90px rgba(15, 23, 42, 0.34);
   grid-template-rows: auto minmax(0, 1fr);
   width: min(680px, calc(100vw - 32px));
+  max-height: calc(100vh - 124px);
 }
 
 .landing-cart-popover header,
@@ -11856,7 +11859,7 @@ h2 {
     max-height: none;
     overflow: auto;
     border-radius: 0;
-    padding: 96px 9px 10px;
+    padding: 22px 9px 10px;
     transform: none;
   }
 
