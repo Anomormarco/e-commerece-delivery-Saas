@@ -131,6 +131,7 @@ const storePortalUrl = import.meta.env.VITE_SHOP_APP_URL ?? "http://127.0.0.1:51
 const tokenStorageKey = "deliverhub-customer-access-token";
 const customerStorageKey = "deliverhub-customer-profile";
 const wishlistStorageKey = "deliverhub-customer-wishlist";
+const orderSeenStorageKey = "deliverhub-customer-orders-seen";
 const storeUsersStorageKey = "deliverhub-store-users";
 const storeSessionStorageKey = "deliverhub-store-session";
 const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
@@ -524,6 +525,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
   const [trackingOpen, setTrackingOpen] = useState(false);
   const [orderHistory, setOrderHistory] = useState<OrderHistoryItem[]>([]);
+  const [seenOrderKey, setSeenOrderKey] = useState(() => localStorage.getItem(orderSeenStorageKey) ?? "");
 
   useEffect(() => {
     setSection(page);
@@ -546,11 +548,18 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setWishlist([]);
     setTracking(null);
     setOrderHistory([]);
+    setSeenOrderKey("");
     setCartOpen(false);
     setWishlistOpen(false);
     setProfileOpen(false);
     setTrackingOpen(false);
   }, [session]);
+
+  useEffect(() => {
+    if (!session) return;
+    const customerKey = `${orderSeenStorageKey}:${session.customer.id}`;
+    setSeenOrderKey(localStorage.getItem(customerKey) ?? "");
+  }, [session?.customer.id]);
 
   useEffect(() => {
     if (!cartOpen) return undefined;
@@ -776,6 +785,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   );
   const subtotal = selectedItems.reduce((sum, product) => sum + product.priceMnt * product.quantity, 0);
   const cartItemCount = Object.values(cart).reduce((sum, quantity) => sum + Math.max(0, quantity), 0);
+  const latestOrderKey = tracking?.orderNo ?? orderHistory[0]?.orderNo ?? "";
+  const unseenOrderCount = latestOrderKey && latestOrderKey !== seenOrderKey ? 1 : 0;
   const weightKg = Math.round(selectedItems.reduce((sum, product) => sum + product.weightGrams * product.quantity, 0) / 100) / 10;
   const activeDelivery = deliveryOptions.find((option) => option.id === deliveryType) ?? deliveryOptions[0];
   const customerLocation = location ?? { latitude: 47.9212, longitude: 106.9186 };
@@ -1342,6 +1353,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                 setCartOpen(false);
                 setWishlistOpen(false);
                 setProfileOpen(false);
+                if (latestOrderKey) {
+                  const customerKey = `${orderSeenStorageKey}:${session.customer.id}`;
+                  localStorage.setItem(customerKey, latestOrderKey);
+                  localStorage.setItem(orderSeenStorageKey, latestOrderKey);
+                  setSeenOrderKey(latestOrderKey);
+                }
                 setTrackingOpen((open) => !open);
               }}
               type="button"
@@ -1354,7 +1371,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                 <path d="M9 12H14" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
               </svg>
               <span>Миний захиалсан</span>
-              {tracking || orderHistory.length ? <b className="is-notification">{Math.min(9, Math.max(1, orderHistory.length))}</b> : null}
+              {unseenOrderCount > 0 ? <b className="is-notification">{unseenOrderCount}</b> : null}
             </button>
           ) : null}
         </div>

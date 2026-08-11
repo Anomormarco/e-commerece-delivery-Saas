@@ -20,10 +20,21 @@ function notificationCopy(event) {
     const totalMnt = Number(event.payload?.totalMnt ?? event.payload?.amountMnt ?? 0).toLocaleString("mn-MN");
     const orderNo = event.payload?.orderNo ?? event.payload?.orderId;
     const orderSuffix = orderNo ? ` #${String(orderNo).slice(-6)}` : "";
+    const itemSummary = Array.isArray(event.payload?.items)
+      ? event.payload.items
+        .map((item) => {
+          const quantity = Number(item.quantity || 0);
+          const amount = Number(item.amountMnt || 0).toLocaleString("mn-MN");
+          return `${item.name} x${quantity} (${amount} MNT)`;
+        })
+        .join(", ")
+      : "";
+    const address = event.payload?.addressText ? ` Хаяг: ${String(event.payload.addressText)}.` : "";
+    const itemsText = itemSummary ? ` Бараа: ${itemSummary}.` : "";
 
     return {
       title: `${storeName}: шинэ захиалга ирлээ`,
-      body: `${customerName}${orderSuffix} захиалга sandbox/QPay төлбөрөөр баталгаажлаа. Нийт дүн: ${totalMnt} MNT.`,
+      body: `${customerName}${orderSuffix} захиалга төлбөрөөр баталгаажлаа. Нийт дүн: ${totalMnt} MNT.${itemsText}${address}`,
     };
   }
 
