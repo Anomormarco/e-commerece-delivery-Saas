@@ -46,7 +46,6 @@ const text = {
   verified: "\u0411\u0430\u0442\u0430\u043B\u0433\u0430\u0430\u0436\u0441\u0430\u043D",
   identity: "\u0411\u0430\u0442\u0430\u043B\u0433\u0430\u0430\u0436\u0443\u0443\u043B\u0430\u043B\u0442\u044B\u043D \u0442\u04E9\u043B\u04E9\u0432",
   noJobs: "\u041E\u0434\u043E\u043E\u0445\u043E\u043D\u0434\u043E\u043E \u043E\u0439\u0440\u043E\u043B\u0446\u043E\u043E \u0445\u04AF\u0441\u044D\u043B\u0442 \u0430\u043B\u0433\u0430.",
-  activeDeliveryRule: "\u0410\u0436\u043B\u044B\u043D \u0442\u04E9\u043B\u04E9\u0432\u04E9\u04E9 \u0434\u0443\u0443\u0434\u043B\u0430\u0433\u0430 \u0434\u0443\u043D\u0434 \u0447 \u0441\u043E\u043B\u044C\u0436 \u0431\u043E\u043B\u043D\u043E.",
   actionError: "\u04AE\u0439\u043B\u0434\u044D\u043B \u0430\u043C\u0436\u0441\u0430\u043D\u0433\u04AF\u0439.",
   menu: "\u0426\u044D\u0441",
   mapTab: "\u0413\u0430\u0437\u0440\u044B\u043D \u0437\u0443\u0440\u0430\u0433",
@@ -64,8 +63,6 @@ const text = {
   deliveredOrders: "\u0425\u04AF\u0440\u0433\u044D\u0433\u0434\u0441\u044D\u043D",
   urgent: "\u042F\u0430\u0440\u0430\u043B\u0442\u0430\u0439",
   newRequest: "\u0428\u0438\u043D\u044D \u0445\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0445\u04AF\u0441\u044D\u043B\u0442",
-  offline: "\u0410\u0436\u043B\u0430\u0430\u0441 \u0431\u0443\u0443\u0445",
-  online: "\u0410\u0436\u0438\u043B \u044D\u0445\u043B\u04AF\u04AF\u043B\u044D\u0445",
   approximate: "\u041E\u0439\u0440\u043E\u043B\u0446\u043E\u043E\u0433\u043E\u043E\u0440",
   acceptOrder: "\u0425\u04AF\u043B\u044D\u044D\u043D \u0430\u0432\u0430\u0445",
   details: "\u0414\u044D\u043B\u0433\u044D\u0440\u044D\u043D\u0433\u04AF\u0439",
@@ -215,7 +212,6 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     return matchesSearch && matchesFilter;
   });
   const primaryJob = visibleJobs[0] ?? null;
-  const hasActiveDelivery = visibleJobs.some((job) => job.state !== "OFFERED");
   const newJobs = visibleJobs.filter((job) => job.state === "OFFERED");
   const deliveringJobs = visibleJobs.filter((job) => !["OFFERED", "DELIVERED"].includes(job.state));
   const deliveredJobs = visibleJobs.filter((job) => job.state === "DELIVERED");
@@ -493,7 +489,38 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                 </section>
               )}
 
-              {isOnline && hasActiveDelivery && <p className="courier-rule-note">{text.activeDeliveryRule}</p>}
+              {activeTab === "map" && primaryJob?.state === "OFFERED" && (
+                <article className="employee-map-offer-card">
+                  <div className="courier-map-request-head">
+                    <div>
+                      <span>{text.newRequest}</span>
+                      <strong>{typeof primaryJob.offerExpiresInSec === "number" ? `${primaryJob.offerExpiresInSec}s` : text.urgent}</strong>
+                    </div>
+                    <b>{primaryJob.payoutMnt ?? "0"} MNT</b>
+                  </div>
+                  <div className="courier-map-route">
+                    <p><span aria-hidden="true">{"\u25A0"}</span>{primaryJob.pickupAddress ?? primaryJob.name}</p>
+                    <i aria-hidden="true" />
+                    <p><span aria-hidden="true">{"\u25C6"}</span>{primaryJob.dropoffAddress ?? text.dropoff}</p>
+                  </div>
+                  <div className="courier-map-request-meta">
+                    <span>{primaryJob.distance}</span>
+                    <span>{text.approximate} {text.eta}</span>
+                    {typeof primaryJob.offerExpiresInSec === "number" && <span>{primaryJob.offerExpiresInSec}s</span>}
+                  </div>
+                  {primaryJob.routePlan && (
+                    <div className="employee-route-preview">
+                      <strong>{primaryJob.routePlan.label}</strong>
+                      <span>{primaryJob.routePlan.totalKm} км · ETA {primaryJob.routePlan.etaMinutes} мин</span>
+                      <small>Явган {primaryJob.routePlan.walkingMinutes} мин / Авто зам {primaryJob.routePlan.drivingMinutes} мин</small>
+                    </div>
+                  )}
+                  <div className="courier-map-request-actions">
+                    <button onClick={() => rejectJob(primaryJob.id)} type="button">{text.reject}</button>
+                    <button disabled={!isOnline || primaryJob.canAccept === false} onClick={() => acceptJob(primaryJob.id)} type="button">{text.acceptOrder}</button>
+                  </div>
+                </article>
+              )}
               {actionError && <p className="courier-rule-note danger">{actionError}</p>}
 
               {activeTab === "deliveries" && (

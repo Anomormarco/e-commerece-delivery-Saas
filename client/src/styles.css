@@ -11731,6 +11731,22 @@ h3 {
   backdrop-filter: blur(16px);
 }
 
+.employee-live-map > .courier-map-request-card:not(.is-active-route) {
+  display: none;
+}
+
+.employee-map-offer-card {
+  display: grid;
+  gap: 10px;
+  margin: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 16px;
+  padding: 13px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.12);
+  animation: courier-request-slide-up 260ms ease-out both;
+}
+
 .courier-map-request-card.is-active-route {
   border-color: rgba(37, 99, 235, 0.24);
 }
