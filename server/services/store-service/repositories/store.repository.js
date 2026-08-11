@@ -1,5 +1,12 @@
 import { prisma } from "@deliverhub/server-platform/database/prisma";
 
+function createHttpError(statusCode, message, code) {
+  const error = new Error(message);
+  error.statusCode = statusCode;
+  error.code = code;
+  return error;
+}
+
 const busyAssignmentStatuses = [
   "ACCEPTED",
   "ARRIVING_PICKUP",
@@ -117,7 +124,9 @@ export async function updateOrderStatus(tenantId, orderId, status, note) {
       include: { store: true },
     });
 
-    if (!order) throw new Error("Order not found.");
+    if (!order) {
+      throw createHttpError(404, "Захиалга олдсонгүй.", "NOT_FOUND");
+    }
 
     await tx.orderStatusHistory.create({
       data: {

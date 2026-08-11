@@ -506,9 +506,14 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           setDispatchTrackings((current) => ({ ...current, [target]: trackingFromDispatch(result) }));
         }
       } catch (error) {
-        setNotice(error instanceof Error ? error.message : "Захиалгын төлөв шинэчлэхэд алдаа гарлаа.");
-        window.setTimeout(() => setNotice(null), 2600);
-        return;
+        const message = error instanceof Error ? error.message : "";
+        const hasLocalOrder = localOrders.some((order) => order.id === target);
+        const canContinueLocally = message.startsWith("404:") && hasLocalOrder && label !== text.callCourier;
+        if (!canContinueLocally) {
+          setNotice(error instanceof Error ? error.message : "Захиалгын төлөв шинэчлэхэд алдаа гарлаа.");
+          window.setTimeout(() => setNotice(null), 2600);
+          return;
+        }
       }
 
       setLocalOrders((current) => {
