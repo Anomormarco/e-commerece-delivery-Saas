@@ -497,6 +497,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
 
     if (mappedStatus) {
       let usedLocalFallback = false;
+      const isPreparedAction = mappedStatus === storeOrderStatuses.prepared;
       try {
         if (label === text.confirm) {
           await postJson(`/orders/${target}/accept`);
@@ -508,7 +509,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "";
-        const canContinueLocally = message.startsWith("404:") && label !== text.callCourier;
+        const canContinueLocally = label !== text.callCourier && (isPreparedAction || message.startsWith("404:") || message.includes("Захиалга олдсонгүй"));
         if (!canContinueLocally) {
           setNotice(error instanceof Error ? error.message : "Захиалгын төлөв шинэчлэхэд алдаа гарлаа.");
           window.setTimeout(() => setNotice(null), 2600);
