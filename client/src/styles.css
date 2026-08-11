@@ -2198,23 +2198,10 @@ h3 {
   text-transform: uppercase;
 }
 
-.landing-payment-methods .payment-toki {
-  border: 1px solid #93c5fd;
-  background: #fde047;
-  color: #020617;
-  font-size: 10px;
-}
-
-.landing-payment-methods .payment-lend {
-  border: 1px solid #6ee7b7;
-  background: #f97316;
-}
-
-.landing-payment-methods .payment-storepay {
-  border: 1px solid #fecdd3;
-  background: #fff1f2;
-  color: #2563eb;
-  font-size: 9px;
+.landing-payment-methods .payment-qpay,
+.landing-payment-methods .payment-card {
+  background: #ff8a1f;
+  color: white;
 }
 
 .landing-payment-methods button strong {

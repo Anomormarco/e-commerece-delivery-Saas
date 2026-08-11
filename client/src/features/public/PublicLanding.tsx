@@ -12,7 +12,7 @@ import heroWatchImage from "../../assets/geed-hero/watch.avif";
 type AuthMode = "login" | "register";
 type PartnerAuthMode = "login" | "register";
 type DeliveryType = "bike" | "car" | "foot";
-type PaymentMethod = "toki" | "lend" | "storepay" | "qpay" | "card";
+type PaymentMethod = "qpay" | "card";
 type LandingSection = "home" | "market" | "contact" | "courier" | "partner";
 
 type PublicLandingProps = {
@@ -120,7 +120,7 @@ const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
 const marketRowsPerPage = 15;
 const marketCardsPerRow = 3;
 const paymentMethods: Array<{ id: PaymentMethod; label: string; mark: string }> = [
-  { id: "storepay", label: "StorePay", mark: "SP" },
+  { id: "qpay", label: "QPay", mark: "QP" },
   { id: "card", label: "Bank Card", mark: "CC" },
 ];
 const productsPerMarketPage = marketRowsPerPage * marketCardsPerRow;
@@ -457,7 +457,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return [];
     }
   });
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("toki");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("qpay");
   const [stores, setStores] = useState<StoreDirectoryItem[]>([]);
   const [storeSearch, setStoreSearch] = useState("");
   const [storeFilter, setStoreFilter] = useState("Бүгд");
