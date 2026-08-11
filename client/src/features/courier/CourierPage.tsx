@@ -26,7 +26,7 @@ type GeoPoint = {
 const fallbackPosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const tileSize = 256;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
-const employeeUiDeployMarker = "employee-work-mode-offer-card-v4";
+const employeeUiDeployMarker = "employee-work-mode-offer-card-v5";
 
 const text = {
   title: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0430\u0436\u0438\u043B\u0442\u0430\u043D",
@@ -199,7 +199,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [otpByJob, setOtpByJob] = useState<Record<string, string>>({});
   const [mapMode, setMapMode] = useState<MapMode>("white");
   const [zoom, setZoom] = useState(13);
-  const isOnline = localOnline ?? dashboard.data?.online ?? true;
+  const isOnline = localOnline ?? dashboard.data?.online ?? false;
   const visibleJobs = jobs ?? dashboard.data?.jobs ?? [];
   const filteredJobs = visibleJobs.filter((job) => {
     const normalizedSearch = orderSearch.trim().toLowerCase();
@@ -278,18 +278,6 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
       lng: position.lng,
     }).catch(() => {});
   }, [isOnline, position]);
-
-  useEffect(() => {
-    if (!dashboard.data || dashboard.data.online || localOnline !== null) return;
-
-    setLocalOnline(true);
-    postJson<CourierDashboard>("/status", { online: true })
-      .then((nextDashboard) => {
-        setLocalOnline(nextDashboard.online);
-        setJobs(nextDashboard.jobs);
-      })
-      .catch(() => setLocalOnline(false));
-  }, [dashboard.data, localOnline]);
 
   async function setWorkMode(nextOnline: boolean) {
     if (nextOnline === isOnline) return;
@@ -390,14 +378,14 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
           </button>
           <div className="courier-work-mode" role="group" aria-label="Ажлын төлөв">
             <button
-              className={isOnline ? "active" : ""}
+              className={!isOnline ? "active" : ""}
               onClick={() => setWorkMode(false)}
               type="button"
             >
               {text.stopWork}
             </button>
             <button
-              className={!isOnline ? "active" : ""}
+              className={isOnline ? "active" : ""}
               onClick={() => setWorkMode(true)}
               type="button"
             >
