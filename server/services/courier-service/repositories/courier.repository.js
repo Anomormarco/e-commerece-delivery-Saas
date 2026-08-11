@@ -15,7 +15,7 @@ const defaultTenant = {
 };
 
 const offerTimeoutMs = 12_000;
-const defaultStoreLocation = { lat: 47.9189, lng: 106.9176 };
+const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
 
 function createHttpError(statusCode, message) {
   const error = new Error(message);
@@ -29,10 +29,7 @@ function toNumber(value, fallback) {
 }
 
 function pickupLocation(order) {
-  return {
-    lat: toNumber(order.branch?.latitude, defaultStoreLocation.lat),
-    lng: toNumber(order.branch?.longitude, defaultStoreLocation.lng),
-  };
+  return defaultStoreLocation;
 }
 
 function dropoffLocation(order, pickup) {
@@ -628,14 +625,6 @@ export async function updateCourierOnlineState(userId, online) {
     return null;
   }
 
-  const hasActiveDelivery = employee.assignments.some((assignment) =>
-    activeAssignmentStatuses.includes(assignment.status),
-  );
-
-  if (!online && hasActiveDelivery) {
-    throw createHttpError(409, "\u0418\u0434\u044D\u0432\u0445\u0442\u044D\u0439 \u0445\u04AF\u0440\u0433\u044D\u043B\u0442\u0442\u044D\u0439 \u04AF\u0435\u0434 offline \u0431\u043E\u043B\u043E\u0445\u0433\u04AF\u0439.");
-  }
-
   return prisma.deliveryEmployee.update({
     where: { id: employee.id },
     data: { online },
@@ -658,7 +647,11 @@ export async function acceptDeliveryAssignment(userId, assignmentId) {
     }
 
     if (!employee.online) {
-      throw createHttpError(409, "\u0410\u0436\u0438\u043B \u0430\u0432\u0430\u0445\u044B\u043D \u04E9\u043C\u043D\u04E9 \u043E\u043D\u043B\u0430\u0439\u043D \u0442\u04E9\u043B\u04E9\u0432\u0442 \u043E\u0440\u043D\u043E \u0443\u0443.");
+      await transaction.deliveryEmployee.update({
+        where: { id: employee.id },
+        data: { online: true },
+        select: { id: true },
+      });
     }
 
     const updateResult = await transaction.deliveryAssignment.updateMany({

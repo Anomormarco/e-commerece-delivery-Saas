@@ -65,7 +65,7 @@ function assignmentDistanceKm(assignment) {
   return Number(haversineKm(pickup, dropoff).toFixed(1)) || (assignment.order.customerAddressId ? 4.8 : 2.4);
 }
 
-const defaultStoreLocation = { lat: 47.9189, lng: 106.9176 };
+const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
 
 function toNumber(value, fallback) {
   const next = Number(value);
@@ -73,10 +73,7 @@ function toNumber(value, fallback) {
 }
 
 function pickupLocation(order) {
-  return {
-    lat: toNumber(order.branch?.latitude, defaultStoreLocation.lat),
-    lng: toNumber(order.branch?.longitude, defaultStoreLocation.lng),
-  };
+  return defaultStoreLocation;
 }
 
 function dropoffLocation(order, pickup) {

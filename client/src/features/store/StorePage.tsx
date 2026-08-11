@@ -67,7 +67,8 @@ type StoreDispatchResponse = {
 const localStoreOrdersKey = "deliverhub-store-orders";
 const localStoreProductsKey = "deliverhub-store-products";
 const nominLogoUrl = nominStoreProfile.logoUrl;
-const fallbackStorePosition: GeoPoint = { lat: 47.9189, lng: 106.9176 };
+const fixedNominStorePosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
+const fallbackStorePosition: GeoPoint = fixedNominStorePosition;
 const mapTileSize = 256;
 const storeMapZoom = 14;
 const storePreparedLocalBuildMarker = "prepared-local-v2";
@@ -401,8 +402,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [dispatchTrackings, setDispatchTrackings] = useState<Record<string, StoreDeliveryTracking>>({});
   const [pickupOtpByAssignment, setPickupOtpByAssignment] = useState<Record<string, string>>({});
-  const [storePosition, setStorePosition] = useState<GeoPoint | null>(null);
-  const [locationError, setLocationError] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem("deliverhub-store-theme", themeMode);
@@ -415,31 +414,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   useEffect(() => {
     setProductPage(1);
   }, [productSearch]);
-
-  useEffect(() => {
-    if (!("geolocation" in navigator)) {
-      setLocationError("GPS байршил авах боломжгүй байна");
-      return;
-    }
-
-    const watchId = navigator.geolocation.watchPosition(
-      (nextPosition) => {
-        setLocationError(null);
-        setStorePosition({
-          lat: nextPosition.coords.latitude,
-          lng: nextPosition.coords.longitude,
-        });
-      },
-      () => setLocationError("GPS эрх нээгээгүй байна"),
-      {
-        enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 12000,
-      },
-    );
-
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
 
   useEffect(() => {
     function refreshLocalOrders(event?: Event) {
@@ -604,13 +578,14 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   } = {}) {
     const route = options.tracking?.routePlan;
     const nearbyCouriers = options.tracking?.nearbyCouriers ?? [];
-    const storePoint = route?.pickup ?? storePosition ?? fallbackStorePosition;
-    const courierPoint = route?.courier;
-    const dropoffPoint = route?.dropoff;
-    const center = route ? mapCenterFor([storePoint, courierPoint, dropoffPoint]) : storePoint;
+    const isOfferOnly = options.tracking?.status === "OFFERED";
+    const hasAcceptedRoute = Boolean(route && !isOfferOnly);
+    const storePoint = fallbackStorePosition;
+    const courierPoint = hasAcceptedRoute ? route?.courier : undefined;
+    const dropoffPoint = hasAcceptedRoute ? route?.dropoff : undefined;
+    const center = hasAcceptedRoute ? mapCenterFor([storePoint, courierPoint, dropoffPoint]) : storePoint;
     const tiles = getStoreMapTiles(center, storeMapZoom);
     const courierName = options.tracking?.courier?.name ?? "Ойрын employee";
-    const isOfferOnly = options.tracking?.status === "OFFERED";
 
     return (
       <div className={`store-live-map ${options.className ?? ""}`} aria-label="Дэлгүүрийн газрын зураг">
@@ -625,7 +600,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             />
           ))}
         </div>
-        <span className="store-live-radius" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-hidden="true" />
         {courierPoint && !isOfferOnly && (
           <span
             className="store-live-route route-to-courier"
@@ -642,8 +616,8 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         )}
         <i className="store-live-pin store-pin" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-label="Дэлгүүр" />
         {dropoffPoint && <i className="store-live-pin customer-pin" style={mapPointStyle(dropoffPoint, center, storeMapZoom)} aria-label="Хүргэх хаяг" />}
-        {courierPoint && <i className="store-live-pin courier-pin moving" style={mapPointStyle(courierPoint, center, storeMapZoom)} aria-label={courierName} />}
-        {nearbyCouriers.slice(0, 8).map((courier, index) => {
+        {courierPoint && <i className="store-live-pin courier-pin" style={mapPointStyle(courierPoint, center, storeMapZoom)} aria-label={courierName} />}
+        {false && nearbyCouriers.slice(0, 8).map((courier, index) => {
           const point = courier.location ?? {
             lat: storePoint.lat + (index % 2 === 0 ? 0.004 : -0.003) * (index + 1),
             lng: storePoint.lng + (index % 3 === 0 ? -0.004 : 0.003) * (index + 1),
@@ -660,12 +634,12 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             </i>
           );
         })}
-        {options.tracking?.status === "OFFERED" && <b className="store-live-scan" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-hidden="true" />}
+        {false && options.tracking?.status === "OFFERED" && <b className="store-live-scan" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-hidden="true" />}
         <div className="store-live-map-status">
           <strong>{options.statusLabel ?? options.tracking?.statusLabel ?? "Дэлгүүрийн байршил"}</strong>
           <span>
             {options.orderId ? `#${options.orderId} · ` : ""}
-            {isOfferOnly ? "Nearest employee queue - ID ба зайгаар эрэмбэлсэн" : locationError ?? (storePosition ? "GPS live" : "GPS авч байна")}
+            {isOfferOnly ? "Nearest employee queue - ID ба зайгаар эрэмбэлсэн" : "Nomin fixed pickup - Бөхийн Өргөө"}
           </span>
         </div>
       </div>
@@ -678,7 +652,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const route = tracking.routePlan;
     const isAccepted = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"].includes(tracking.status);
     const isDelivering = ["PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF"].includes(tracking.status);
-    const isWaiting = tracking.status === "OFFERED";
     const needsStoreOtp = tracking.status === "PICKUP_VERIFICATION";
     const courierName = tracking.courier?.name ?? "Ойрын хүргэлтийн ажилтан";
     const eta = route?.etaMinutes ?? tracking.routePlan?.drivingMinutes ?? 0;
@@ -698,7 +671,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           <span className="store-dispatch-route route-to-customer" aria-hidden="true" />
           <i className="store-dispatch-pin store-pin" aria-hidden="true" />
           <i className="store-dispatch-pin customer-pin" aria-hidden="true" />
-          <i className={`store-dispatch-pin courier-pin ${isAccepted || isDelivering ? "moving" : ""}`} aria-hidden="true" />
+          <i className="store-dispatch-pin courier-pin" aria-hidden="true" />
           {nearbyCouriers.slice(0, 5).map((courier, index) => (
             <i
               aria-hidden="true"
@@ -707,7 +680,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               title={courier.name}
             />
           ))}
-          {isWaiting && <b className="store-dispatch-scan" aria-hidden="true" />}
           <div className="store-dispatch-map-status">
             <strong>{tracking?.statusLabel}</strong>
             <span>#{order.id} · {courierName}</span>

@@ -17,7 +17,7 @@ const vehicleLabels = {
   CAR: "Машин",
 };
 
-const defaultStoreLocation = { lat: 47.9189, lng: 106.9176 };
+const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
 
 function dispatchRule(weightKg, distanceKm) {
   if (weightKg > 12 || distanceKm > 8) return { requiredVehicle: "CAR", eligibleVehicles: ["CAR"] };
@@ -56,10 +56,7 @@ function haversineKm(from, to) {
 }
 
 function pickupLocation(order) {
-  return {
-    lat: toNumber(order.branch?.latitude, defaultStoreLocation.lat),
-    lng: toNumber(order.branch?.longitude, defaultStoreLocation.lng),
-  };
+  return defaultStoreLocation;
 }
 
 function dropoffLocation(order, pickup, distanceKm) {
@@ -219,7 +216,7 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
   const rankedEmployees = rankNearbyEmployees(order, eligibleEmployees, distanceKm);
   const nearest = rankedEmployees[0] ?? selectNearestEmployee(order, eligibleEmployees, distanceKm);
   if (!nearest?.employee?.id) {
-    const error = new Error("Онлайн, идэвхтэй хүргэлтийн ажилтан олдсонгүй.");
+    const error = new Error("Хүргэлтийн ажилтан олдсонгүй.");
     error.statusCode = 409;
     error.code = "NO_COURIER_AVAILABLE";
     throw error;
@@ -269,7 +266,7 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
     routePlan,
     message: nearest
       ? `${nearest.employee.user?.fullName ?? "Ойрын ажилтан"} руу хүргэлтийн санал илгээлээ. ETA ${routePlan.etaMinutes} мин.`
-      : "Онлайн, идэвхтэй хүргэлтийн ажилтан олдсонгүй. Дуудлага queue-д үлдлээ.",
+      : "Хүргэлтийн ажилтан олдсонгүй. Дуудлага queue-д үлдлээ.",
   };
 }
 

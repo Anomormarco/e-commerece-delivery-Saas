@@ -86,35 +86,48 @@ export async function findLatestDispatchableOrder(tenantId) {
   return tenantOrder ?? prisma.order.findFirst(baseQuery);
 }
 
-export async function listMatchingEmployees(tenantId, vehicleTypes) {
-  return prisma.deliveryEmployee.findMany({
-    where: {
-      tenantId,
-      online: true,
-      verificationStatus: "ACTIVE",
-      vehicleType: { in: vehicleTypes },
-      assignments: {
-        none: { status: { in: busyAssignmentStatuses } },
-      },
+function availableEmployeeWhere({ tenantId, vehicleTypes, onlineOnly, activeOnly, vehicleOnly } = {}) {
+  return {
+    ...(tenantId ? { tenantId } : {}),
+    ...(onlineOnly ? { online: true } : {}),
+    ...(activeOnly ? { verificationStatus: "ACTIVE" } : {}),
+    ...(vehicleOnly ? { vehicleType: { in: vehicleTypes } } : {}),
+    assignments: {
+      none: { status: { in: busyAssignmentStatuses } },
     },
-    include: { user: true },
-    orderBy: { id: "asc" },
-  });
+  };
+}
+
+async function findEmployeesByPriority(steps) {
+  for (const where of steps) {
+    const employees = await prisma.deliveryEmployee.findMany({
+      where,
+      include: { user: true },
+      orderBy: { id: "asc" },
+    });
+
+    if (employees.length) return employees;
+  }
+
+  return [];
+}
+
+export async function listMatchingEmployees(tenantId, vehicleTypes) {
+  return findEmployeesByPriority([
+    availableEmployeeWhere({ tenantId, vehicleTypes, onlineOnly: true, activeOnly: true, vehicleOnly: true }),
+    availableEmployeeWhere({ tenantId, vehicleTypes, onlineOnly: false, activeOnly: true, vehicleOnly: true }),
+    availableEmployeeWhere({ tenantId, vehicleTypes, onlineOnly: false, activeOnly: true, vehicleOnly: false }),
+    availableEmployeeWhere({ tenantId, vehicleTypes, onlineOnly: false, activeOnly: false, vehicleOnly: false }),
+  ]);
 }
 
 export async function listMatchingEmployeesAnyTenant(vehicleTypes) {
-  return prisma.deliveryEmployee.findMany({
-    where: {
-      online: true,
-      verificationStatus: "ACTIVE",
-      vehicleType: { in: vehicleTypes },
-      assignments: {
-        none: { status: { in: busyAssignmentStatuses } },
-      },
-    },
-    include: { user: true },
-    orderBy: { id: "asc" },
-  });
+  return findEmployeesByPriority([
+    availableEmployeeWhere({ vehicleTypes, onlineOnly: true, activeOnly: true, vehicleOnly: true }),
+    availableEmployeeWhere({ vehicleTypes, onlineOnly: false, activeOnly: true, vehicleOnly: true }),
+    availableEmployeeWhere({ vehicleTypes, onlineOnly: false, activeOnly: true, vehicleOnly: false }),
+    availableEmployeeWhere({ vehicleTypes, onlineOnly: false, activeOnly: false, vehicleOnly: false }),
+  ]);
 }
 
 export async function countMatchingEmployees(tenantId, vehicleTypes) {

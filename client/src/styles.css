@@ -7652,6 +7652,13 @@ h3 {
   display: none;
 }
 
+.store-live-radius,
+.store-live-courier,
+.store-live-scan,
+.store-dispatch-scan {
+  display: none !important;
+}
+
 .store-live-route {
   position: absolute;
   z-index: 3;
@@ -11291,56 +11298,35 @@ h3 {
   font-weight: 800;
 }
 
-.courier-header-toggle {
-  display: inline-flex;
+.courier-work-mode {
+  display: inline-grid;
+  grid-template-columns: minmax(78px, 1fr) minmax(92px, 1fr);
   align-items: center;
-  gap: 6px;
-  min-height: 34px;
+  min-height: 38px;
   border: 1px solid #dde5ef;
   border-radius: 999px;
-  padding: 4px 7px;
+  padding: 3px;
   background: #f8fafc;
-  color: #64748b;
+  gap: 3px;
 }
 
-.courier-header-toggle span {
+.courier-work-mode button {
+  min-height: 30px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 8px;
+  background: transparent;
+  color: #64748b;
   font-size: 10px;
   font-weight: 900;
+  line-height: 1.05;
+  white-space: normal;
 }
 
-.courier-header-toggle i {
-  position: relative;
-  width: 34px;
-  height: 20px;
-  border-radius: 999px;
-  background: #cbd5e1;
-}
-
-.courier-header-toggle i::after {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: 14px;
-  height: 14px;
-  border-radius: 999px;
-  background: white;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2);
-  content: "";
-  transition: transform 180ms ease;
-}
-
-.courier-header-toggle.is-working {
-  border-color: rgba(34, 197, 94, 0.24);
-  background: #ecfdf5;
-  color: #047857;
-}
-
-.courier-header-toggle.is-working i {
+.courier-work-mode button.active {
   background: #22c55e;
-}
-
-.courier-header-toggle.is-working i::after {
-  transform: translateX(14px);
+  color: white;
+  box-shadow: 0 8px 18px rgba(34, 197, 94, 0.24);
 }
 
 .employee-shift-card button {
@@ -14799,12 +14785,13 @@ h2 {
     gap: 8px;
   }
 
-  .courier-header-toggle {
-    min-height: 30px;
+  .courier-work-mode {
+    grid-template-columns: 72px 86px;
   }
 
-  .courier-header-toggle span {
-    display: none;
+  .courier-work-mode button {
+    font-size: 9px;
+    padding: 0 6px;
   }
 
   .employee-header-profile {

@@ -23,10 +23,10 @@ type GeoPoint = {
   lng: number;
 };
 
-const fallbackPosition: GeoPoint = { lat: 47.9189, lng: 106.9176 };
+const fallbackPosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const tileSize = 256;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
-const employeeUiDeployMarker = "employee-work-mode-offer-card-v3";
+const employeeUiDeployMarker = "employee-work-mode-offer-card-v4";
 
 const text = {
   title: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0430\u0436\u0438\u043B\u0442\u0430\u043D",
@@ -199,7 +199,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [otpByJob, setOtpByJob] = useState<Record<string, string>>({});
   const [mapMode, setMapMode] = useState<MapMode>("white");
   const [zoom, setZoom] = useState(13);
-  const isOnline = localOnline ?? dashboard.data?.online ?? false;
+  const isOnline = localOnline ?? dashboard.data?.online ?? true;
   const visibleJobs = jobs ?? dashboard.data?.jobs ?? [];
   const filteredJobs = visibleJobs.filter((job) => {
     const normalizedSearch = orderSearch.trim().toLowerCase();
@@ -279,13 +279,27 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     }).catch(() => {});
   }, [isOnline, position]);
 
-  async function toggleOnline() {
-    const confirmed = window.confirm(isOnline ? text.confirmStop : text.confirmStart);
+  useEffect(() => {
+    if (!dashboard.data || dashboard.data.online || localOnline !== null) return;
+
+    setLocalOnline(true);
+    postJson<CourierDashboard>("/status", { online: true })
+      .then((nextDashboard) => {
+        setLocalOnline(nextDashboard.online);
+        setJobs(nextDashboard.jobs);
+      })
+      .catch(() => setLocalOnline(false));
+  }, [dashboard.data, localOnline]);
+
+  async function setWorkMode(nextOnline: boolean) {
+    if (nextOnline === isOnline) return;
+
+    const confirmed = window.confirm(nextOnline ? text.confirmStart : text.confirmStop);
     if (!confirmed) return;
     setActionError(null);
 
     try {
-      const nextDashboard = await postJson<CourierDashboard>("/status", { online: !isOnline });
+      const nextDashboard = await postJson<CourierDashboard>("/status", { online: nextOnline });
       setLocalOnline(nextDashboard.online);
       setJobs(nextDashboard.jobs);
     } catch (error) {
@@ -374,16 +388,22 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
               <small>{dashboard.data?.vehicleLabel ?? text.vehicle}</small>
             </div>
           </button>
-          <button
-            className={`courier-header-toggle ${isOnline ? "is-working" : "is-off-work"}`}
-            data-work-mode={isOnline ? "working" : "off-work"}
-            onClick={toggleOnline}
-            type="button"
-            aria-label={isOnline ? text.stopWork : text.startWork}
-          >
-            <span>{isOnline ? text.stopWork : text.startWork}</span>
-            <i aria-hidden="true" />
-          </button>
+          <div className="courier-work-mode" role="group" aria-label="Ажлын төлөв">
+            <button
+              className={isOnline ? "active" : ""}
+              onClick={() => setWorkMode(false)}
+              type="button"
+            >
+              {text.stopWork}
+            </button>
+            <button
+              className={!isOnline ? "active" : ""}
+              onClick={() => setWorkMode(true)}
+              type="button"
+            >
+              {text.startWork}
+            </button>
+          </div>
           <NotificationBell />
         </header>
         <StateBlock loading={dashboard.loading} error={dashboard.error} empty={!dashboard.data}>
