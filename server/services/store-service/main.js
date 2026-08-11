@@ -11,4 +11,13 @@ startService({
   onUpgrade: storeSocket.handleUpgrade,
 });
 
-storeEventBus.subscribe?.(["order.paid", "order.status.updated"], handleStoreEvent);
+storeEventBus.subscribe?.([
+  "order.paid",
+  "order.status.updated",
+  "delivery.request.created",
+  "delivery.job.accepted",
+  "delivery.job.rejected",
+  "delivery.job.arrived_store",
+  "delivery.job.pickup_verified",
+  "delivery.job.dropoff_verified",
+], handleStoreEvent);

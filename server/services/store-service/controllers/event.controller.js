@@ -1,7 +1,10 @@
 import { createNotificationFromEvent } from "@deliverhub/server-platform/notifications/notification-center";
+import { appCache } from "@deliverhub/server-platform/cache/memory-cache";
 import { broadcastStoreDashboardRefresh, broadcastStoreNotificationsUpdated } from "../socket.js";
 
 export async function handleStoreEvent(event = {}) {
+  appCache.clearByPrefix("store:dashboard:");
+
   await createNotificationFromEvent("store", event).catch((error) => {
     console.warn("[store-service] notification create failed", error.message);
   });

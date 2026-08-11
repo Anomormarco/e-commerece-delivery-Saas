@@ -41,6 +41,23 @@ type StoreOrderView = StoreOrder & {
   sourceBody?: string;
 };
 
+type StoreDeliveryTracking = NonNullable<StoreOrder["deliveryTracking"]>;
+
+type StoreDispatchResponse = {
+  assignmentId: string;
+  orderId: string;
+  nearestCourier: {
+    id?: string;
+    employeeId?: string;
+    name: string;
+    vehicleType: string;
+    toPickupKm?: number;
+    etaMinutes?: number;
+  } | null;
+  routePlan?: StoreDeliveryTracking["routePlan"];
+  message?: string;
+};
+
 const localStoreOrdersKey = "deliverhub-store-orders";
 const localStoreProductsKey = "deliverhub-store-products";
 const nominLogoUrl = nominStoreProfile.logoUrl;
@@ -297,6 +314,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   const [stockDraft, setStockDraft] = useState("0");
   const [localOrders, setLocalOrders] = useState<StoreOrder[]>(() => readLocalOrders(store));
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [dispatchTrackings, setDispatchTrackings] = useState<Record<string, StoreDeliveryTracking>>({});
 
   useEffect(() => {
     localStorage.setItem("deliverhub-store-theme", themeMode);
@@ -340,6 +358,25 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     setStockEditor(null);
   }
 
+  function trackingFromDispatch(result: StoreDispatchResponse): StoreDeliveryTracking {
+    return {
+      assignmentId: result.assignmentId,
+      status: "OFFERED",
+      statusLabel: result.nearestCourier
+        ? "Ойрын хүргэлтийн ажилтанд санал илгээгдсэн"
+        : "Онлайн хүргэлтийн ажилтан хайж байна",
+      courier: result.nearestCourier
+        ? {
+            id: result.nearestCourier.employeeId ?? result.nearestCourier.id ?? result.assignmentId,
+            name: result.nearestCourier.name,
+            vehicleType: result.nearestCourier.vehicleType,
+          }
+        : null,
+      createdAt: new Date().toISOString(),
+      routePlan: result.routePlan,
+    };
+  }
+
   async function runAction(label: string, target: string) {
     const isLocalNotificationOrder = localOrders.some((order) => order.id === target && Boolean((order as StoreOrderView).sourceBody));
     const mappedStatus = label === text.confirm
@@ -361,7 +398,8 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         } else if (label === "Бэлтгэж дууссан") {
           await postJson(`/orders/${target}/prepared`);
         } else if (label === text.callCourier) {
-          await postJson("/dispatch-request", { orderId: target });
+          const result = await postJson<StoreDispatchResponse>("/dispatch-request", { orderId: target });
+          setDispatchTrackings((current) => ({ ...current, [target]: trackingFromDispatch(result) }));
         }
       } catch (error) {
         setNotice(error instanceof Error ? error.message : "Захиалгын төлөв шинэчлэхэд алдаа гарлаа.");
@@ -412,6 +450,44 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     window.setTimeout(() => setNotice(null), 2200);
   }
 
+  function renderDeliveryTracking(order: StoreOrderView, tracking?: StoreDeliveryTracking | null) {
+    if (!tracking) return null;
+
+    const route = tracking.routePlan;
+    const isAccepted = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"].includes(tracking.status);
+    const isWaiting = tracking.status === "OFFERED";
+    const courierName = tracking.courier?.name ?? "Ойрын хүргэлтийн ажилтан";
+    const eta = route?.etaMinutes ?? tracking.routePlan?.drivingMinutes ?? 0;
+    const toPickupKm = route?.toPickupKm ?? 0;
+
+    return (
+      <section className={`store-dispatch-tracker ${isAccepted ? "is-accepted" : "is-searching"}`}>
+        <div className="store-dispatch-map" aria-label="Хүргэлтийн газрын зураг">
+          <span className="store-dispatch-route route-to-store" aria-hidden="true" />
+          <span className="store-dispatch-route route-to-customer" aria-hidden="true" />
+          <i className="store-dispatch-pin store-pin" aria-hidden="true" />
+          <i className="store-dispatch-pin customer-pin" aria-hidden="true" />
+          <i className={`store-dispatch-pin courier-pin ${isAccepted ? "moving" : ""}`} aria-hidden="true" />
+          {isWaiting && <b className="store-dispatch-scan" aria-hidden="true" />}
+          <div className="store-dispatch-map-status">
+            <strong>{tracking.statusLabel}</strong>
+            <span>#{order.id} · {courierName}</span>
+          </div>
+        </div>
+        <div className="store-dispatch-detail">
+          <span>{isAccepted ? "Хүргэлтийн ажилтан ирж байна" : "Хүргэлтийн ажилтан хайж байна"}</span>
+          <h3>{courierName}</h3>
+          <p>{tracking.statusLabel}</p>
+          <div>
+            <b>{toPickupKm.toFixed(1)} км</b>
+            <b>{eta} мин</b>
+            <b>{tracking.courier?.vehicleType ?? "AUTO"}</b>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   function renderOrders(orders: StoreOrderView[]) {
     const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? orders[0];
     const preparedLabel = "Бэлтгэж дууссан";
@@ -424,6 +500,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const activeStepIndex = selectedOrder ? Math.max(0, workflowSteps.findIndex((step) => step.key === selectedOrder.status)) : 0;
     const selectedItems = selectedOrder?.items ?? [];
     const selectedAddress = selectedOrder?.addressText || selectedOrder?.district || "Хаяг бүртгэгдээгүй байна";
+    const selectedTracking = selectedOrder ? selectedOrder.deliveryTracking ?? dispatchTrackings[selectedOrder.id] : null;
 
     return (
       <article className="store-dash-card store-dash-wide">
@@ -474,6 +551,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
                 </span>
               ))}
             </div>
+            {renderDeliveryTracking(selectedOrder, selectedTracking)}
             <div className="store-order-focus-actions">
               {selectedOrder.status === storeOrderStatuses.prepared ? (
                 <button onClick={() => runAction(text.callCourier, selectedOrder.id)} type="button">{text.callCourier}</button>

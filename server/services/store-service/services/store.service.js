@@ -108,8 +108,43 @@ function selectNearestEmployee(order, employees, distanceKm) {
     .sort((left, right) => left.score - right.score)[0] ?? null;
 }
 
+function formatAssignmentTracking(order) {
+  const assignment = order.deliveryAssignments?.[0];
+  if (!assignment) return null;
+
+  const firstRoute = routePlanFor(order, assignment.employee, 2);
+  const routePlan = routePlanFor(order, assignment.employee, firstRoute.totalKm || 2);
+  const statusLabels = {
+    OFFERED: "Ойрын хүргэлтийн ажилтанд санал илгээгдсэн",
+    ACCEPTED: "Хүргэлтийн ажилтан дэлгүүр рүү ирж байна",
+    ARRIVING_PICKUP: "Хүргэлтийн ажилтан дэлгүүр рүү ойртож байна",
+    PICKUP_VERIFICATION: "Дэлгүүр дээр ирсэн, бараа авах баталгаажуулалт хүлээж байна",
+    PICKED_UP: "Бараа аваад хүргэлтэнд гарсан",
+    IN_TRANSIT: "Хэрэглэгч рүү хүргэж байна",
+    ARRIVING_DROPOFF: "Хүлээн авагчид ойртож байна",
+    DELIVERED: "Хүргэлт дууссан",
+    REJECTED: "Санал татгалзсан, дараагийн ажилтан руу шилжинэ",
+  };
+
+  return {
+    assignmentId: assignment.id,
+    status: assignment.status,
+    statusLabel: statusLabels[assignment.status] ?? assignment.status,
+    courier: assignment.employee
+      ? {
+          id: assignment.employee.id,
+          name: assignment.employee.user?.fullName ?? "Хүргэлтийн ажилтан",
+          vehicleType: assignment.employee.vehicleType ?? "WALK",
+        }
+      : null,
+    acceptedAt: assignment.acceptedAt,
+    createdAt: assignment.createdAt,
+    routePlan,
+  };
+}
+
 export async function getStoreDashboard(tenantId) {
-  return appCache.remember(`store:dashboard:${tenantId}`, () => loadStoreDashboard(tenantId), 10_000);
+  return appCache.remember(`store:dashboard:${tenantId}`, () => loadStoreDashboard(tenantId), 2_000);
 }
 
 async function loadStoreDashboard(tenantId) {
@@ -124,6 +159,7 @@ async function loadStoreDashboard(tenantId) {
       id: order.id,
       status: order.status,
       amountMnt: order.totalMnt.toString(),
+      deliveryTracking: formatAssignmentTracking(order),
       district: order.customerAddress?.label ?? "Хаяг сонгогдоогүй байна",
     })),
     activeOrder: activeOrder

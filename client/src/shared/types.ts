@@ -34,6 +34,29 @@ export type StoreOrder = {
   district: string;
   storeId?: string;
   storeName?: string;
+  deliveryTracking?: {
+    assignmentId: string;
+    status: string;
+    statusLabel: string;
+    courier: {
+      id: string;
+      name: string;
+      vehicleType: string;
+    } | null;
+    acceptedAt?: string | null;
+    createdAt?: string | null;
+    routePlan?: {
+      pickup: { lat: number; lng: number };
+      dropoff: { lat: number; lng: number };
+      courier: { lat: number; lng: number };
+      toPickupKm: number;
+      totalKm: number;
+      walkingMinutes: number;
+      drivingMinutes: number;
+      fastestMode: "WALKING" | "AUTO_ROAD";
+      etaMinutes: number;
+    };
+  } | null;
 };
 
 export type CustomerTracking = {
