@@ -1538,10 +1538,24 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
                   <aside className="landing-cart-summary">
                     <h2>Төлбөрийн хэсэг</h2>
+                    <section className="landing-checkout-delivery" aria-label="Хүргэлтийн төрөл ба төлбөр">
+                      <div>
+                        <strong>Хүргэлтийн төрөл</strong>
+                        <span>{activeDelivery.label} · {formatMnt(deliveryFee)}</span>
+                      </div>
+                      <div className="landing-checkout-delivery-options">
+                        {deliveryOptions.map((option) => (
+                          <button className={deliveryType === option.id ? "active" : ""} key={option.id} onClick={() => setDeliveryType(option.id)} type="button">
+                            <strong>{option.label}</strong>
+                            <span>{option.copy}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </section>
                     <div className="landing-cart-totals">
                       <span><em>Барааны тоо</em><strong>{cartItemCount}</strong></span>
                       <span><em>Барааны дүн</em><strong>{formatMnt(subtotal)}</strong></span>
-                      <span><em>Хүргэлт</em><strong>{formatMnt(deliveryFee)}</strong></span>
+                      <span><em>Хүргэлт · {activeDelivery.label}</em><strong>{formatMnt(deliveryFee)}</strong></span>
                       <span><em>Нийт төлөх дүн</em><strong>{formatMnt(subtotal + deliveryFee)}</strong></span>
                     </div>
 
@@ -1746,26 +1760,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           </aside>
 
           <section className="market-products">
-            <section className="market-address-panel">
-              <button onClick={useCurrentLocation} type="button" disabled={loading}>GPS авах</button>
-              <label>
-                <span>Хаягийн нэр</span>
-                <input value={addressLabel} onChange={(event) => setAddressLabel(event.target.value)} placeholder="Гэр, ажил, хотхон..." />
-              </label>
-              <label>
-                <span>Дэлгэрэнгүй хаяг</span>
-                <input value={addressText} onChange={(event) => setAddressText(event.target.value)} placeholder="Байр, орц, давхар, тоот..." />
-              </label>
-              <div className="market-delivery-picker" aria-label="Хүргэлтийн төрөл">
-                {deliveryOptions.map((option) => (
-                  <button className={deliveryType === option.id ? "active" : ""} key={option.id} onClick={() => setDeliveryType(option.id)} type="button">
-                    <strong>{option.label}</strong>
-                    <span>{option.copy}</span>
-                  </button>
-                ))}
-              </div>
-            </section>
-
             <section className="market-store-feed">
               {pagedStoreProductGroups.length ? pagedStoreProductGroups.map(({ store, storeIndex, products }) => {
                 const brand = storeBrandFor(store.name);
