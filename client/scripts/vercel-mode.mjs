@@ -1,5 +1,7 @@
 export function projectHintFromEnv(env = process.env) {
   return [
+    env.DELIVERHUB_APP_MODE,
+    env.VITE_DELIVERHUB_APP_MODE,
     env.VERCEL_PROJECT_PRODUCTION_URL,
     env.VERCEL_URL,
     env.VERCEL_PROJECT_NAME,

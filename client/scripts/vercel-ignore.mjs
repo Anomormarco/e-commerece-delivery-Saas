@@ -51,6 +51,20 @@ const sharedPaths = [
   "vercel.json",
 ];
 
+const publicSharedPaths = [
+  "client/package.json",
+  "client/package-lock.json",
+  "client/index.html",
+  "client/vercel.json",
+  "client/scripts/",
+  "client/src/apps/public/",
+  "client/src/main",
+  "client/src/App",
+  "package.json",
+  "package-lock.json",
+  "vercel.json",
+];
+
 function changedFiles() {
   if (!previousSha) return null;
   const result = spawnSync("git", ["diff", "--name-only", previousSha, currentSha], { encoding: "utf8" });
@@ -69,7 +83,9 @@ if (!files) {
   process.exit(1);
 }
 
-const relevantPrefixes = [...sharedPaths, ...(modeSpecificPaths[mode] ?? modeSpecificPaths.public)];
+const relevantPrefixes = mode === "public"
+  ? [...publicSharedPaths, ...modeSpecificPaths.public]
+  : [...sharedPaths, ...(modeSpecificPaths[mode] ?? modeSpecificPaths.public)];
 const shouldBuild = files.some((file) => pathMatches(file, relevantPrefixes));
 
 if (shouldBuild) {
