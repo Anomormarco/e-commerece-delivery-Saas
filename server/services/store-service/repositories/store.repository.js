@@ -56,6 +56,29 @@ export async function findDispatchOrder(tenantId, orderId) {
   });
 }
 
+export async function findLatestDispatchableOrder(tenantId) {
+  const statuses = ["PAID", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP"];
+  const baseQuery = {
+    where: {
+      status: { in: statuses },
+      deliveryAssignments: {
+        none: { status: { in: ["OFFERED", "ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION", "PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF"] } },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    include: { store: true, branch: true, customerAddress: true },
+  };
+
+  const tenantOrder = tenantId
+    ? await prisma.order.findFirst({
+        ...baseQuery,
+        where: { ...baseQuery.where, tenantId },
+      })
+    : null;
+
+  return tenantOrder ?? prisma.order.findFirst(baseQuery);
+}
+
 export async function listMatchingEmployees(tenantId, vehicleTypes) {
   return prisma.deliveryEmployee.findMany({
     where: {
@@ -101,7 +124,7 @@ export async function countMatchingEmployees(tenantId, vehicleTypes) {
   });
 }
 
-export async function createDeliveryOffer(tenantId, orderId, employeeId = null) {
+export async function createDeliveryOffer(tenantId, orderId, employeeId) {
   return prisma.deliveryAssignment.create({
     data: {
       tenantId,

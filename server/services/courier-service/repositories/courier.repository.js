@@ -157,12 +157,10 @@ async function createNextCourierOffer(transaction, { tenantId, orderId }) {
 }
 
 export async function advanceExpiredCourierOffers(tenantId) {
-  if (!tenantId) return { expiredCount: 0, reofferedCount: 0 };
-
   const cutoff = new Date(Date.now() - offerTimeoutMs);
   const expiredOffers = await prisma.deliveryAssignment.findMany({
     where: {
-      tenantId,
+      ...(tenantId ? { tenantId } : {}),
       status: "OFFERED",
       employeeId: { not: null },
       createdAt: { lt: cutoff },
@@ -549,7 +547,7 @@ export async function findCourierDashboardByUserId(userId) {
 
   if (!employeeSeed) return null;
 
-  await advanceExpiredCourierOffers(employeeSeed.tenantId);
+  await advanceExpiredCourierOffers();
 
   const employee = userId
     ? await prisma.deliveryEmployee.findUnique({
