@@ -120,10 +120,7 @@ const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
 const marketRowsPerPage = 15;
 const marketCardsPerRow = 3;
 const paymentMethods: Array<{ id: PaymentMethod; label: string; mark: string }> = [
-  { id: "toki", label: "Toki", mark: "Toki" },
-  { id: "lend", label: "Lend", mark: "✓" },
   { id: "storepay", label: "StorePay", mark: "SP" },
-  { id: "qpay", label: "QPay", mark: "QP" },
   { id: "card", label: "Bank Card", mark: "CC" },
 ];
 const productsPerMarketPage = marketRowsPerPage * marketCardsPerRow;
