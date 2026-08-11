@@ -7355,9 +7355,13 @@ h3 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+  align-items: stretch;
 }
 
 .store-product-card {
+  display: grid;
+  grid-template-rows: 190px minmax(0, 1fr);
+  min-height: 452px;
   overflow: hidden;
   border: 1px solid #1e293b;
   border-radius: 8px;
@@ -7372,8 +7376,8 @@ h3 {
 .store-product-visual {
   position: relative;
   display: grid;
-  height: 142px;
-  min-height: 142px;
+  height: 190px;
+  min-height: 190px;
   border-bottom: 1px solid #1e293b;
   background:
     linear-gradient(135deg, rgba(37, 99, 235, 0.18), rgba(249, 115, 22, 0.18)),
@@ -7431,7 +7435,8 @@ h3 {
 
 .store-product-body {
   display: grid;
-  gap: 8px;
+  grid-template-rows: auto auto minmax(42px, auto) 1fr;
+  gap: 10px;
   padding: 12px;
 }
 
@@ -7446,9 +7451,8 @@ h3 {
   overflow: hidden;
   margin: 0;
   color: white;
-  font-size: 16px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 15px;
+  line-height: 1.2;
 }
 
 .store-product-body p {
@@ -7470,7 +7474,7 @@ h3 {
 }
 
 .store-product-body .store-product-stock-controls {
-  display: grid;
+  display: none !important;
   grid-template-columns: 34px 1fr 34px;
   align-items: center;
   gap: 8px;
@@ -7499,6 +7503,119 @@ h3 {
   color: white;
   font-size: 13px;
   text-align: center;
+}
+
+.store-stock-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(2, 6, 23, 0.68);
+  backdrop-filter: blur(10px);
+}
+
+.store-stock-modal > div {
+  display: grid;
+  gap: 14px;
+  width: min(440px, 100%);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  padding: 18px;
+  background: #0b1120;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
+}
+
+.store-stock-modal header,
+.store-stock-modal article,
+.store-stock-modal footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.store-stock-modal header span {
+  color: white;
+  font-size: 16px;
+  font-weight: 950;
+}
+
+.store-stock-modal header button,
+.store-stock-modal footer button,
+.store-stock-editor button {
+  border: 0;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.16);
+  color: white;
+  font-weight: 950;
+}
+
+.store-stock-modal header button {
+  width: 34px;
+  height: 34px;
+}
+
+.store-stock-modal article {
+  justify-content: flex-start;
+}
+
+.store-stock-modal article img {
+  width: 74px;
+  height: 74px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.store-stock-modal article div {
+  display: grid;
+  gap: 4px;
+}
+
+.store-stock-modal article strong {
+  color: white;
+}
+
+.store-stock-modal article small {
+  color: #94a3b8;
+}
+
+.store-stock-modal article b {
+  color: #fdba74;
+}
+
+.store-stock-editor {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  gap: 10px;
+}
+
+.store-stock-editor button {
+  height: 44px;
+  background: rgba(249, 115, 22, 0.22);
+  color: #fed7aa;
+  font-size: 18px;
+}
+
+.store-stock-editor input {
+  height: 44px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
+  background: #111827;
+  color: white;
+  font-size: 18px;
+  font-weight: 950;
+  text-align: center;
+}
+
+.store-stock-modal footer button {
+  min-height: 40px;
+  padding: 0 16px;
+}
+
+.store-stock-modal footer button:last-child {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
 }
 
 .store-product-body label {

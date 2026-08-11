@@ -35,6 +35,7 @@ type ProductItem = {
 };
 
 const localStoreOrdersKey = "deliverhub-store-orders";
+const localStoreProductsKey = "deliverhub-store-products";
 const nominLogoUrl = nominStoreProfile.logoUrl;
 
 type StoreIdentity = {
@@ -198,6 +199,15 @@ const syncedNominProducts: ProductItem[] = nominCatalogProducts.map((product) =>
   imageUrl: product.imageUrl,
 }));
 
+function readSavedProducts(): ProductItem[] {
+  try {
+    const raw = localStorage.getItem(localStoreProductsKey);
+    return raw ? (JSON.parse(raw) as ProductItem[]) : syncedNominProducts;
+  } catch {
+    return syncedNominProducts;
+  }
+}
+
 function productStatus(product: ProductItem): { status: string; stock: string; tone: ProductTone } {
   if (product.stockCount <= 0) return { status: text.out, stock: "0 \u0448", tone: "danger" };
   if (product.stockCount <= 12) return { status: text.reorderNeeded, stock: `${product.stockCount} \u0448`, tone: "warning" };
@@ -235,12 +245,18 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   const [notice, setNotice] = useState<string | null>(null);
   const [productSearch, setProductSearch] = useState("");
   const [productPage, setProductPage] = useState(1);
-  const [products, setProducts] = useState<ProductItem[]>(syncedNominProducts);
+  const [products, setProducts] = useState<ProductItem[]>(readSavedProducts);
+  const [stockEditor, setStockEditor] = useState<ProductItem | null>(null);
+  const [stockDraft, setStockDraft] = useState("0");
   const [localOrders, setLocalOrders] = useState<StoreOrder[]>(() => readLocalOrders(store));
 
   useEffect(() => {
     localStorage.setItem("deliverhub-store-theme", themeMode);
   }, [themeMode]);
+
+  useEffect(() => {
+    localStorage.setItem(localStoreProductsKey, JSON.stringify(products));
+  }, [products]);
 
   useEffect(() => {
     setProductPage(1);
@@ -260,6 +276,21 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
       window.removeEventListener("focus", refreshLocalOrders);
     };
   }, [store?.id, store?.storeName]);
+
+  function openStockEditor(product: ProductItem) {
+    setStockEditor(product);
+    setStockDraft(String(product.stockCount));
+  }
+
+  function saveStockEditor() {
+    if (!stockEditor) return;
+    const nextStock = Math.max(0, Math.round(Number(stockDraft || 0)));
+    setProducts((current) => current.map((product) => (
+      product.sku === stockEditor.sku ? { ...product, stockCount: nextStock } : product
+    )));
+    setNotice(`${stockEditor.name} үлдэгдэл ${nextStock} ш болж хадгалагдлаа.`);
+    setStockEditor(null);
+  }
 
   async function runAction(label: string, target: string) {
     const mappedStatus = label === text.confirm
@@ -375,7 +406,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           : product
       )));
     };
-
     return (
       <section className="store-inventory-experience">
         <div className="store-inventory-head">
@@ -404,7 +434,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               <div className="store-product-visual">
                 <img alt={product.name} src={product.imageUrl} />
                 <div>
-                  <button onClick={() => runAction(text.edit, product.name)} type="button" aria-label={text.edit}>{"\u270E"}</button>
+                  <button onClick={() => openStockEditor(product)} type="button" aria-label={`${product.name} үлдэгдэл засах`}>{"\u270E"}</button>
                   <button onClick={() => runAction(text.delete, product.name)} type="button" aria-label={text.delete}>{"\u232B"}</button>
                 </div>
                 <b>{presentation.status}</b>
@@ -608,6 +638,37 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           </StateBlock>
         </div>
       </section>
+      {stockEditor ? (
+        <section className="store-stock-modal" aria-label="Үлдэгдэл засах" role="dialog">
+          <div>
+            <header>
+              <span>Үлдэгдэл засах</span>
+              <button onClick={() => setStockEditor(null)} type="button" aria-label="Хаах">×</button>
+            </header>
+            <article>
+              <img alt="" src={stockEditor.imageUrl} />
+              <div>
+                <strong>{stockEditor.name}</strong>
+                <small>{stockEditor.sku} · {stockEditor.category}</small>
+                <b>{stockEditor.price}</b>
+              </div>
+            </article>
+            <div className="store-stock-editor">
+              <button onClick={() => setStockDraft((value) => String(Math.max(0, Number(value || 0) - 1)))} type="button">−</button>
+              <input
+                inputMode="numeric"
+                onChange={(event) => setStockDraft(event.target.value.replace(/[^\d]/g, ""))}
+                value={stockDraft}
+              />
+              <button onClick={() => setStockDraft((value) => String(Number(value || 0) + 1))} type="button">+</button>
+            </div>
+            <footer>
+              <button onClick={() => setStockEditor(null)} type="button">Болих</button>
+              <button onClick={saveStockEditor} type="button">Хадгалах</button>
+            </footer>
+          </div>
+        </section>
+      ) : null}
       <button className="store-mobile-fab" onClick={() => setActiveTab("orders")} type="button" aria-label={text.newDelivery}>
         +
       </button>

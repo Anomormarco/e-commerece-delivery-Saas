@@ -58,6 +58,18 @@ export async function createNotificationFromEvent(role, event = {}) {
       ? String(event.payload.userId)
       : null;
 
+  const existing = await prisma.notification.findFirst({
+    where: {
+      channel,
+      userId: scopedUserId,
+      title,
+      body,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (existing) return existing;
+
   return prisma.notification.create({
     data: {
       tenantId,

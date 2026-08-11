@@ -9,6 +9,7 @@ import {
 } from "@deliverhub/server-platform/auth/credentials";
 import { prisma } from "@deliverhub/server-platform/database/prisma";
 import { signJwt } from "@deliverhub/server-platform/http/jwt";
+import { createNotificationFromEvent } from "@deliverhub/server-platform/notifications/notification-center";
 import { customerEventBus } from "../messaging.js";
 import { findCustomerOrderHistory, findCustomerWithLatestOrder } from "../repositories/customer.repository.js";
 import { formatTrackingTime, maskPhone } from "../utils/customer-formatting.js";
@@ -407,7 +408,7 @@ export async function createCustomerOrder(userId, input) {
   });
 
   appCache.forget?.(`customer:tracking:${userId}`);
-  customerEventBus.publishSoon("order.paid", {
+  const paidEventPayload = {
     orderId: order.id,
     storeId: store.id,
     storeName: store.name,
@@ -427,6 +428,14 @@ export async function createCustomerOrder(userId, input) {
       quantity: money(item.quantity),
       amountMnt: String(money(item.priceMnt) * money(item.quantity)),
     })),
+  };
+
+  customerEventBus.publishSoon("order.paid", paidEventPayload);
+  createNotificationFromEvent("store", {
+    type: "order.paid",
+    payload: paidEventPayload,
+  }).catch((error) => {
+    console.warn("[customer-service] store notification create failed", error.message);
   });
 
   return {
