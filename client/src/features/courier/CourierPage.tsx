@@ -8,7 +8,6 @@ import type { QueueItem } from "../../shared/types";
 
 type CourierDashboard = {
   online: boolean;
-  expectedEarningMnt: string;
   employeeName: string;
   vehicleLabel: string;
   jobs: QueueItem[];
@@ -33,7 +32,6 @@ const text = {
   stopWork: "\u0410\u0436\u043B\u0430\u0430\u0441 \u0431\u0443\u0443\u0445",
   confirmStart: "\u0410\u0436\u0438\u043B \u044D\u0445\u043B\u04AF\u04AF\u043B\u044D\u0445 \u04AF\u04AF?",
   confirmStop: "\u0410\u0436\u043B\u0430\u0430\u0441 \u0431\u0443\u0443\u0445 \u04AF\u04AF?",
-  earning: "\u0425\u04AF\u043B\u044D\u044D\u0433\u0434\u044D\u0436 \u0431\u0443\u0439 \u043E\u0440\u043B\u043E\u0433\u043E",
   map: "\u041E\u0439\u0440\u043E\u043B\u0446\u043E\u043E\u0445 pickup \u0445\u04AF\u0441\u044D\u043B\u0442\u04AF\u04AF\u0434",
   accept: "\u0410\u0436\u0438\u043B \u0430\u0432\u0430\u0445",
   reject: "\u0422\u0430\u0442\u0433\u0430\u043B\u0437\u0430\u0445",
@@ -285,13 +283,13 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
         </aside>
         {sidebarOpen && <button className="employee-drawer-backdrop" onClick={() => setSidebarOpen(false)} type="button" aria-label="Close menu" />}
 
-        <header className="employee-app-header" data-header-version="profile-left-v3">
+        <header className="employee-app-header" data-header-version="profile-left-v5">
           <button className="employee-menu-button" onClick={() => setSidebarOpen(true)} type="button" aria-label={text.menu}>
             <span />
             <span />
             <span />
           </button>
-          <button className="employee-header-profile" onClick={() => setActiveTab("profile")} type="button">
+          <button className="employee-header-profile" onClick={() => setActiveTab("profile")} type="button" aria-label={text.profile}>
             <span aria-hidden="true">{(dashboard.data?.employeeName ?? text.title).slice(0, 1)}</span>
             <div>
               <strong>{dashboard.data?.employeeName ?? text.title}</strong>
@@ -501,7 +499,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                 <section className="employee-dynamic-panel" aria-label={text.walletTab}>
                   <div className="employee-panel-title">
                     <span>{text.walletTab}</span>
-                    <strong>{dashboard.data.expectedEarningMnt} MNT</strong>
+                    <strong>{totalPayoutMnt} MNT</strong>
                   </div>
                   <div className="employee-stat-grid">
                     <div>

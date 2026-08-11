@@ -10510,7 +10510,7 @@ h3 {
   grid-template-columns: 38px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-width: 0;
+  min-width: 150px;
   border: 0;
   border-radius: 16px;
   padding: 4px 8px 4px 4px;
@@ -14050,6 +14050,7 @@ h2 {
 
   .employee-header-profile {
     gap: 8px;
+    min-width: 128px;
     padding-right: 4px;
   }
 
