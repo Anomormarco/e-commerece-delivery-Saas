@@ -5,6 +5,11 @@ const mode = resolveVercelMode();
 const previousSha = process.env.VERCEL_GIT_PREVIOUS_SHA;
 const currentSha = process.env.VERCEL_GIT_COMMIT_SHA || "HEAD";
 
+if (mode === "courier") {
+  console.log("[deliverhub] courier: employee app deploys every commit.");
+  process.exit(1);
+}
+
 const modeSpecificPaths = {
   admin: [
     "client/src/apps/admin/",
