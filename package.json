@@ -19,6 +19,7 @@
     "docker:server:up": "docker compose -f docker-compose.server.yml up",
     "docker:server:down": "docker compose -f docker-compose.server.yml down",
     "build": "npm run build --workspace client",
+    "build:vercel": "npm run build:vercel --workspace client",
     "build:server": "npm run build --workspace @deliverhub/api",
     "preview": "npm run preview --workspace client",
     "db:generate": "npm run db:generate --workspace @deliverhub/api",
