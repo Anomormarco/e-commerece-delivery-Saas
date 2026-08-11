@@ -10,6 +10,7 @@ import { prisma } from "@deliverhub/server-platform/database/prisma";
 
 const sessionCookieName = "deliverhub_admin_session";
 const sessionMaxAgeMs = 1000 * 60 * 60 * 12;
+const isProduction = process.env.NODE_ENV === "production";
 
 function createHttpError(statusCode, message, code = "VALIDATION_ERROR") {
   const error = new Error(message);
@@ -33,16 +34,16 @@ function setSessionCookie(response, token) {
   response.cookie(sessionCookieName, token, {
     httpOnly: true,
     maxAge: sessionMaxAgeMs,
-    sameSite: "lax",
-    secure: false,
+    sameSite: isProduction ? "none" : "lax",
+    secure: isProduction,
   });
 }
 
 function clearSessionCookie(response) {
   response.clearCookie(sessionCookieName, {
     httpOnly: true,
-    sameSite: "lax",
-    secure: false,
+    sameSite: isProduction ? "none" : "lax",
+    secure: isProduction,
   });
 }
 
