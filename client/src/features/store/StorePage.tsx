@@ -477,7 +477,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
       status: "OFFERED",
       statusLabel: result.nearestCourier
         ? "Ойрын хүргэлтийн ажилтанд санал илгээгдсэн"
-        : "Онлайн хүргэлтийн ажилтан хайж байна",
+        : "Nearest employee queue-д санал илгээгдсэн",
       courier: result.nearestCourier
         ? {
             id: result.nearestCourier.employeeId ?? result.nearestCourier.id ?? result.assignmentId,
@@ -610,6 +610,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const center = route ? mapCenterFor([storePoint, courierPoint, dropoffPoint]) : storePoint;
     const tiles = getStoreMapTiles(center, storeMapZoom);
     const courierName = options.tracking?.courier?.name ?? "Ойрын employee";
+    const isOfferOnly = options.tracking?.status === "OFFERED";
 
     return (
       <div className={`store-live-map ${options.className ?? ""}`} aria-label="Дэлгүүрийн газрын зураг">
@@ -625,14 +626,14 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           ))}
         </div>
         <span className="store-live-radius" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-hidden="true" />
-        {courierPoint && (
+        {courierPoint && !isOfferOnly && (
           <span
             className="store-live-route route-to-courier"
             style={mapRouteStyle(courierPoint, storePoint, center, storeMapZoom)}
             aria-hidden="true"
           />
         )}
-        {dropoffPoint && (
+        {dropoffPoint && !isOfferOnly && (
           <span
             className="store-live-route route-to-customer"
             style={mapRouteStyle(storePoint, dropoffPoint, center, storeMapZoom)}
@@ -664,7 +665,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           <strong>{options.statusLabel ?? options.tracking?.statusLabel ?? "Дэлгүүрийн байршил"}</strong>
           <span>
             {options.orderId ? `#${options.orderId} · ` : ""}
-            {locationError ?? (storePosition ? "GPS live · employee хайхад бэлэн" : "GPS авч байна")}
+            {isOfferOnly ? "Nearest employee queue - ID ба зайгаар эрэмбэлсэн" : locationError ?? (storePosition ? "GPS live" : "GPS авч байна")}
           </span>
         </div>
       </div>
@@ -683,6 +684,11 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const eta = route?.etaMinutes ?? tracking.routePlan?.drivingMinutes ?? 0;
     const toPickupKm = route?.toPickupKm ?? 0;
     const nearbyCouriers = tracking.nearbyCouriers ?? [];
+    const dispatchStageText = isDelivering
+      ? "Хэрэглэгч рүү хүргэж байна"
+      : isAccepted
+        ? "Хүргэлтийн ажилтан ирж байна"
+        : "Nearest employee-д санал илгээгдсэн";
 
     return (
       <section className={`store-dispatch-tracker ${isDelivering ? "is-delivering" : isAccepted ? "is-accepted" : "is-searching"}`}>
@@ -708,7 +714,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           </div>
         </div>
         <div className="store-dispatch-detail">
-          <span>{isDelivering ? "Хэрэглэгч рүү хүргэж байна" : isAccepted ? "Хүргэлтийн ажилтан ирж байна" : "Хүргэлтийн ажилтан хайж байна"}</span>
+          <span>{dispatchStageText}</span>
           <h3>{courierName}</h3>
           <p>{tracking.statusLabel}</p>
           <div>
@@ -721,6 +727,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               {nearbyCouriers.slice(0, 4).map((courier, index) => (
                 <span className={tracking.courier?.id === courier.employeeId ? "matched" : ""} key={courier.employeeId}>
                   <i>{index + 1}</i>
+                  <strong>{courier.employeeId}</strong>
                   {courier.name}
                   <b>{courier.toPickupKm.toFixed(1)} км · {courier.etaMinutes} мин</b>
                 </span>
