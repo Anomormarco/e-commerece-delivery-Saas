@@ -9,7 +9,29 @@ import { useRealtimeResource } from "../../shared/useRealtimeResource";
 type AdminDashboard = {
   metrics: Metric[];
   verificationQueue: QueueItem[];
+  stores: AdminStoreRow[];
+  employees: AdminEmployeeRow[];
   alerts: string[];
+};
+
+type AdminStoreRow = {
+  id: string;
+  name: string;
+  status: string;
+  statusLabel: string;
+  tenantName: string;
+  tenantStatus: string;
+  productCount: number;
+  orderCount: number;
+};
+
+type AdminEmployeeRow = {
+  id: string;
+  name: string;
+  email: string;
+  status: string;
+  statusLabel: string;
+  roles: Array<{ code: string; name: string }>;
 };
 
 type AdminUser = {
@@ -128,13 +150,7 @@ const navItems: Array<{ key: SectionKey; label: string }> = [
   { key: "reports", label: text.reports },
 ];
 
-const stores = [
-  { name: "\u0421\u0430\u043D\u0441\u0430\u0440", status: text.active, tone: "success" },
-  { name: "\u041D\u043E\u043C\u0438\u043D", status: text.active, tone: "success" },
-  { name: "CU", status: text.pending, tone: "warning" },
-];
-
-const employees = [
+const fallbackEmployees = [
   { name: "\u0411\u0430\u0442-\u042D\u0440\u0434\u044D\u043D\u044D", role: text.seniorCourier },
   { name: "\u0410\u043B\u0442-\u0423\u043D\u0434\u0440\u0430\u043B", role: text.dispatcher },
 ];
@@ -159,6 +175,12 @@ function deliveryStateText(state: string, index: number) {
   if (state === "DELAYED" || state === "FAILED") return text.delayed;
   if (index === 0) return text.pending;
   return text.inTransit;
+}
+
+function statusTone(status: string) {
+  if (status === "ACTIVE" || status === text.active) return "success";
+  if (status === "DELETED" || status === "SUSPENDED" || status === "CANCELLED") return "danger";
+  return "warning";
 }
 
 function UserIcon() {
@@ -220,6 +242,56 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
     setNotice(`${label}: ${target} - ${text.actionDone}`);
   }
 
+  async function editStore(store: AdminStoreRow) {
+    const nextName = window.prompt("Дэлгүүрийн нэр", store.name)?.trim();
+    if (!nextName || nextName === store.name) return;
+
+    try {
+      await postJson(`/stores/${store.id}`, { name: nextName });
+      await dashboard.refetch();
+      setNotice(`${text.edit}: ${nextName} - ${text.actionDone}`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : text.profileSaveFailed);
+    }
+  }
+
+  async function deleteStore(store: AdminStoreRow) {
+    if (!window.confirm(`${store.name} дэлгүүрийг идэвхгүй болгох уу?`)) return;
+
+    try {
+      await postJson(`/stores/${store.id}/delete`);
+      await dashboard.refetch();
+      setNotice(`${text.delete}: ${store.name} - ${text.actionDone}`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : text.profileSaveFailed);
+    }
+  }
+
+  async function editEmployee(employee: AdminEmployeeRow) {
+    const nextName = window.prompt("Ажилтны нэр", employee.name)?.trim();
+    if (!nextName || nextName === employee.name) return;
+
+    try {
+      await postJson(`/employees/${employee.id}`, { fullName: nextName });
+      await dashboard.refetch();
+      setNotice(`${text.edit}: ${nextName} - ${text.actionDone}`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : text.profileSaveFailed);
+    }
+  }
+
+  async function deleteEmployee(employee: AdminEmployeeRow) {
+    if (!window.confirm(`${employee.name} ажилтныг устгах уу?`)) return;
+
+    try {
+      await postJson(`/employees/${employee.id}/delete`);
+      await dashboard.refetch();
+      setNotice(`${text.delete}: ${employee.name} - ${text.actionDone}`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : text.profileSaveFailed);
+    }
+  }
+
   async function saveProfile() {
     try {
       const result = await postJson<{ user: AdminUser }>("/auth/profile", {
@@ -240,6 +312,8 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
     const metrics = data.metrics;
     const recentDeliveries = data.verificationQueue.slice(0, 3);
     const pendingCount = data.verificationQueue.length || Number(metricValue(metrics, "Active deliveries", "0"));
+    const storeRows = data.stores ?? [];
+    const employeeRows = data.employees ?? [];
 
     return (
       <section className="dashboard-overview">
@@ -251,12 +325,12 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
           </article>
           <article className="platform-kpi">
             <span>{text.usersToday}</span>
-            <strong>{metricValue(metrics, "Tenant", String(stores.length))}</strong>
+            <strong>{metricValue(metrics, "Tenant", String(storeRows.length))}</strong>
             <em>+5%</em>
           </article>
           <article className="platform-kpi">
             <span>{text.newClients}</span>
-            <strong>{employees.length}</strong>
+            <strong>{employeeRows.length}</strong>
             <em className="danger">-9%</em>
           </article>
           <article className="platform-kpi">
@@ -281,7 +355,7 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
               <span>{recentDeliveries.length}</span>
             </div>
             <div className="admin-mobile-delivery-list">
-              {(recentDeliveries.length ? recentDeliveries : employees.map((employee, index) => ({
+              {(recentDeliveries.length ? recentDeliveries : fallbackEmployees.map((employee, index) => ({
                 id: `ORD-${index + 891}`,
                 name: employee.name,
                 state: index === 2 ? "DELAYED" : index === 0 ? "DELIVERED" : "IN_TRANSIT",
@@ -362,50 +436,64 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
     );
   }
 
-  function renderStores() {
+  function renderStores(storeRows: AdminStoreRow[]) {
     return (
       <article className="platform-card">
         <div className="platform-card-head">
           <h2>{text.stores}</h2>
-          <span>{text.activeThree}</span>
+          <span>{storeRows.length}</span>
         </div>
         <table>
           <thead>
             <tr>
               <th>{text.name}</th>
               <th>{text.status}</th>
+              <th>Бараа / Захиалга</th>
               <th>{text.actions}</th>
             </tr>
           </thead>
           <tbody>
-            {stores.map((store) => (
-              <tr key={store.name}>
-                <td>{store.name}</td>
+            {storeRows.map((store) => (
+              <tr key={store.id}>
                 <td>
-                  <span className={`admin-pill ${store.tone}`}>{store.status}</span>
+                  <div>
+                    <strong>{store.name}</strong>
+                    <span>{store.tenantName || store.tenantStatus}</span>
+                  </div>
                 </td>
                 <td>
-                  <button onClick={() => runAction(text.edit, store.name)} type="button" aria-label={text.edit}>
+                  <span className={`admin-pill ${statusTone(store.status)}`}>{store.statusLabel}</span>
+                </td>
+                <td>
+                  {store.productCount} / {store.orderCount}
+                </td>
+                <td>
+                  <button onClick={() => editStore(store)} type="button" aria-label={text.edit}>
                     {"\u270E"}
                   </button>
-                  <button onClick={() => runAction(text.delete, store.name)} type="button" aria-label={text.delete}>
+                  <button onClick={() => deleteStore(store)} type="button" aria-label={text.delete}>
                     {"\u232B"}
                   </button>
                 </td>
               </tr>
             ))}
+            {!storeRows.length && (
+              <tr>
+                <td colSpan={4}>Бүртгэлтэй дэлгүүр алга байна.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </article>
     );
   }
 
-  function renderEmployees() {
+  function renderEmployees(employeeRows: AdminEmployeeRow[]) {
     return (
       <article className="platform-card">
         <div className="platform-card-head">
           <h2>{text.employees}</h2>
-          <span>{text.activeTwo}</span>
+          <span>{employeeRows.length}</span>
         </div>
         <table>
           <thead>
@@ -416,27 +504,39 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
             </tr>
           </thead>
           <tbody>
-            {employees.map((employee) => (
-              <tr key={employee.name}>
+            {employeeRows.map((employee) => (
+              <tr key={employee.id}>
                 <td>
                   <div className="platform-person">
                     <span>
                       <UserIcon />
                     </span>
-                    {employee.name}
+                    <div>
+                      <strong>{employee.name}</strong>
+                      <small>{employee.email}</small>
+                    </div>
                   </div>
                 </td>
-                <td>{employee.role}</td>
                 <td>
-                  <button onClick={() => runAction(text.edit, employee.name)} type="button" aria-label={text.edit}>
+                  {employee.roles.map((role) => role.name || role.code).join(", ")}
+                  <br />
+                  <span className={`admin-pill ${statusTone(employee.status)}`}>{employee.statusLabel}</span>
+                </td>
+                <td>
+                  <button onClick={() => editEmployee(employee)} type="button" aria-label={text.edit}>
                     {"\u270E"}
                   </button>
-                  <button onClick={() => runAction(text.delete, employee.name)} type="button" aria-label={text.delete}>
+                  <button onClick={() => deleteEmployee(employee)} type="button" aria-label={text.delete}>
                     {"\u232B"}
                   </button>
                 </td>
               </tr>
             ))}
+            {!employeeRows.length && (
+              <tr>
+                <td colSpan={3}>Бүртгэлтэй ажилтан алга байна.</td>
+              </tr>
+            )}
           </tbody>
         </table>
       </article>
@@ -576,8 +676,8 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
 
   function renderSection(metrics: Metric[]) {
     if (activeSection === "overview" && dashboard.data) return renderOverview(dashboard.data);
-    if (activeSection === "stores") return <section className="platform-grid platform-grid-full">{renderStores()}</section>;
-    if (activeSection === "employees") return <section className="platform-grid platform-grid-full">{renderEmployees()}</section>;
+    if (activeSection === "stores") return <section className="platform-grid platform-grid-full">{renderStores(dashboard.data?.stores ?? [])}</section>;
+    if (activeSection === "employees") return <section className="platform-grid platform-grid-full">{renderEmployees(dashboard.data?.employees ?? [])}</section>;
     if (activeSection === "access") return <section className="platform-grid platform-grid-full">{renderAccess()}</section>;
     if (activeSection === "delivery" && dashboard.data) return renderDispatch(dashboard.data);
     if (activeSection === "reports") return renderSimpleSection(text.reports);

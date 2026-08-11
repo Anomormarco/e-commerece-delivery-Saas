@@ -1,5 +1,11 @@
 import { adminEventBus } from "../messaging.js";
-import { getAdminDashboard } from "../services/admin.service.js";
+import {
+  deleteAdminEmployee,
+  deleteAdminStore,
+  getAdminDashboard,
+  updateAdminEmployee,
+  updateAdminStore,
+} from "../services/admin.service.js";
 import {
   getPlatformAdminFromRequest,
   loginPlatformAdmin,
@@ -49,4 +55,28 @@ export async function updateAdminProfile(request, response) {
   const user = await updatePlatformAdminProfile(request, request.body);
   adminEventBus.publishSoon("admin.profile.updated", { userId: user.id });
   response.json({ user });
+}
+
+export async function updateStore(request, response) {
+  await updateAdminStore(request.params.storeId, request.body);
+  adminEventBus.publishSoon("admin.dashboard.refresh", { storeId: request.params.storeId });
+  response.json({ ok: true });
+}
+
+export async function deleteStore(request, response) {
+  await deleteAdminStore(request.params.storeId);
+  adminEventBus.publishSoon("admin.dashboard.refresh", { storeId: request.params.storeId });
+  response.json({ ok: true });
+}
+
+export async function updateEmployee(request, response) {
+  await updateAdminEmployee(request.params.userId, request.body);
+  adminEventBus.publishSoon("admin.dashboard.refresh", { userId: request.params.userId });
+  response.json({ ok: true });
+}
+
+export async function deleteEmployee(request, response) {
+  await deleteAdminEmployee(request.params.userId);
+  adminEventBus.publishSoon("admin.dashboard.refresh", { userId: request.params.userId });
+  response.json({ ok: true });
 }

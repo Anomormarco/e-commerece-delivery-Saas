@@ -1,0 +1,38 @@
+.platform-console {
+  grid-template-columns: 224px 1fr;
+  transition: none;
+}
+
+.platform-console:has(.platform-sidebar:hover),
+.platform-console:has(.platform-sidebar:focus-within) {
+  grid-template-columns: 224px 1fr;
+}
+
+.platform-brand div {
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
+
+.platform-new-button {
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 0 11px;
+}
+
+.platform-sidebar nav button,
+.platform-sidebar-bottom button {
+  justify-content: flex-start;
+  gap: 9px;
+  padding: 0 13px;
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.platform-nav-label {
+  max-width: 170px;
+  opacity: 1;
+  transform: none;
+  transition: none;
+}
