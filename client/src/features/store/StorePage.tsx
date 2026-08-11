@@ -70,6 +70,7 @@ const nominLogoUrl = nominStoreProfile.logoUrl;
 const fallbackStorePosition: GeoPoint = { lat: 47.9189, lng: 106.9176 };
 const mapTileSize = 256;
 const storeMapZoom = 14;
+const storePreparedLocalBuildMarker = "prepared-local-v2";
 
 type StoreIdentity = {
   id: string;
@@ -1038,7 +1039,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   }
 
   return (
-    <main className={`store-dash-shell store-theme-${themeMode}`}>
+    <main className={`store-dash-shell store-theme-${themeMode}`} data-build={storePreparedLocalBuildMarker}>
       <aside className="store-dash-sidebar">
         <div className="store-dash-brand">
           <span className="store-dash-logo">
