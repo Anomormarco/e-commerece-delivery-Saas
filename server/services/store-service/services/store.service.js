@@ -69,10 +69,20 @@ function dropoffLocation(order, pickup, distanceKm) {
   };
 }
 
-function routePlanFor(order, employee, distanceKm) {
+function latestAssignmentLocation(assignment) {
+  const location = assignment?.trackingSessions?.[0]?.locations?.[0];
+  if (!location) return null;
+
+  return {
+    lat: toNumber(location.latitude, defaultStoreLocation.lat),
+    lng: toNumber(location.longitude, defaultStoreLocation.lng),
+  };
+}
+
+function routePlanFor(order, employee, distanceKm, courierLocation = null) {
   const pickup = pickupLocation(order);
   const dropoff = dropoffLocation(order, pickup, distanceKm);
-  const courier = employee ? employeeLiveLocation(employee, pickup) : pickup;
+  const courier = courierLocation ?? (employee ? employeeLiveLocation(employee, pickup) : pickup);
   const toPickupKm = haversineKm(courier, pickup);
   const deliveryKm = haversineKm(pickup, dropoff);
   const totalKm = toPickupKm + deliveryKm;
@@ -120,8 +130,9 @@ function formatAssignmentTracking(order) {
   const assignment = order.deliveryAssignments?.[0];
   if (!assignment) return null;
 
-  const firstRoute = routePlanFor(order, assignment.employee, 2);
-  const routePlan = routePlanFor(order, assignment.employee, firstRoute.totalKm || 2);
+  const courierLocation = latestAssignmentLocation(assignment);
+  const firstRoute = routePlanFor(order, assignment.employee, 2, courierLocation);
+  const routePlan = routePlanFor(order, assignment.employee, firstRoute.totalKm || 2, courierLocation);
   const statusLabels = {
     OFFERED: "Ойрын хүргэлтийн ажилтанд санал илгээгдсэн",
     ACCEPTED: "Хүргэлтийн ажилтан дэлгүүр рүү ирж байна",

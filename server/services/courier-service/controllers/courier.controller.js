@@ -8,6 +8,7 @@ import {
   registerCourier,
   rejectCourierJob,
   setCourierOnlineStatus,
+  updateCourierLocation,
   verifyCourierCustomerOtp,
   submitCourierFace,
   submitCourierIdentity,
@@ -43,6 +44,15 @@ export async function verifyCourierFace(request, response) {
 export async function updateCourierStatus(request, response) {
   const result = await setCourierOnlineStatus(userIdFromRequest(request), request.body?.online);
   courierEventBus.publishSoon("courier.status.updated", { userId: userIdFromRequest(request), online: result.online });
+  response.json(result);
+}
+
+export async function updateCourierPosition(request, response) {
+  const result = await updateCourierLocation(userIdFromRequest(request), request.body);
+  courierEventBus.publishSoon("courier.location.updated", {
+    assignmentId: result.assignmentId,
+    orderId: result.orderId,
+  });
   response.json(result);
 }
 

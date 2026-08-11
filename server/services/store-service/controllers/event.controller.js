@@ -5,9 +5,11 @@ import { broadcastStoreDashboardRefresh, broadcastStoreNotificationsUpdated } fr
 export async function handleStoreEvent(event = {}) {
   appCache.clearByPrefix("store:dashboard:");
 
-  await createNotificationFromEvent("store", event).catch((error) => {
-    console.warn("[store-service] notification create failed", error.message);
-  });
+  if (event.type !== "courier.location.updated") {
+    await createNotificationFromEvent("store", event).catch((error) => {
+      console.warn("[store-service] notification create failed", error.message);
+    });
+  }
 
   broadcastStoreDashboardRefresh({
     action: event.type,
@@ -15,7 +17,9 @@ export async function handleStoreEvent(event = {}) {
     source: event.source,
     ...(event.payload ?? {}),
   });
-  broadcastStoreNotificationsUpdated({ eventId: event.id, action: event.type });
+  if (event.type !== "courier.location.updated") {
+    broadcastStoreNotificationsUpdated({ eventId: event.id, action: event.type });
+  }
 }
 
 export async function receiveInternalEvent(request, response) {

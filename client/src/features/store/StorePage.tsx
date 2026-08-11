@@ -361,6 +361,32 @@ function mapPointStyle(point: GeoPoint, center: GeoPoint, zoomLevel: number): CS
   };
 }
 
+function mapRouteStyle(from: GeoPoint, to: GeoPoint, center: GeoPoint, zoomLevel: number): CSSProperties {
+  const fromX = (longitudeToTileX(from.lng, zoomLevel) - longitudeToTileX(center.lng, zoomLevel)) * mapTileSize;
+  const fromY = (latitudeToTileY(from.lat, zoomLevel) - latitudeToTileY(center.lat, zoomLevel)) * mapTileSize;
+  const toX = (longitudeToTileX(to.lng, zoomLevel) - longitudeToTileX(center.lng, zoomLevel)) * mapTileSize;
+  const toY = (latitudeToTileY(to.lat, zoomLevel) - latitudeToTileY(center.lat, zoomLevel)) * mapTileSize;
+  const dx = toX - fromX;
+  const dy = toY - fromY;
+
+  return {
+    "--route-left": `calc(50% + ${fromX}px)`,
+    "--route-top": `calc(50% + ${fromY}px)`,
+    "--route-width": `${Math.sqrt(dx ** 2 + dy ** 2)}px`,
+    "--route-angle": `${Math.atan2(dy, dx)}rad`,
+  } as CSSProperties;
+}
+
+function mapCenterFor(points: Array<GeoPoint | undefined | null>) {
+  const usablePoints = points.filter(Boolean) as GeoPoint[];
+  if (!usablePoints.length) return fallbackStorePosition;
+
+  return {
+    lat: usablePoints.reduce((sum, point) => sum + point.lat, 0) / usablePoints.length,
+    lng: usablePoints.reduce((sum, point) => sum + point.lng, 0) / usablePoints.length,
+  };
+}
+
 export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: StoreIdentity }) {
   const dashboard = useRealtimeResource<StoreDashboard>("/dashboard", ["store.dashboard.refresh"]);
   const [activeTab, setActiveTab] = useState<StoreTab>("overview");
@@ -577,12 +603,12 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     className?: string;
   } = {}) {
     const route = options.tracking?.routePlan;
-    const center = route?.pickup ?? storePosition ?? fallbackStorePosition;
-    const tiles = getStoreMapTiles(center, storeMapZoom);
     const nearbyCouriers = options.tracking?.nearbyCouriers ?? [];
     const storePoint = route?.pickup ?? storePosition ?? fallbackStorePosition;
     const courierPoint = route?.courier;
     const dropoffPoint = route?.dropoff;
+    const center = route ? mapCenterFor([storePoint, courierPoint, dropoffPoint]) : storePoint;
+    const tiles = getStoreMapTiles(center, storeMapZoom);
     const courierName = options.tracking?.courier?.name ?? "Ойрын employee";
 
     return (
@@ -599,6 +625,20 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           ))}
         </div>
         <span className="store-live-radius" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-hidden="true" />
+        {courierPoint && (
+          <span
+            className="store-live-route route-to-courier"
+            style={mapRouteStyle(courierPoint, storePoint, center, storeMapZoom)}
+            aria-hidden="true"
+          />
+        )}
+        {dropoffPoint && (
+          <span
+            className="store-live-route route-to-customer"
+            style={mapRouteStyle(storePoint, dropoffPoint, center, storeMapZoom)}
+            aria-hidden="true"
+          />
+        )}
         <i className="store-live-pin store-pin" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-label="Дэлгүүр" />
         {dropoffPoint && <i className="store-live-pin customer-pin" style={mapPointStyle(dropoffPoint, center, storeMapZoom)} aria-label="Хүргэх хаяг" />}
         {courierPoint && <i className="store-live-pin courier-pin moving" style={mapPointStyle(courierPoint, center, storeMapZoom)} aria-label={courierName} />}

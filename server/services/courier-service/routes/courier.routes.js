@@ -7,6 +7,7 @@ import {
   registerCourierAccount,
   rejectCourierAssignment,
   showCourierDashboard,
+  updateCourierPosition,
   updateCourierStatus,
   verifyCourierDropoff,
   verifyCourierFace,
@@ -24,6 +25,7 @@ export function registerCourierRoutes(app, { basePath = "/api/courier" } = {}) {
   app.post(`${basePath}/verification/identity`, requireAuth, asyncHandler(verifyCourierIdentity));
   app.post(`${basePath}/verification/face`, requireAuth, asyncHandler(verifyCourierFace));
   app.post(`${basePath}/status`, requireAuth, asyncHandler(updateCourierStatus));
+  app.post(`${basePath}/location`, requireAuth, asyncHandler(updateCourierPosition));
   app.post(`${basePath}/jobs/:assignmentId/accept`, requireAuth, asyncHandler(acceptCourierAssignment));
   app.post(`${basePath}/jobs/:assignmentId/reject`, requireAuth, asyncHandler(rejectCourierAssignment));
   app.post(`${basePath}/jobs/:assignmentId/arrive-store`, requireAuth, asyncHandler(arriveCourierStore));

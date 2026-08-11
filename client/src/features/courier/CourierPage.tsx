@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, useEffect, useRef, useState } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 import { NotificationBell } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
@@ -25,6 +25,7 @@ type GeoPoint = {
 
 const fallbackPosition: GeoPoint = { lat: 47.9189, lng: 106.9176 };
 const tileSize = 256;
+const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
 
 const text = {
   title: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0430\u0436\u0438\u043B\u0442\u0430\u043D",
@@ -69,7 +70,7 @@ const text = {
   locationDenied: "\u0411\u0430\u0439\u0440\u0448\u0438\u043B \u0430\u0432\u0430\u0445 \u044D\u0440\u0445 \u043D\u044D\u044D\u0433\u0434\u044D\u044D\u0433\u04AF\u0439",
   locating: "\u0411\u0430\u0439\u0440\u0448\u0438\u043B \u0442\u043E\u0433\u0442\u043E\u043E\u0436 \u0431\u0430\u0439\u043D\u0430",
   eta: "~12 \u043C\u0438\u043D",
-  arrivedStore: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u044D\u043D\u0434 \u0433\u0430\u0440\u0430\u0445\u0430\u0434 \u0431\u044D\u043B\u044D\u043D \u0431\u043E\u043B\u043B\u043E\u043E",
+  arrivedStore: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442 \u0430\u0432\u0430\u0445\u0430\u0434 \u0431\u044D\u043B\u044D\u043D",
   storeOtp: "Store owner-д өгөх OTP",
   customerOtp: "\u0425\u04AF\u043B\u044D\u044D\u043D \u0430\u0432\u0430\u0433\u0447\u0438\u0439\u043D OTP",
   verifyPickup: "\u0410\u0447\u0430\u0430 \u0430\u0432\u0430\u0445",
@@ -131,6 +132,58 @@ function getVisibleTiles(center: GeoPoint, zoomLevel: number) {
   );
 }
 
+function haversineKm(from: GeoPoint, to: GeoPoint) {
+  const earthKm = 6371;
+  const dLat = ((to.lat - from.lat) * Math.PI) / 180;
+  const dLng = ((to.lng - from.lng) * Math.PI) / 180;
+  const lat1 = (from.lat * Math.PI) / 180;
+  const lat2 = (to.lat * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function midpoint(points: GeoPoint[]) {
+  if (!points.length) return fallbackPosition;
+
+  return {
+    lat: points.reduce((sum, point) => sum + point.lat, 0) / points.length,
+    lng: points.reduce((sum, point) => sum + point.lng, 0) / points.length,
+  };
+}
+
+function createMapProjector(points: GeoPoint[]) {
+  const usablePoints = points.length ? points : [fallbackPosition];
+  const lats = usablePoints.map((point) => point.lat);
+  const lngs = usablePoints.map((point) => point.lng);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+  const latSpan = Math.max(maxLat - minLat, 0.02);
+  const lngSpan = Math.max(maxLng - minLng, 0.02);
+
+  return (point: GeoPoint) => ({
+    x: clamp(12 + ((point.lng - minLng) / lngSpan) * 76, 12, 88),
+    y: clamp(88 - ((point.lat - minLat) / latSpan) * 76, 12, 88),
+  });
+}
+
+function lineStyle(from: { x: number; y: number }, to: { x: number; y: number }) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+
+  return {
+    "--route-left": `${from.x}%`,
+    "--route-top": `${from.y}%`,
+    "--route-width": `${Math.sqrt(dx ** 2 + dy ** 2)}%`,
+    "--route-angle": `${Math.atan2(dy, dx)}rad`,
+  } as CSSProperties;
+}
+
 export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const dashboard = useRealtimeResource<CourierDashboard>("/dashboard", ["courier.dashboard.refresh", "courier.job.updated"]);
   const [activeTab, setActiveTab] = useState<CourierTab>("map");
@@ -141,6 +194,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [orderFilter, setOrderFilter] = useState<"all" | "new" | "delivering" | "delivered">("all");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [position, setPosition] = useState<GeoPoint | null>(null);
+  const lastLocationPostRef = useRef<{ point: GeoPoint; sentAt: number } | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [otpByJob, setOtpByJob] = useState<Record<string, string>>({});
   const [mapMode, setMapMode] = useState<MapMode>("white");
@@ -163,6 +217,17 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const newJobs = visibleJobs.filter((job) => job.state === "OFFERED");
   const deliveringJobs = visibleJobs.filter((job) => !["OFFERED", "DELIVERED"].includes(job.state));
   const deliveredJobs = visibleJobs.filter((job) => job.state === "DELIVERED");
+  const activeMapJob = deliveringJobs[0] ?? primaryJob;
+  const pickupPoint = activeMapJob?.routePlan?.pickup;
+  const dropoffPoint = activeMapJob?.routePlan?.dropoff;
+  const courierPoint = position ?? fallbackPosition;
+  const mapPoints = [courierPoint, pickupPoint, dropoffPoint].filter(Boolean) as GeoPoint[];
+  const projectMapPoint = createMapProjector(mapPoints);
+  const courierMapPoint = projectMapPoint(courierPoint);
+  const pickupMapPoint = pickupPoint ? projectMapPoint(pickupPoint) : { x: 24, y: 74 };
+  const dropoffMapPoint = dropoffPoint ? projectMapPoint(dropoffPoint) : { x: 78, y: 32 };
+  const storeDistanceKm = pickupPoint ? haversineKm(courierPoint, pickupPoint) : null;
+  const storeEtaMinutes = storeDistanceKm == null ? null : Math.max(1, Math.round(storeDistanceKm * 13));
   const totalPayoutMnt = visibleJobs.reduce((sum, job) => sum + Number(job.payoutMnt ?? 0), 0);
   const deliveredPayoutMnt = deliveredJobs.reduce((sum, job) => sum + Number(job.payoutMnt ?? 0), 0);
   const averagePayoutMnt = visibleJobs.length ? Math.round(totalPayoutMnt / visibleJobs.length) : 0;
@@ -172,7 +237,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     { key: "wallet", label: text.walletTab, icon: "$" },
     { key: "profile", label: text.profileTab, icon: "\u25CB" },
   ];
-  const mapCenter = position ?? fallbackPosition;
+  const mapCenter = midpoint(mapPoints);
   const mapTiles = getVisibleTiles(mapCenter, zoom);
 
   useEffect(() => {
@@ -199,6 +264,21 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
 
     return () => navigator.geolocation.clearWatch(watchId);
   }, []);
+
+  useEffect(() => {
+    if (!isOnline || !position) return;
+
+    const lastLocation = lastLocationPostRef.current;
+    const now = Date.now();
+    const movedKm = lastLocation ? haversineKm(lastLocation.point, position) : Number.POSITIVE_INFINITY;
+    if (lastLocation && now - lastLocation.sentAt < 5000 && movedKm < 0.03) return;
+
+    lastLocationPostRef.current = { point: position, sentAt: now };
+    postJson("/location", {
+      lat: position.lat,
+      lng: position.lng,
+    }).catch(() => {});
+  }, [isOnline, position]);
 
   async function toggleOnline() {
     if (isOnline && hasActiveDelivery) return;
@@ -323,9 +403,26 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   <button onClick={() => setZoom((current) => Math.min(current + 1, 18))} type="button" aria-label="Zoom in">+</button>
                   <button onClick={() => setZoom((current) => Math.max(current - 1, 10))} type="button" aria-label="Zoom out">-</button>
                 </div>
-                <span className="employee-store-pin" aria-label={text.pickup} />
-                <span className="employee-drop-pin" aria-label={text.dropoff} />
-                <span className={`employee-location-dot ${position ? "is-live" : ""}`} />
+                {pickupPoint && (
+                  <span className="employee-direct-route employee-route-pickup" style={lineStyle(courierMapPoint, pickupMapPoint)} />
+                )}
+                {pickupPoint && dropoffPoint && activeMapJob?.state !== "OFFERED" && (
+                  <span className="employee-direct-route employee-route-dropoff" style={lineStyle(pickupMapPoint, dropoffMapPoint)} />
+                )}
+                <span
+                  className="employee-store-pin"
+                  style={{ "--pin-x": `${pickupMapPoint.x}%`, "--pin-y": `${pickupMapPoint.y}%` } as CSSProperties}
+                  aria-label={text.pickup}
+                />
+                <span
+                  className="employee-drop-pin"
+                  style={{ "--pin-x": `${dropoffMapPoint.x}%`, "--pin-y": `${dropoffMapPoint.y}%` } as CSSProperties}
+                  aria-label={text.dropoff}
+                />
+                <span
+                  className={`employee-location-dot ${position ? "is-live" : ""}`}
+                  style={{ "--pin-x": `${courierMapPoint.x}%`, "--pin-y": `${courierMapPoint.y}%` } as CSSProperties}
+                />
                 {(locationError || !position) && (
                   <div className="employee-map-status">
                     <strong>{locationError ?? text.locating}</strong>
@@ -361,6 +458,31 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                       <button onClick={() => rejectJob(primaryJob.id)} type="button">{text.reject}</button>
                       <button disabled={!isOnline || primaryJob.canAccept === false} onClick={() => acceptJob(primaryJob.id)} type="button">{text.acceptOrder}</button>
                     </div>
+                  </article>
+                )}
+                {activeMapJob && activePickupStates.includes(activeMapJob.state) && (
+                  <article className="courier-map-request-card is-active-route">
+                    <div className="courier-map-request-head">
+                      <div>
+                        <span>{text.pickup}</span>
+                        <strong>{activeMapJob.pickupAddress ?? activeMapJob.name}</strong>
+                      </div>
+                      <b>{storeDistanceKm == null ? activeMapJob.distance : `${storeDistanceKm.toFixed(2)} км`}</b>
+                    </div>
+                    <div className="courier-map-request-meta">
+                      <span>Store хүртэл шууд зай</span>
+                      <span>ETA {storeEtaMinutes ?? activeMapJob.routePlan?.etaMinutes ?? 1} мин</span>
+                      <span>{position ? "Live GPS" : text.locating}</span>
+                    </div>
+                    <div className="employee-route-preview">
+                      <strong>Employee → Store route realtime</strong>
+                      <span>{activeMapJob.routePlan?.label ?? "Store руу хамгийн ойр зам"}</span>
+                    </div>
+                    {activeMapJob.state === "ACCEPTED" && (
+                      <button className="employee-full-action" onClick={() => postJobAction(activeMapJob.id, "arrive-store")} type="button">
+                        {text.arrivedStore}
+                      </button>
+                    )}
                   </article>
                 )}
                 <div className="employee-map-modes">

@@ -25,7 +25,14 @@ export async function listRecentOrdersByTenant(tenantId, { limit = 10 } = {}) {
       deliveryAssignments: {
         take: 1,
         orderBy: { createdAt: "desc" },
-        include: { employee: { include: { user: true } } },
+        include: {
+          employee: { include: { user: true } },
+          trackingSessions: {
+            take: 1,
+            orderBy: { startedAt: "desc" },
+            include: { locations: { take: 1, orderBy: { recordedAt: "desc" } } },
+          },
+        },
       },
     },
   });

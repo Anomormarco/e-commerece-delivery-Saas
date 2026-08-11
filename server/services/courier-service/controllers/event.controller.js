@@ -10,9 +10,11 @@ const jobEvents = new Set([
 ]);
 
 export async function handleCourierEvent(event = {}) {
-  await createNotificationFromEvent("courier", event).catch((error) => {
-    console.warn("[courier-service] notification create failed", error.message);
-  });
+  if (event.type !== "courier.location.updated") {
+    await createNotificationFromEvent("courier", event).catch((error) => {
+      console.warn("[courier-service] notification create failed", error.message);
+    });
+  }
   const payload = {
     action: event.type,
     eventId: event.id,
@@ -25,7 +27,9 @@ export async function handleCourierEvent(event = {}) {
   } else {
     broadcastCourierDashboardRefresh(payload);
   }
-  broadcastCourierNotificationsUpdated({ eventId: event.id, action: event.type });
+  if (event.type !== "courier.location.updated") {
+    broadcastCourierNotificationsUpdated({ eventId: event.id, action: event.type });
+  }
 }
 
 export async function receiveInternalEvent(request, response) {

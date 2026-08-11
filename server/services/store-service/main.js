@@ -20,4 +20,5 @@ storeEventBus.subscribe?.([
   "delivery.job.arrived_store",
   "delivery.job.pickup_verified",
   "delivery.job.dropoff_verified",
+  "courier.location.updated",
 ], handleStoreEvent);

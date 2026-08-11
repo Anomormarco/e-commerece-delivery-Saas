@@ -7644,6 +7644,28 @@ h3 {
   animation: store-dispatch-scan 2s ease-out infinite;
 }
 
+.store-live-route {
+  position: absolute;
+  z-index: 3;
+  top: var(--route-top);
+  left: var(--route-left);
+  width: var(--route-width);
+  height: 5px;
+  border-radius: 999px;
+  transform: rotate(var(--route-angle));
+  transform-origin: left center;
+}
+
+.store-live-route.route-to-courier {
+  background: linear-gradient(90deg, #2563eb, #f97316);
+  box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.12);
+}
+
+.store-live-route.route-to-customer {
+  background: linear-gradient(90deg, #f97316, #10b981);
+  opacity: 0.72;
+}
+
 .store-live-pin,
 .store-live-courier {
   position: absolute;
@@ -11538,12 +11560,31 @@ h3 {
   border-bottom: 0;
 }
 
+.employee-direct-route,
 .employee-route {
   position: absolute;
   z-index: 3;
   height: 5px;
   border-radius: 999px;
   background: #2563eb;
+}
+
+.employee-direct-route {
+  top: var(--route-top);
+  left: var(--route-left);
+  width: var(--route-width);
+  transform: rotate(var(--route-angle));
+  transform-origin: left center;
+}
+
+.employee-route-pickup {
+  background: linear-gradient(90deg, #2563eb, #f97316);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.13);
+}
+
+.employee-route-dropoff {
+  background: linear-gradient(90deg, #f97316, #10b981);
+  opacity: 0.72;
 }
 
 .employee-route.route-a {
@@ -11574,15 +11615,17 @@ h3 {
 }
 
 .employee-store-pin {
-  bottom: 26%;
-  left: 24%;
+  top: var(--pin-y, 74%);
+  left: var(--pin-x, 24%);
   background: #f97316;
+  transform: translate(-50%, -50%);
 }
 
 .employee-drop-pin {
-  top: 32%;
-  right: 22%;
+  top: var(--pin-y, 32%);
+  left: var(--pin-x, 78%);
   background: #10b981;
+  transform: translate(-50%, -50%);
 }
 
 .employee-store-pin::before,
@@ -11597,8 +11640,8 @@ h3 {
 .employee-location-dot {
   position: absolute;
   z-index: 6;
-  top: 50%;
-  left: 50%;
+  top: var(--pin-y, 50%);
+  left: var(--pin-x, 50%);
   width: 23px;
   height: 23px;
   border: 4px solid white;
@@ -11669,6 +11712,10 @@ h3 {
   box-shadow: 0 18px 42px rgba(15, 23, 42, 0.18);
   animation: courier-request-slide-up 260ms ease-out both;
   backdrop-filter: blur(16px);
+}
+
+.courier-map-request-card.is-active-route {
+  border-color: rgba(37, 99, 235, 0.24);
 }
 
 .courier-map-request-head,

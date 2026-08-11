@@ -20,6 +20,8 @@ export type QueueItem = {
   canAccept?: boolean;
   offerExpiresInSec?: number | null;
   routePlan?: {
+    pickup?: { lat: number; lng: number };
+    dropoff?: { lat: number; lng: number };
     totalKm: number;
     walkingMinutes: number;
     drivingMinutes: number;

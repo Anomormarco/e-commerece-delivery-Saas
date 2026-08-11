@@ -19,6 +19,7 @@ import {
   recordFaceVerification,
   recordIdentityVerification,
   recordLoginFaceVerification,
+  recordCourierLocation,
   rejectDeliveryAssignment,
   updateCourierOnlineState,
   verifyCourierDropoffOtp,
@@ -324,6 +325,10 @@ export async function registerCourier(payload = {}) {
   appCache.clearByPrefix("courier:dashboard:");
   appCache.del("admin:dashboard");
   return { userId: employee.userId, accessToken: createCourierAccessToken(employee), dashboard: formatCourierDashboard(employee) };
+}
+
+export async function updateCourierLocation(userId, payload = {}) {
+  return recordCourierLocation(userId, payload);
 }
 
 export async function loginCourier(payload = {}) {

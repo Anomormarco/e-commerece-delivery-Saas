@@ -220,11 +220,65 @@ function includeCourierDashboard() {
     assignments: {
       take: 12,
       orderBy: { createdAt: "desc" },
-      include: { order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } } },
+      include: {
+        order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } },
+        trackingSessions: {
+          take: 1,
+          orderBy: { startedAt: "desc" },
+          include: { locations: { take: 1, orderBy: { recordedAt: "desc" } } },
+        },
+      },
     },
     wallet: true,
     user: true,
   };
+}
+
+export async function recordCourierLocation(userId, payload = {}) {
+  const lat = Number(payload.lat ?? payload.latitude);
+  const lng = Number(payload.lng ?? payload.longitude);
+  const accuracyMeters = payload.accuracyMeters == null ? null : Number(payload.accuracyMeters);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    throw createHttpError(400, "Байршлын координат буруу байна.");
+  }
+
+  return prisma.$transaction(async (transaction) => {
+    const employee = await transaction.deliveryEmployee.findFirst({
+      where: { userId },
+      include: {
+        assignments: {
+          take: 1,
+          orderBy: { acceptedAt: "desc" },
+          where: { status: { in: activeAssignmentStatuses } },
+          select: { id: true, orderId: true },
+        },
+      },
+    });
+
+    if (!employee) throw createHttpError(404, "Хүргэлтийн ажилтан олдсонгүй.");
+    const assignment = employee.assignments[0];
+    if (!assignment) return { ok: true, assignmentId: null };
+
+    const session = await transaction.trackingSession.findFirst({
+      where: { assignmentId: assignment.id, endedAt: null },
+      orderBy: { startedAt: "desc" },
+      select: { id: true },
+    }) ?? await transaction.trackingSession.create({
+      data: { assignmentId: assignment.id },
+      select: { id: true },
+    });
+
+    await transaction.locationPoint.create({
+      data: {
+        trackingSessionId: session.id,
+        latitude: lat,
+        longitude: lng,
+        accuracyMeters: Number.isFinite(accuracyMeters) ? accuracyMeters : null,
+      },
+    });
+
+    return { ok: true, assignmentId: assignment.id, orderId: assignment.orderId };
+  });
 }
 
 export async function ensureDefaultTenant() {
