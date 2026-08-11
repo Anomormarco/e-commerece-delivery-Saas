@@ -1,5 +1,14 @@
 import { prisma } from "@deliverhub/server-platform/database/prisma";
 
+const busyAssignmentStatuses = [
+  "ACCEPTED",
+  "ARRIVING_PICKUP",
+  "PICKUP_VERIFICATION",
+  "PICKED_UP",
+  "IN_TRANSIT",
+  "ARRIVING_DROPOFF",
+];
+
 export async function listRecentOrdersByTenant(tenantId, { limit = 10 } = {}) {
   return prisma.order.findMany({
     where: { tenantId },
@@ -39,6 +48,9 @@ export async function listMatchingEmployees(tenantId, vehicleTypes) {
       online: true,
       verificationStatus: "ACTIVE",
       vehicleType: { in: vehicleTypes },
+      assignments: {
+        none: { status: { in: busyAssignmentStatuses } },
+      },
     },
     include: { user: true },
     orderBy: { id: "asc" },
@@ -52,6 +64,9 @@ export async function countMatchingEmployees(tenantId, vehicleTypes) {
       online: true,
       verificationStatus: "ACTIVE",
       vehicleType: { in: vehicleTypes },
+      assignments: {
+        none: { status: { in: busyAssignmentStatuses } },
+      },
     },
   });
 }

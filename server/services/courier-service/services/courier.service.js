@@ -172,6 +172,9 @@ function formatCourierDashboard(employee) {
         requiredVehicleLabel: vehicleLabels[requirement],
         payoutMnt: String(5500 + Math.round(distanceKm * 900) + weightKg * 180),
         canAccept: assignment.employeeId === employee.id || canVehicleServe(vehicleType, requirement),
+        offerExpiresInSec: assignment.status === "OFFERED"
+          ? Math.max(0, Math.ceil((assignment.createdAt.getTime() + 10_000 - Date.now()) / 1000))
+          : null,
         routePlan,
       };
     })
@@ -205,6 +208,9 @@ function formatCourierAssignment(assignment) {
     requiredVehicleLabel: vehicleLabels[requirement],
     payoutMnt: String(5500 + Math.round(distanceKm * 900) + weightKg * 180),
     canAccept: true,
+    offerExpiresInSec: assignment.status === "OFFERED"
+      ? Math.max(0, Math.ceil((assignment.createdAt.getTime() + 10_000 - Date.now()) / 1000))
+      : null,
     routePlan,
   };
 }

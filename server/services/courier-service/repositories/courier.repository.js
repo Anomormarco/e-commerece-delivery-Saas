@@ -14,10 +14,194 @@ const defaultTenant = {
   slug: "deliverhub-demo",
 };
 
+const offerTimeoutMs = 10_000;
+const defaultStoreLocation = { lat: 47.9189, lng: 106.9176 };
+
 function createHttpError(statusCode, message) {
   const error = new Error(message);
   error.statusCode = statusCode;
   return error;
+}
+
+function toNumber(value, fallback) {
+  const next = Number(value);
+  return Number.isFinite(next) ? next : fallback;
+}
+
+function pickupLocation(order) {
+  return {
+    lat: toNumber(order.branch?.latitude, defaultStoreLocation.lat),
+    lng: toNumber(order.branch?.longitude, defaultStoreLocation.lng),
+  };
+}
+
+function dropoffLocation(order, pickup) {
+  return {
+    lat: toNumber(order.customerAddress?.latitude, pickup.lat + 0.043),
+    lng: toNumber(order.customerAddress?.longitude, pickup.lng + 0.064),
+  };
+}
+
+function haversineKm(from, to) {
+  const earthKm = 6371;
+  const dLat = ((to.lat - from.lat) * Math.PI) / 180;
+  const dLng = ((to.lng - from.lng) * Math.PI) / 180;
+  const lat1 = (from.lat * Math.PI) / 180;
+  const lat2 = (to.lat * Math.PI) / 180;
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+  return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function hashToUnit(input = "") {
+  let hash = 0;
+  for (const char of String(input)) {
+    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
+  }
+  return (hash % 10_000) / 10_000;
+}
+
+function employeeLiveLocation(employee, pickup) {
+  return {
+    lat: pickup.lat + (hashToUnit(`${employee.id}:lat`) - 0.5) * 0.045,
+    lng: pickup.lng + (hashToUnit(`${employee.id}:lng`) - 0.5) * 0.06,
+  };
+}
+
+function assignmentOrderWeightKg(order) {
+  const grams = (order.items ?? []).reduce((sum, item) => {
+    const weight = item.variant?.weightGrams ?? 500;
+    return sum + weight * item.quantity;
+  }, 0);
+
+  return Math.max(1, Math.ceil(grams / 1000));
+}
+
+function assignmentOrderDistanceKm(order) {
+  const pickup = pickupLocation(order);
+  const dropoff = dropoffLocation(order, pickup);
+  return Number(haversineKm(pickup, dropoff).toFixed(1)) || (order.customerAddressId ? 4.8 : 2.4);
+}
+
+function requiredVehicle(weightKg, distanceKm) {
+  if (weightKg > 12 || distanceKm > 8) return "CAR";
+  if (weightKg > 4 || distanceKm > 3) return "MOPED";
+  return "WALK";
+}
+
+function canVehicleServe(employeeVehicle, requirement) {
+  const rank = { WALK: 1, MOPED: 2, CAR: 3 };
+  return (rank[employeeVehicle] ?? 1) >= (rank[requirement] ?? 1);
+}
+
+function employeeToPickupKm(order, employee) {
+  const pickup = pickupLocation(order);
+  return haversineKm(employeeLiveLocation(employee, pickup), pickup);
+}
+
+async function createNextCourierOffer(transaction, { tenantId, orderId }) {
+  const order = await transaction.order.findFirst({
+    where: { id: orderId, tenantId },
+    include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } },
+  });
+
+  if (!order) return null;
+
+  const previousOffers = await transaction.deliveryAssignment.findMany({
+    where: { orderId, employeeId: { not: null } },
+    select: { employeeId: true },
+  });
+  const excludedEmployeeIds = previousOffers.map((offer) => offer.employeeId).filter(Boolean);
+  const weightKg = assignmentOrderWeightKg(order);
+  const distanceKm = assignmentOrderDistanceKm(order);
+  const requirement = requiredVehicle(weightKg, distanceKm);
+  const candidates = await transaction.deliveryEmployee.findMany({
+    where: {
+      tenantId,
+      online: true,
+      verificationStatus: "ACTIVE",
+      ...(excludedEmployeeIds.length ? { id: { notIn: excludedEmployeeIds } } : {}),
+      assignments: {
+        none: { status: { in: activeAssignmentStatuses } },
+      },
+    },
+    include: { user: true },
+  });
+  const nextEmployee = candidates
+    .filter((employee) => canVehicleServe(employee.vehicleType, requirement))
+    .map((employee) => ({ employee, toPickupKm: employeeToPickupKm(order, employee) }))
+    .sort((left, right) => left.toPickupKm - right.toPickupKm)[0]?.employee;
+
+  if (!nextEmployee) return null;
+
+  return transaction.deliveryAssignment.create({
+    data: {
+      tenantId,
+      orderId,
+      employeeId: nextEmployee.id,
+      status: "OFFERED",
+    },
+  });
+}
+
+export async function advanceExpiredCourierOffers(tenantId) {
+  if (!tenantId) return { expiredCount: 0, reofferedCount: 0 };
+
+  const cutoff = new Date(Date.now() - offerTimeoutMs);
+  const expiredOffers = await prisma.deliveryAssignment.findMany({
+    where: {
+      tenantId,
+      status: "OFFERED",
+      employeeId: { not: null },
+      createdAt: { lt: cutoff },
+    },
+    select: { id: true, orderId: true },
+    take: 20,
+    orderBy: { createdAt: "asc" },
+  });
+
+  let expiredCount = 0;
+  let reofferedCount = 0;
+
+  for (const offer of expiredOffers) {
+    const result = await prisma.$transaction(async (transaction) => {
+      const updateResult = await transaction.deliveryAssignment.updateMany({
+        where: {
+          id: offer.id,
+          status: "OFFERED",
+          createdAt: { lt: cutoff },
+        },
+        data: { status: "REJECTED" },
+      });
+
+      if (updateResult.count !== 1) return { expired: false, reoffered: false };
+
+      await transaction.deliveryAttempt.create({
+        data: {
+          assignmentId: offer.id,
+          reason: "OFFER_TIMEOUT",
+          note: "Employee did not answer within 10 seconds; offer moved to the next nearest courier.",
+        },
+      });
+
+      const activeAssignment = await transaction.deliveryAssignment.findFirst({
+        where: {
+          orderId: offer.orderId,
+          status: { in: ["OFFERED", ...activeAssignmentStatuses] },
+        },
+        select: { id: true },
+      });
+
+      if (activeAssignment) return { expired: true, reoffered: false };
+
+      const nextOffer = await createNextCourierOffer(transaction, { tenantId, orderId: offer.orderId });
+      return { expired: true, reoffered: Boolean(nextOffer) };
+    });
+
+    if (result.expired) expiredCount += 1;
+    if (result.reoffered) reofferedCount += 1;
+  }
+
+  return { expiredCount, reofferedCount };
 }
 
 function includeCourierDashboard() {
@@ -340,6 +524,20 @@ export async function recordLoginFaceVerification(userId, payload) {
 }
 
 export async function findCourierDashboardByUserId(userId) {
+  const employeeSeed = userId
+    ? await prisma.deliveryEmployee.findUnique({
+        where: { userId },
+        select: { tenantId: true },
+      })
+    : await prisma.deliveryEmployee.findFirst({
+        orderBy: { id: "asc" },
+        select: { tenantId: true },
+      });
+
+  if (!employeeSeed) return null;
+
+  await advanceExpiredCourierOffers(employeeSeed.tenantId);
+
   const employee = userId
     ? await prisma.deliveryEmployee.findUnique({
         where: { userId },
@@ -360,7 +558,7 @@ export async function findCourierDashboardByUserId(userId) {
     },
     take: 12,
     orderBy: { createdAt: "desc" },
-    include: { order: { include: { store: true, items: { include: { variant: true } } } } },
+    include: { order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } } },
   });
 
   return {
@@ -442,13 +640,38 @@ export async function rejectDeliveryAssignment(userId, assignmentId) {
     throw createHttpError(404, "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0430\u0436\u0438\u043B\u0442\u043D\u044B \u0431\u04AF\u0440\u0442\u0433\u044D\u043B \u043E\u043B\u0434\u0441\u043E\u043D\u0433\u04AF\u0439.");
   }
 
-  await prisma.deliveryAssignment.updateMany({
-    where: {
-      id: assignmentId,
-      status: "OFFERED",
-      employeeId: employee.id,
-    },
-    data: { status: "REJECTED" },
+  await prisma.$transaction(async (transaction) => {
+    const assignment = await transaction.deliveryAssignment.findFirst({
+      where: { id: assignmentId, status: "OFFERED", employeeId: employee.id },
+      select: { id: true, orderId: true },
+    });
+
+    if (!assignment) return;
+
+    await transaction.deliveryAssignment.update({
+      where: { id: assignment.id },
+      data: { status: "REJECTED" },
+    });
+
+    await transaction.deliveryAttempt.create({
+      data: {
+        assignmentId: assignment.id,
+        reason: "EMPLOYEE_REJECTED",
+        note: "Courier rejected the offer; offer moved to the next nearest courier.",
+      },
+    });
+
+    const activeAssignment = await transaction.deliveryAssignment.findFirst({
+      where: {
+        orderId: assignment.orderId,
+        status: { in: ["OFFERED", ...activeAssignmentStatuses] },
+      },
+      select: { id: true },
+    });
+
+    if (!activeAssignment) {
+      await createNextCourierOffer(transaction, { tenantId: employee.tenantId, orderId: assignment.orderId });
+    }
   });
 
   return findCourierDashboardByUserId(userId);

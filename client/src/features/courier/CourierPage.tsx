@@ -69,7 +69,7 @@ const text = {
   locationDenied: "\u0411\u0430\u0439\u0440\u0448\u0438\u043B \u0430\u0432\u0430\u0445 \u044D\u0440\u0445 \u043D\u044D\u044D\u0433\u0434\u044D\u044D\u0433\u04AF\u0439",
   locating: "\u0411\u0430\u0439\u0440\u0448\u0438\u043B \u0442\u043E\u0433\u0442\u043E\u043E\u0436 \u0431\u0430\u0439\u043D\u0430",
   eta: "~12 \u043C\u0438\u043D",
-  arrivedStore: "\u0414\u044D\u043B\u0433\u04AF\u04AF\u0440 \u0434\u044D\u044D\u0440 \u0438\u0440\u043B\u044D\u044D",
+  arrivedStore: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u044D\u043D\u0434 \u0433\u0430\u0440\u0430\u0445\u0430\u0434 \u0431\u044D\u043B\u044D\u043D \u0431\u043E\u043B\u043B\u043E\u043E",
   storeOtp: "\u0414\u044D\u043B\u0433\u04AF\u04AF\u0440\u0438\u0439\u043D OTP",
   customerOtp: "\u0425\u04AF\u043B\u044D\u044D\u043D \u0430\u0432\u0430\u0433\u0447\u0438\u0439\u043D OTP",
   verifyPickup: "\u0410\u0447\u0430\u0430 \u0430\u0432\u0430\u0445",
@@ -348,6 +348,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     <div className="courier-map-request-meta">
                       <span>{primaryJob.distance}</span>
                       <span>{text.approximate} {text.eta}</span>
+                      {typeof primaryJob.offerExpiresInSec === "number" && <span>{primaryJob.offerExpiresInSec}s</span>}
                     </div>
                     {primaryJob.routePlan && (
                       <div className="employee-route-preview">
@@ -430,6 +431,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     <span>{job.distance}</span>
                     <span>{text.eta}</span>
                     <span>{job.weightKg ?? 1} kg</span>
+                    {typeof job.offerExpiresInSec === "number" && <span>{job.offerExpiresInSec}s</span>}
                     <b>{job.requiredVehicleLabel}</b>
                   </div>
                   {job.routePlan && (

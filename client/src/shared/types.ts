@@ -16,6 +16,7 @@ export type QueueItem = {
   requiredVehicleLabel?: string;
   payoutMnt?: string;
   canAccept?: boolean;
+  offerExpiresInSec?: number | null;
   routePlan?: {
     totalKm: number;
     walkingMinutes: number;
