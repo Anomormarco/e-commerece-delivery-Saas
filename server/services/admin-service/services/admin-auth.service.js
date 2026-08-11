@@ -30,6 +30,12 @@ function readCookie(request, name) {
   return cookie ? decodeURIComponent(cookie.slice(name.length + 1)) : "";
 }
 
+function readBearerToken(request) {
+  const authorization = request.header("authorization") ?? "";
+  const [scheme, token] = authorization.split(" ");
+  return scheme?.toLowerCase() === "bearer" ? token ?? "" : "";
+}
+
 function setSessionCookie(response, token) {
   response.cookie(sessionCookieName, token, {
     httpOnly: true,
@@ -92,7 +98,7 @@ async function createAdminSession(user, request, response) {
   });
 
   setSessionCookie(response, token);
-  return publicAdminUser(user);
+  return { user: publicAdminUser(user), accessToken: token };
 }
 
 export async function registerFirstPlatformAdmin({ fullName, username, password }) {
@@ -150,7 +156,7 @@ export async function loginPlatformAdmin({ username, password }, request, respon
 }
 
 export async function getPlatformAdminFromRequest(request) {
-  const token = readCookie(request, sessionCookieName);
+  const token = readCookie(request, sessionCookieName) || readBearerToken(request);
 
   if (!token) {
     return null;
@@ -179,7 +185,7 @@ export async function getPlatformAdminFromRequest(request) {
 }
 
 export async function logoutPlatformAdmin(request, response) {
-  const token = readCookie(request, sessionCookieName);
+  const token = readCookie(request, sessionCookieName) || readBearerToken(request);
 
   if (token) {
     await prisma.session.updateMany({

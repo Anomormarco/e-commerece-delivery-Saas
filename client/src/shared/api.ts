@@ -7,7 +7,10 @@ const localGatewayUrl = "http://127.0.0.1:3000/api";
 const defaultGatewayUrl = import.meta.env.PROD ? productionGatewayUrl : localGatewayUrl;
 const defaultApiBaseUrl = roleApiModes.includes(mode) ? `${defaultGatewayUrl}/${mode}` : defaultGatewayUrl;
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl;
-const courierTokenStorageKey = "deliverhub-courier-access-token";
+const accessTokenStorageKeys: Record<string, string> = {
+  admin: "deliverhub-admin-access-token",
+  courier: "deliverhub-courier-access-token",
+};
 
 const defaultRealtimeBaseUrls: Record<string, string> = {
   admin: import.meta.env.PROD ? "wss://deliverhub-admin-service.onrender.com/realtime" : "ws://127.0.0.1:3101/realtime",
@@ -18,10 +21,29 @@ const defaultRealtimeBaseUrls: Record<string, string> = {
 
 export const REALTIME_URL = import.meta.env.VITE_REALTIME_URL ?? defaultRealtimeBaseUrls[mode] ?? "";
 
+function currentAccessToken() {
+  const storageKey = accessTokenStorageKeys[mode];
+  return storageKey ? localStorage.getItem(storageKey) ?? sessionStorage.getItem(storageKey) : null;
+}
+
+export function saveAccessToken(token: string, remember = false) {
+  const storageKey = accessTokenStorageKeys[mode];
+  if (!storageKey) return;
+  const targetStorage = remember ? localStorage : sessionStorage;
+  const otherStorage = remember ? sessionStorage : localStorage;
+  targetStorage.setItem(storageKey, token);
+  otherStorage.removeItem(storageKey);
+}
+
+export function clearAccessToken() {
+  const storageKey = accessTokenStorageKeys[mode];
+  if (!storageKey) return;
+  localStorage.removeItem(storageKey);
+  sessionStorage.removeItem(storageKey);
+}
+
 async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const courierAccessToken = mode === "courier"
-    ? localStorage.getItem(courierTokenStorageKey) ?? sessionStorage.getItem(courierTokenStorageKey)
-    : null;
+  const accessToken = currentAccessToken();
 
   let response: Response;
 
@@ -31,7 +53,7 @@ async function requestJson<T>(path: string, options: RequestInit = {}): Promise<
       credentials: "include",
       headers: {
         Accept: "application/json",
-        ...(courierAccessToken ? { Authorization: `Bearer ${courierAccessToken}` } : {}),
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
         ...(options.body ? { "Content-Type": "application/json" } : {}),
         ...options.headers,
       },

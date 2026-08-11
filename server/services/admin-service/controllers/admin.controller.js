@@ -25,8 +25,8 @@ export async function registerAdmin(request, response) {
 }
 
 export async function loginAdmin(request, response) {
-  const user = await loginPlatformAdmin(request.body, request, response);
-  response.json({ user });
+  const session = await loginPlatformAdmin(request.body, request, response);
+  response.json(session);
 }
 
 export async function showAdminSession(request, response) {

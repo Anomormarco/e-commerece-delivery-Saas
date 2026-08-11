@@ -1,7 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 import { AdminPage } from "../../features/admin/AdminPage";
-import { getJson, postJson } from "../../shared/api";
+import { clearAccessToken, getJson, postJson, saveAccessToken } from "../../shared/api";
 import { isGmailAddress, isStrongPassword } from "../../shared/validation";
 
 type AdminUser = {
@@ -9,6 +9,11 @@ type AdminUser = {
   username: string;
   fullName: string;
   role: string;
+};
+
+type AdminSession = {
+  user: AdminUser;
+  accessToken?: string;
 };
 
 type AuthMode = "login" | "register";
@@ -145,7 +150,8 @@ function AdminAuthPage({ onAuthenticated }: { onAuthenticated: (user: AdminUser)
       if (!isGmailAddress(username)) {
         throw new Error(text.gmailRequired);
       }
-      const result = await postJson<{ user: AdminUser }>("/auth/login", { username, password });
+      const result = await postJson<AdminSession>("/auth/login", { username, password });
+      if (result.accessToken) saveAccessToken(result.accessToken, rememberMe);
       onAuthenticated(result.user);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : text.loginError);
@@ -310,6 +316,7 @@ export function AdminApp() {
 
   async function handleLogout() {
     await postJson<{ ok?: boolean }>("/auth/logout").catch(() => null);
+    clearAccessToken();
     setUser(null);
   }
 
