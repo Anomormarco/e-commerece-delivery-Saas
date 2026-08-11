@@ -698,10 +698,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const marketProducts = allMarketProducts;
 
   const selectedItems = useMemo(
-    () => (session ? allMarketProducts : [])
+    () => allMarketProducts
       .map((product) => ({ ...product, quantity: cart[product.id] ?? 0 }))
       .filter((product) => product.quantity > 0),
-    [allMarketProducts, cart, session],
+    [allMarketProducts, cart],
   );
   const wishlistItems = useMemo(
     () => (session ? allMarketProducts.filter((product) => wishlist.includes(product.id)) : []),
@@ -771,8 +771,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }
 
   function updateCart(productId: string, delta: number) {
-    if (!session) return;
-
     setCart((current) => {
       const product = allMarketProducts.find((item) => item.id === productId);
       const maxQuantity = product?.stockCount ?? 0;
@@ -791,14 +789,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }
 
   function addSelectedQuantityToCart(productId: string) {
-    if (!session) {
-      setAuthMode("login");
-      setAuthOpen(true);
-      setCartOpen(false);
-      setWishlistOpen(false);
-      return;
-    }
-
     setCart((current) => {
       const product = allMarketProducts.find((item) => item.id === productId);
       const maxQuantity = product?.stockCount ?? 0;
@@ -1122,14 +1112,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           <button
             className={cartOpen ? "active" : ""}
             onClick={() => {
-              if (!session) {
-                setAuthMode("login");
-                setAuthOpen(true);
-                setCartOpen(false);
-                setWishlistOpen(false);
-                return;
-              }
-
+              setMenuHidden(false);
               setProfileOpen(false);
               setWishlistOpen(false);
               setCartOpen((open) => !open);
@@ -1218,13 +1201,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               <button onClick={() => setCartOpen(false)} type="button" aria-label="Сагс хаах">×</button>
             </header>
 
-            {!session ? (
-              <div className="landing-cart-empty">
-                <strong>Захиалгаа үргэлжлүүлэх үү?</strong>
-                <p>DeliverHub-д нэвтэрснээр сагсаа хадгалж, хүргэлтийн явцаа шууд хянах боломжтой.</p>
-                <button onClick={() => { setAuthMode("login"); setAuthOpen(true); setCartOpen(false); }} type="button">Үргэлжлүүлэх</button>
-              </div>
-            ) : selectedItems.length ? (
+            {selectedItems.length ? (
               <>
                 <div className="landing-cart-checkout">
                   <div className="landing-cart-items">
@@ -1278,6 +1255,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                   </aside>
                 </div>
               </>
+            ) : !session ? (
+              <div className="landing-cart-empty">
+                <strong>Захиалгаа үргэлжлүүлэх үү?</strong>
+                <p>DeliverHub-д нэвтэрснээр сагсаа хадгалж, хүргэлтийн явцаа шууд хянах боломжтой.</p>
+                <button onClick={() => { setAuthMode("login"); setAuthOpen(true); setCartOpen(false); }} type="button">Үргэлжлүүлэх</button>
+              </div>
             ) : (
               <div className="landing-cart-empty">
                 <strong>Өнөөдрийн хэрэгцээгээ эндээс эхлүүл</strong>

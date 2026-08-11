@@ -1831,19 +1831,19 @@ h3 {
 
 .landing-cart-popover {
   position: fixed;
-  inset: 112px 32px 28px;
+  inset: 0;
   z-index: 41;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   gap: 22px;
   width: auto;
-  max-width: 1500px;
+  max-width: none;
   max-height: none;
   margin: 0 auto;
-  overflow: visible;
+  overflow: auto;
   border: 0;
   border-radius: 0;
-  padding: 0;
+  padding: 122px 32px 28px;
   background: transparent;
   box-shadow: none;
   transform: none;
@@ -11851,12 +11851,12 @@ h2 {
   }
 
   .landing-cart-popover {
-    inset: 96px 9px 10px;
+    inset: 0;
     width: auto;
     max-height: none;
     overflow: auto;
     border-radius: 0;
-    padding: 0;
+    padding: 96px 9px 10px;
     transform: none;
   }
 
