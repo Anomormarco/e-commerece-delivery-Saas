@@ -605,6 +605,32 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                 </section>
               )}
 
+              {activeTab === "map" && routeMapJob && activePickupStates.includes(routeMapJob.state) && (
+                <article className="employee-map-offer-card employee-map-route-card">
+                  <div className="courier-map-request-head">
+                    <div>
+                      <span>{text.pickup}</span>
+                      <strong>{routeMapJob.pickupAddress ?? routeMapJob.name}</strong>
+                    </div>
+                    <b>{storeDistanceKm == null ? routeMapJob.distance : `${storeDistanceKm.toFixed(2)} км`}</b>
+                  </div>
+                  <div className="courier-map-request-meta">
+                    <span>Store хүртэл шууд зай</span>
+                    <span>ETA {storeEtaMinutes ?? routeMapJob.routePlan?.etaMinutes ?? 1} мин</span>
+                    <span>{position ? "Live GPS" : text.locating}</span>
+                  </div>
+                  <div className="employee-route-preview">
+                    <strong>Employee → Store route realtime</strong>
+                    <span>{routeMapJob.routePlan?.label ?? "Store руу хамгийн ойр зам"}</span>
+                  </div>
+                  {routeMapJob.state === "ACCEPTED" && (
+                    <button className="employee-full-action" onClick={() => postJobAction(routeMapJob.id, "arrive-store")} type="button">
+                      {text.arrivedStore}
+                    </button>
+                  )}
+                </article>
+              )}
+
               {activeTab === "map" && offerJob && (
                 <article className="employee-map-offer-card">
                   <div className="courier-map-request-head">
