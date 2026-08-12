@@ -1,5 +1,4 @@
 import { createServiceApp } from "@deliverhub/server-platform/http/create-service-app";
-import { optionalAuth } from "./middlewares/auth.middleware.js";
 import { errorHandler, notFoundMiddleware } from "./middlewares/error-handler.middleware.js";
 import { rateLimitMiddleware } from "./middlewares/rate-limit.middleware.js";
 
@@ -76,7 +75,6 @@ export function createApiGatewayApp() {
     serviceName: "api-gateway",
     registerRoutes: (app) => {
       app.use(rateLimitMiddleware());
-      app.use(optionalAuth);
 
       app.use("/api/admin", createProxyHandler(upstreams.admin));
       app.use("/api/store", createProxyHandler(upstreams.store));

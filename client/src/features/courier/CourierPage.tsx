@@ -204,6 +204,8 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [position, setPosition] = useState<GeoPoint | null>(null);
   const lastLocationPostRef = useRef<{ point: GeoPoint; sentAt: number } | null>(null);
+  const workModeDragStartRef = useRef<number | null>(null);
+  const workModeDraggedRef = useRef(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [otpByJob, setOtpByJob] = useState<Record<string, string>>({});
   const [mapMode, setMapMode] = useState<MapMode>("white");
@@ -309,6 +311,32 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     }
   }
 
+  function beginWorkModeDrag(clientX: number) {
+    workModeDragStartRef.current = clientX;
+    workModeDraggedRef.current = false;
+  }
+
+  function finishWorkModeDrag(clientX: number) {
+    const startX = workModeDragStartRef.current;
+    workModeDragStartRef.current = null;
+    if (startX == null) return;
+
+    const deltaX = clientX - startX;
+    if (Math.abs(deltaX) < 22) return;
+
+    workModeDraggedRef.current = true;
+    void setWorkMode(deltaX > 0);
+  }
+
+  function toggleWorkMode() {
+    if (workModeDraggedRef.current) {
+      workModeDraggedRef.current = false;
+      return;
+    }
+
+    void setWorkMode(!isOnline);
+  }
+
   async function acceptJob(jobId: string) {
     setActionError(null);
 
@@ -392,22 +420,22 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
             </div>
           </button>
           <div className="employee-header-actions">
-            <div className="courier-work-mode" role="group" aria-label="Ажлын төлөв">
-              <button
-                className={!isOnline ? "active" : ""}
-                onClick={() => setWorkMode(false)}
-                type="button"
-              >
-                {text.stopWork}
-              </button>
-              <button
-                className={isOnline ? "active" : ""}
-                onClick={() => setWorkMode(true)}
-                type="button"
-              >
-                {text.startWork}
-              </button>
-            </div>
+            <button
+              aria-label={isOnline ? text.stopWork : text.startWork}
+              aria-pressed={isOnline}
+              className={`courier-work-mode ${isOnline ? "is-working" : "is-off-work"}`}
+              onClick={toggleWorkMode}
+              onPointerCancel={() => {
+                workModeDragStartRef.current = null;
+                workModeDraggedRef.current = false;
+              }}
+              onPointerDown={(event) => beginWorkModeDrag(event.clientX)}
+              onPointerUp={(event) => finishWorkModeDrag(event.clientX)}
+              type="button"
+            >
+              <span aria-hidden="true" className="courier-work-mode-track" />
+              <span className="courier-work-mode-thumb">{isOnline ? text.stopWork : text.startWork}</span>
+            </button>
             <NotificationBell className="employee-header-notifications" />
           </div>
         </header>
