@@ -11,6 +11,7 @@ import {
 import {
   acceptDeliveryAssignment,
   activateExistingCourierApplication,
+  advanceExpiredCourierOffers,
   createCourierApplication,
   findCourierDashboardByUserId,
   findCourierByContact,
@@ -33,6 +34,7 @@ const vehicleLabels = {
 };
 
 const courierAccessTokenMaxAgeSeconds = 60 * 60 * 24 * 30;
+const courierOfferTimeoutMs = 10_000;
 
 function createCourierAccessToken(employee) {
   return signJwt({
@@ -188,7 +190,7 @@ function formatCourierDashboard(employee) {
         payoutMnt: String(5500 + Math.round(distanceKm * 900) + weightKg * 180),
         canAccept: assignment.employeeId === employee.id || canVehicleServe(vehicleType, requirement),
         offerExpiresInSec: assignment.status === "OFFERED"
-          ? Math.max(0, Math.ceil((assignment.createdAt.getTime() + 12_000 - Date.now()) / 1000))
+          ? Math.max(0, Math.ceil((assignment.createdAt.getTime() + courierOfferTimeoutMs - Date.now()) / 1000))
           : null,
         routePlan,
       };
@@ -226,7 +228,7 @@ function formatCourierAssignment(assignment) {
     payoutMnt: String(5500 + Math.round(distanceKm * 900) + weightKg * 180),
     canAccept: true,
     offerExpiresInSec: assignment.status === "OFFERED"
-      ? Math.max(0, Math.ceil((assignment.createdAt.getTime() + 12_000 - Date.now()) / 1000))
+      ? Math.max(0, Math.ceil((assignment.createdAt.getTime() + courierOfferTimeoutMs - Date.now()) / 1000))
       : null,
     routePlan,
   };
@@ -391,7 +393,15 @@ export async function submitCourierFace(userId, payload = {}) {
 }
 
 export async function getCourierDashboard(userId) {
-  return appCache.remember(`courier:dashboard:${userId || "default"}`, () => loadCourierDashboard(userId), 8_000);
+  const advanced = await advanceExpiredCourierOffers();
+  if (advanced.expiredCount || advanced.reofferedCount) {
+    appCache.clearByPrefix("courier:dashboard:");
+    appCache.clearByPrefix("store:dashboard:");
+    appCache.clearByPrefix("customer:tracking:");
+    appCache.del("admin:dashboard");
+  }
+
+  return loadCourierDashboard(userId);
 }
 
 async function loadCourierDashboard(userId) {

@@ -26,7 +26,7 @@ type GeoPoint = {
 const fallbackPosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const tileSize = 256;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
-const employeeUiDeployMarker = "employee-work-mode-offer-card-v8";
+const employeeUiDeployMarker = "employee-work-mode-offer-card-v9";
 
 function isAuthSessionError(message?: string | null) {
   const normalized = String(message ?? "").toLowerCase();
@@ -195,6 +195,7 @@ function lineStyle(from: { x: number; y: number }, to: { x: number; y: number })
 
 export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const dashboard = useRealtimeResource<CourierDashboard>("/dashboard", ["courier.dashboard.refresh", "courier.job.updated"]);
+  const refreshDashboard = dashboard.refetch;
   const [activeTab, setActiveTab] = useState<CourierTab>("map");
   const [localOnline, setLocalOnline] = useState<boolean | null>(true);
   const [jobs, setJobs] = useState<QueueItem[] | null>(null);
@@ -254,6 +255,14 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     if (!dashboard.error || !isAuthSessionError(dashboard.error)) return;
     onLogout?.();
   }, [dashboard.error, onLogout]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void refreshDashboard();
+    }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [refreshDashboard]);
 
   useEffect(() => {
     if (!("geolocation" in navigator)) {
