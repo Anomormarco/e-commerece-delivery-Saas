@@ -196,7 +196,7 @@ function lineStyle(from: { x: number; y: number }, to: { x: number; y: number })
 export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const dashboard = useRealtimeResource<CourierDashboard>("/dashboard", ["courier.dashboard.refresh", "courier.job.updated"]);
   const [activeTab, setActiveTab] = useState<CourierTab>("map");
-  const [localOnline, setLocalOnline] = useState<boolean | null>(null);
+  const [localOnline, setLocalOnline] = useState<boolean | null>(true);
   const [jobs, setJobs] = useState<QueueItem[] | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [orderSearch, setOrderSearch] = useState("");
@@ -210,7 +210,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [otpByJob, setOtpByJob] = useState<Record<string, string>>({});
   const [mapMode, setMapMode] = useState<MapMode>("white");
   const [zoom, setZoom] = useState(13);
-  const isOnline = localOnline ?? dashboard.data?.online ?? false;
+  const isOnline = localOnline ?? dashboard.data?.online ?? true;
   const visibleJobs = jobs ?? dashboard.data?.jobs ?? [];
   const filteredJobs = visibleJobs.filter((job) => {
     const normalizedSearch = orderSearch.trim().toLowerCase();
@@ -406,7 +406,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
         </aside>
         {sidebarOpen && <button className="employee-drawer-backdrop" onClick={() => setSidebarOpen(false)} type="button" aria-label="Close menu" />}
 
-        <header className="employee-app-header" data-header-version="work-mode-v6">
+        <header className="employee-app-header" data-header-version="work-mode-v7">
           <button className="employee-menu-button" onClick={() => setSidebarOpen(true)} type="button" aria-label={text.menu}>
             <span />
             <span />

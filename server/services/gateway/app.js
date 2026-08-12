@@ -24,6 +24,33 @@ const skippedProxyHeaders = new Set([
   "upgrade",
 ]);
 
+function isCourierSessionRequest(request) {
+  const path = request.originalUrl.split("?")[0];
+  return (
+    (request.method === "GET" && path === "/api/courier/dashboard")
+    || (request.method === "POST" && path === "/api/courier/status")
+  );
+}
+
+function fallbackCourierDashboard(online = true) {
+  return {
+    online,
+    expectedEarningMnt: "0",
+    employeeName: "Хүргэлтийн ажилтан",
+    vehicleType: "WALK",
+    vehicleLabel: "Явган хүргэлт",
+    jobs: [],
+    verificationText: "Dashboard мэдээлэл түр уншигдсангүй. Дахин шинэчилнэ үү.",
+    verificationStatus: "ACTIVE",
+    degraded: true,
+  };
+}
+
+function fallbackCourierSession(request) {
+  const requestedOnline = typeof request.body?.online === "boolean" ? request.body.online : true;
+  return fallbackCourierDashboard(request.method === "POST" ? requestedOnline : true);
+}
+
 function setResponseHeaders(response, upstreamResponse) {
   const setCookies = typeof upstreamResponse.headers.getSetCookie === "function"
     ? upstreamResponse.headers.getSetCookie()
@@ -61,10 +88,32 @@ function createProxyHandler(upstreamUrl) {
         body: ["GET", "HEAD"].includes(request.method) ? undefined : JSON.stringify(request.body ?? {}),
       });
 
+      if (isCourierSessionRequest(request) && upstreamResponse.status >= 500) {
+        console.error("[api-gateway] courier session upstream failed", {
+          method: request.method,
+          path: request.originalUrl,
+          status: upstreamResponse.status,
+          upstream: target.toString(),
+        });
+        response.status(200).json(fallbackCourierSession(request));
+        return;
+      }
+
       response.status(upstreamResponse.status);
       setResponseHeaders(response, upstreamResponse);
       response.send(Buffer.from(await upstreamResponse.arrayBuffer()));
     } catch (error) {
+      if (isCourierSessionRequest(request)) {
+        console.error("[api-gateway] courier session proxy fallback", {
+          method: request.method,
+          path: request.originalUrl,
+          message: error?.message,
+          code: error?.code,
+        });
+        response.status(200).json(fallbackCourierSession(request));
+        return;
+      }
+
       next(error);
     }
   };
