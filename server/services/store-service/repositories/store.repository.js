@@ -23,7 +23,7 @@ export async function listRecentOrdersByTenant(tenantId, { limit = 10 } = {}) {
       customerAddress: { select: { label: true, latitude: true, longitude: true } },
       items: { include: { variant: true } },
       deliveryAssignments: {
-        take: 1,
+        take: 8,
         orderBy: { createdAt: "desc" },
         include: {
           employee: { include: { user: true } },

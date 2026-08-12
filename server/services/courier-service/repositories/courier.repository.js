@@ -730,6 +730,15 @@ export async function acceptDeliveryAssignment(userId, assignmentId) {
       select: { orderId: true },
     });
 
+    await transaction.deliveryAssignment.updateMany({
+      where: {
+        orderId: acceptedAssignment.orderId,
+        id: { not: assignmentId },
+        status: "OFFERED",
+      },
+      data: { status: "CANCELLED" },
+    });
+
     await transaction.order.update({
       where: { id: acceptedAssignment.orderId },
       data: { status: "COURIER_ARRIVING" },

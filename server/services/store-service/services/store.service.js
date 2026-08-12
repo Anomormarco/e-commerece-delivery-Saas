@@ -276,7 +276,10 @@ async function advanceExpiredStoreOffers(tenantId) {
 }
 
 function formatAssignmentTracking(order) {
-  const assignment = order.deliveryAssignments?.[0];
+  const assignments = order.deliveryAssignments ?? [];
+  const assignment = assignments.find((item) => activeAssignmentStatuses.includes(item.status))
+    ?? assignments.find((item) => item.status === "OFFERED")
+    ?? assignments[0];
   if (!assignment) return null;
 
   const courierLocation = latestAssignmentLocation(assignment);
