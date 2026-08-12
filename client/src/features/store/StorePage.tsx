@@ -586,26 +586,14 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     if (tracking?.status !== "OFFERED" || !tracking.createdAt) return null;
     const createdAtMs = new Date(tracking.createdAt).getTime();
     if (!Number.isFinite(createdAtMs)) return 10;
-    const elapsedMs = Math.max(0, dispatchClock - createdAtMs);
-    const remainingMs = storeOfferTimeoutMs - (elapsedMs % storeOfferTimeoutMs);
-    return Math.max(1, Math.ceil(remainingMs / 1000));
-  }
-
-  function offerQueueIndex(tracking?: StoreDeliveryTracking | null) {
-    if (tracking?.status !== "OFFERED" || !tracking.createdAt) return 0;
-    const queueLength = Math.max(1, tracking.nearbyCouriers?.length ?? 1);
-    const createdAtMs = new Date(tracking.createdAt).getTime();
-    if (!Number.isFinite(createdAtMs)) return 0;
-    return Math.floor(Math.max(0, dispatchClock - createdAtMs) / storeOfferTimeoutMs) % queueLength;
+    return Math.max(0, Math.ceil((createdAtMs + storeOfferTimeoutMs - dispatchClock) / 1000));
   }
 
   function currentOfferCourier(tracking?: StoreDeliveryTracking | null) {
     if (tracking?.status !== "OFFERED") return null;
 
     const nearbyCouriers = tracking.nearbyCouriers ?? [];
-    const queueIndex = offerQueueIndex(tracking);
-    const matchedCourier = nearbyCouriers[queueIndex]
-      ?? nearbyCouriers.find((courier) => courier.employeeId === tracking.courier?.id)
+    const matchedCourier = nearbyCouriers.find((courier) => courier.employeeId === tracking.courier?.id)
       ?? nearbyCouriers[0]
       ?? null;
     const location = matchedCourier?.location ?? tracking.routePlan?.courier;

@@ -115,18 +115,14 @@ async function findEmployeesByPriority(steps) {
 export async function listMatchingEmployees(tenantId, vehicleTypes) {
   return findEmployeesByPriority([
     availableEmployeeWhere({ tenantId, vehicleTypes, onlineOnly: true, activeOnly: true, vehicleOnly: true }),
-    availableEmployeeWhere({ tenantId, vehicleTypes, onlineOnly: false, activeOnly: true, vehicleOnly: true }),
-    availableEmployeeWhere({ tenantId, vehicleTypes, onlineOnly: false, activeOnly: true, vehicleOnly: false }),
-    availableEmployeeWhere({ tenantId, vehicleTypes, onlineOnly: false, activeOnly: false, vehicleOnly: false }),
+    availableEmployeeWhere({ tenantId, vehicleTypes, onlineOnly: true, activeOnly: true, vehicleOnly: false }),
   ]);
 }
 
 export async function listMatchingEmployeesAnyTenant(vehicleTypes) {
   return findEmployeesByPriority([
     availableEmployeeWhere({ vehicleTypes, onlineOnly: true, activeOnly: true, vehicleOnly: true }),
-    availableEmployeeWhere({ vehicleTypes, onlineOnly: false, activeOnly: true, vehicleOnly: true }),
-    availableEmployeeWhere({ vehicleTypes, onlineOnly: false, activeOnly: true, vehicleOnly: false }),
-    availableEmployeeWhere({ vehicleTypes, onlineOnly: false, activeOnly: false, vehicleOnly: false }),
+    availableEmployeeWhere({ vehicleTypes, onlineOnly: true, activeOnly: true, vehicleOnly: false }),
   ]);
 }
 

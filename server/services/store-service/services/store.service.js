@@ -1,4 +1,5 @@
 import { appCache } from "@deliverhub/server-platform/cache/memory-cache";
+import { prisma } from "@deliverhub/server-platform/database/prisma";
 import {
   createDeliveryOffer,
   findEmployeeInAdminReview,
@@ -18,6 +19,15 @@ const vehicleLabels = {
 };
 
 const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
+const offerTimeoutMs = 10_000;
+const activeAssignmentStatuses = [
+  "ACCEPTED",
+  "ARRIVING_PICKUP",
+  "PICKUP_VERIFICATION",
+  "PICKED_UP",
+  "IN_TRANSIT",
+  "ARRIVING_DROPOFF",
+];
 
 function dispatchRule(weightKg, distanceKm) {
   if (weightKg > 12 || distanceKm > 8) return { requiredVehicle: "CAR", eligibleVehicles: ["CAR"] };
@@ -123,6 +133,118 @@ function rankNearbyEmployees(order, employees, distanceKm) {
     .sort((left, right) => left.score - right.score);
 }
 
+function orderWeightKg(order) {
+  const grams = (order.items ?? []).reduce((sum, item) => {
+    const weight = item.variant?.weightGrams ?? 500;
+    return sum + weight * item.quantity;
+  }, 0);
+
+  return Math.max(1, Math.ceil(grams / 1000));
+}
+
+function orderDistanceKm(order) {
+  const pickup = pickupLocation(order);
+  const dropoff = dropoffLocation(order, pickup, 2.4);
+  return Number(haversineKm(pickup, dropoff).toFixed(1)) || 2.4;
+}
+
+async function createNextStoreCourierOffer(transaction, { tenantId, orderId }) {
+  const order = await transaction.order.findFirst({
+    where: { id: orderId, tenantId },
+    include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } },
+  });
+
+  if (!order) return null;
+
+  const previousOffers = await transaction.deliveryAssignment.findMany({
+    where: { orderId, employeeId: { not: null } },
+    select: { employeeId: true },
+  });
+  const excludedEmployeeIds = previousOffers.map((offer) => offer.employeeId).filter(Boolean);
+  const weightKg = orderWeightKg(order);
+  const distanceKm = orderDistanceKm(order);
+  const rule = dispatchRule(weightKg, distanceKm);
+  const candidates = await transaction.deliveryEmployee.findMany({
+    where: {
+      tenantId,
+      online: true,
+      verificationStatus: "ACTIVE",
+      ...(excludedEmployeeIds.length ? { id: { notIn: excludedEmployeeIds } } : {}),
+      assignments: {
+        none: { status: { in: ["OFFERED", ...activeAssignmentStatuses] } },
+      },
+    },
+    include: { user: true },
+  });
+  const rankedEmployees = rankNearbyEmployees(order, candidates, distanceKm)
+    .filter(({ employee }) => rule.eligibleVehicles.includes(employee.vehicleType ?? "WALK"));
+  const nextEmployee = rankedEmployees[0]?.employee;
+
+  if (!nextEmployee) return null;
+
+  return transaction.deliveryAssignment.create({
+    data: {
+      tenantId,
+      orderId,
+      employeeId: nextEmployee.id,
+      status: "OFFERED",
+    },
+  });
+}
+
+async function advanceExpiredStoreOffers(tenantId) {
+  const cutoff = new Date(Date.now() - offerTimeoutMs);
+  const expiredOffers = await prisma.deliveryAssignment.findMany({
+    where: {
+      tenantId,
+      status: "OFFERED",
+      employeeId: { not: null },
+      createdAt: { lt: cutoff },
+    },
+    select: { id: true, orderId: true },
+    take: 20,
+    orderBy: { createdAt: "asc" },
+  });
+
+  let changed = false;
+
+  for (const offer of expiredOffers) {
+    const result = await prisma.$transaction(async (transaction) => {
+      const updateResult = await transaction.deliveryAssignment.updateMany({
+        where: { id: offer.id, status: "OFFERED", createdAt: { lt: cutoff } },
+        data: { status: "REJECTED" },
+      });
+
+      if (updateResult.count !== 1) return false;
+
+      await transaction.deliveryAttempt.create({
+        data: {
+          assignmentId: offer.id,
+          reason: "OFFER_TIMEOUT",
+          note: "Store dashboard advanced the offer to the next online courier after 10 seconds.",
+        },
+      });
+
+      const activeAssignment = await transaction.deliveryAssignment.findFirst({
+        where: {
+          orderId: offer.orderId,
+          status: { in: ["OFFERED", ...activeAssignmentStatuses] },
+        },
+        select: { id: true },
+      });
+
+      if (activeAssignment) return true;
+
+      await createNextStoreCourierOffer(transaction, { tenantId, orderId: offer.orderId });
+      return true;
+    });
+
+    changed = changed || result;
+  }
+
+  return changed;
+}
+
 function formatAssignmentTracking(order) {
   const assignment = order.deliveryAssignments?.[0];
   if (!assignment) return null;
@@ -160,6 +282,13 @@ function formatAssignmentTracking(order) {
 }
 
 export async function getStoreDashboard(tenantId) {
+  if (tenantId && await advanceExpiredStoreOffers(tenantId)) {
+    appCache.clearByPrefix(`store:dashboard:${tenantId}`);
+    appCache.clearByPrefix("courier:dashboard:");
+    appCache.clearByPrefix("customer:tracking:");
+    appCache.del("admin:dashboard");
+  }
+
   return appCache.remember(`store:dashboard:${tenantId}`, () => loadStoreDashboard(tenantId), 2_000);
 }
 
