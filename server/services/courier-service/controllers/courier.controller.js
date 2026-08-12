@@ -15,9 +15,9 @@ import {
   verifyCourierStoreOtp,
 } from "../services/courier.service.js";
 
-function fallbackCourierDashboard(userId = "") {
+function fallbackCourierDashboard(userId = "", online = true) {
   return {
-    online: false,
+    online,
     expectedEarningMnt: "0",
     employeeName: userId ? "Хүргэлтийн ажилтан" : "Ажилтан",
     vehicleType: "WALK",
@@ -78,9 +78,22 @@ export async function updateCourierStatus(request, response) {
     return;
   }
 
-  const result = await setCourierOnlineStatus(userIdFromRequest(request), request.body?.online);
-  courierEventBus.publishSoon("courier.status.updated", { userId: userIdFromRequest(request), online: result.online });
-  response.json(result);
+  const userId = userIdFromRequest(request);
+  const nextOnline = request.body.online;
+
+  try {
+    const result = await setCourierOnlineStatus(userId, nextOnline);
+    courierEventBus.publishSoon("courier.status.updated", { userId, online: result.online });
+    response.json(result);
+  } catch (error) {
+    console.error("[courier-service] status fallback", {
+      userId,
+      online: nextOnline,
+      message: error?.message,
+      code: error?.code,
+    });
+    response.json(fallbackCourierDashboard(userId, nextOnline));
+  }
 }
 
 export async function updateCourierPosition(request, response) {
