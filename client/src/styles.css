@@ -11197,7 +11197,7 @@ h3 {
 .employee-app-header {
   z-index: 4;
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto auto auto;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px;
   min-height: 70px;
@@ -11228,6 +11228,20 @@ h3 {
   padding: 4px 8px 4px 4px;
   background: transparent;
   text-align: left;
+}
+
+.employee-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  min-width: 0;
+}
+
+.employee-header-notifications .notification-panel {
+  right: 0;
+  width: min(300px, calc(100vw - 32px));
+  max-height: 430px;
 }
 
 .employee-header-profile > span {
@@ -14781,23 +14795,46 @@ h2 {
   }
 
   .employee-app-header {
-    grid-template-columns: 42px minmax(0, 1fr) auto auto;
+    grid-template-columns: 42px minmax(0, 1fr);
     gap: 8px;
   }
 
+  .employee-header-actions {
+    grid-column: 2;
+    justify-self: end;
+    gap: 6px;
+    max-width: 100%;
+  }
+
   .courier-work-mode {
-    grid-template-columns: 72px 86px;
+    grid-template-columns: 68px 82px;
   }
 
   .courier-work-mode button {
     font-size: 9px;
-    padding: 0 6px;
+    padding: 0 5px;
   }
 
   .employee-header-profile {
+    display: none;
     gap: 8px;
     min-width: 128px;
     padding-right: 4px;
+  }
+
+  .employee-header-notifications .notification-bell-button {
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+  }
+
+  .employee-header-notifications .notification-panel {
+    position: fixed;
+    top: 78px;
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-height: 60svh;
   }
 
   .employee-header-profile > span {

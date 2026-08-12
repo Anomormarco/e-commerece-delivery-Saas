@@ -20,6 +20,16 @@ function createHttpError(statusCode, message, code) {
   return error;
 }
 
+function authErrorFromVerifyError(error) {
+  if (error?.statusCode || error?.status) return error;
+
+  return createHttpError(
+    401,
+    "Нэвтрэх session буруу байна. Дахин нэвтэрнэ үү.",
+    "INVALID_TOKEN",
+  );
+}
+
 function devHeaderAuthFromRequest(request) {
   if (process.env.ALLOW_DEV_AUTH_HEADERS !== "true") return null;
 
@@ -59,7 +69,7 @@ export function optionalAuth(request, _response, next) {
         payload,
       };
     } catch (error) {
-      next(error);
+      next(authErrorFromVerifyError(error));
       return;
     }
   } else if (devAuth) {
@@ -70,7 +80,17 @@ export function optionalAuth(request, _response, next) {
 }
 
 export function requireAuth(request, _response, next) {
-  if (!request.auth) optionalAuth(request, _response, () => {});
+  if (!request.auth) {
+    optionalAuth(request, _response, (error) => {
+      if (error) {
+        next(error);
+        return;
+      }
+
+      requireAuth(request, _response, next);
+    });
+    return;
+  }
 
   if (!request.auth.userId) {
     next(createHttpError(401, "Нэвтрэх шаардлагатай.", "UNAUTHENTICATED"));

@@ -42,6 +42,17 @@ export async function verifyCourierFace(request, response) {
 }
 
 export async function updateCourierStatus(request, response) {
+  if (typeof request.body?.online !== "boolean") {
+    response.status(400).json({
+      status: "error",
+      statusCode: 400,
+      message: "Ажлын төлөв буруу байна.",
+      code: "BAD_REQUEST",
+      service: "courier-service",
+    });
+    return;
+  }
+
   const result = await setCourierOnlineStatus(userIdFromRequest(request), request.body?.online);
   courierEventBus.publishSoon("courier.status.updated", { userId: userIdFromRequest(request), online: result.online });
   response.json(result);

@@ -391,23 +391,25 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
               <small>{dashboard.data?.vehicleLabel ?? text.vehicle}</small>
             </div>
           </button>
-          <div className="courier-work-mode" role="group" aria-label="Ажлын төлөв">
-            <button
-              className={!isOnline ? "active" : ""}
-              onClick={() => setWorkMode(false)}
-              type="button"
-            >
-              {text.stopWork}
-            </button>
-            <button
-              className={isOnline ? "active" : ""}
-              onClick={() => setWorkMode(true)}
-              type="button"
-            >
-              {text.startWork}
-            </button>
+          <div className="employee-header-actions">
+            <div className="courier-work-mode" role="group" aria-label="Ажлын төлөв">
+              <button
+                className={!isOnline ? "active" : ""}
+                onClick={() => setWorkMode(false)}
+                type="button"
+              >
+                {text.stopWork}
+              </button>
+              <button
+                className={isOnline ? "active" : ""}
+                onClick={() => setWorkMode(true)}
+                type="button"
+              >
+                {text.startWork}
+              </button>
+            </div>
+            <NotificationBell className="employee-header-notifications" />
           </div>
-          <NotificationBell />
         </header>
         <StateBlock loading={dashboard.loading} error={dashboard.error} empty={!dashboard.data}>
           {dashboard.data && (
