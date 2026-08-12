@@ -26,7 +26,7 @@ type GeoPoint = {
 const fallbackPosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const tileSize = 256;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
-const employeeUiDeployMarker = "employee-work-mode-offer-card-v6";
+const employeeUiDeployMarker = "employee-work-mode-offer-card-v7";
 
 const text = {
   title: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0430\u0436\u0438\u043B\u0442\u0430\u043D",
@@ -300,6 +300,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
 
     try {
       const acceptedJob = await postJson<QueueItem>(`/jobs/${jobId}/accept`);
+      setLocalOnline(true);
       setJobs((currentJobs) =>
         (currentJobs ?? visibleJobs).map((job) => (job.id === acceptedJob.id ? acceptedJob : job)),
       );
@@ -467,7 +468,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     )}
                     <div className="courier-map-request-actions">
                       <button onClick={() => rejectJob(primaryJob.id)} type="button">{text.reject}</button>
-                      <button disabled={!isOnline || primaryJob.canAccept === false} onClick={() => acceptJob(primaryJob.id)} type="button">{text.acceptOrder}</button>
+                      <button disabled={primaryJob.canAccept === false} onClick={() => acceptJob(primaryJob.id)} type="button">{text.acceptOrder}</button>
                     </div>
                   </article>
                 )}
@@ -532,7 +533,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   )}
                   <div className="courier-map-request-actions">
                     <button onClick={() => rejectJob(primaryJob.id)} type="button">{text.reject}</button>
-                    <button disabled={!isOnline || primaryJob.canAccept === false} onClick={() => acceptJob(primaryJob.id)} type="button">{text.acceptOrder}</button>
+                    <button disabled={primaryJob.canAccept === false} onClick={() => acceptJob(primaryJob.id)} type="button">{text.acceptOrder}</button>
                   </div>
                 </article>
               )}
@@ -650,7 +651,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     {job.state === "OFFERED" ? (
                       <>
                         <button className="light-button" onClick={() => rejectJob(job.id)} type="button">{text.reject}</button>
-                        <button className="orange-button" disabled={!isOnline || job.canAccept === false} onClick={() => acceptJob(job.id)} type="button">{text.acceptOrder}</button>
+                        <button className="orange-button" disabled={job.canAccept === false} onClick={() => acceptJob(job.id)} type="button">{text.acceptOrder}</button>
                       </>
                     ) : (
                       <span className="employee-status-chip">{job.state}</span>
