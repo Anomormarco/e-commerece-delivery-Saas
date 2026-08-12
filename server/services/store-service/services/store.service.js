@@ -20,6 +20,7 @@ const vehicleLabels = {
 
 const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
 const offerTimeoutMs = 10_000;
+const maxStoreOfferAttempts = 5;
 const activeAssignmentStatuses = [
   "ACCEPTED",
   "ARRIVING_PICKUP",
@@ -156,10 +157,24 @@ async function createNextStoreCourierOffer(transaction, { tenantId, orderId }) {
 
   if (!order) return null;
 
-  const previousOffers = await transaction.deliveryAssignment.findMany({
-    where: { orderId, employeeId: { not: null } },
-    select: { employeeId: true },
+  const latestDispatchStart = await transaction.orderStatusHistory.findFirst({
+    where: { orderId, status: "COURIER_ASSIGNED" },
+    select: { createdAt: true },
+    orderBy: { createdAt: "desc" },
   });
+  const offerWindow = {
+    orderId,
+    employeeId: { not: null },
+    ...(latestDispatchStart ? { createdAt: { gte: latestDispatchStart.createdAt } } : {}),
+  };
+  const previousOffers = await transaction.deliveryAssignment.findMany({
+    where: offerWindow,
+    select: { employeeId: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (previousOffers.length >= maxStoreOfferAttempts) return null;
+
   const excludedEmployeeIds = previousOffers.map((offer) => offer.employeeId).filter(Boolean);
   const weightKg = orderWeightKg(order);
   const distanceKm = orderDistanceKm(order);
@@ -235,7 +250,22 @@ async function advanceExpiredStoreOffers(tenantId) {
 
       if (activeAssignment) return true;
 
-      await createNextStoreCourierOffer(transaction, { tenantId, orderId: offer.orderId });
+      const nextOffer = await createNextStoreCourierOffer(transaction, { tenantId, orderId: offer.orderId });
+
+      if (!nextOffer) {
+        await transaction.order.update({
+          where: { id: offer.orderId },
+          data: { status: "READY_FOR_PICKUP" },
+        });
+        await transaction.orderStatusHistory.create({
+          data: {
+            orderId: offer.orderId,
+            status: "READY_FOR_PICKUP",
+            note: "5 active employees did not accept the delivery offer. Store can call delivery again.",
+          },
+        });
+      }
+
       return true;
     });
 

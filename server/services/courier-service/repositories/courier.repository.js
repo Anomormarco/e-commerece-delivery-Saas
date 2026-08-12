@@ -627,7 +627,10 @@ export async function updateCourierOnlineState(userId, online) {
 
   return prisma.deliveryEmployee.update({
     where: { id: employee.id },
-    data: { online },
+    data: {
+      online,
+      ...(online ? { verificationStatus: "ACTIVE" } : {}),
+    },
     include: includeCourierDashboard(),
   });
 }

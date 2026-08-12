@@ -73,6 +73,7 @@ const mapTileSize = 256;
 const storeMapZoom = 14;
 const storeOfferTimeoutMs = 10_000;
 const storePreparedLocalBuildMarker = "prepared-local-v2";
+const terminalDispatchStatuses = ["REJECTED", "FAILED", "CANCELLED"] as const;
 
 type StoreIdentity = {
   id: string;
@@ -788,13 +789,17 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const preparedLabel = "Бэлтгэж дууссан";
     const liveSelectedOrder = selectedOrder ? dashboard.data?.orders.find((order) => order.id === selectedOrder.id) : null;
     const selectedTracking = selectedOrder ? liveSelectedOrder?.deliveryTracking ?? selectedOrder.deliveryTracking ?? dispatchTrackings[selectedOrder.id] : null;
+    const selectedStatus = liveSelectedOrder?.status ?? selectedOrder?.status;
+    const selectedDispatchExpired = terminalDispatchStatuses.includes(String(selectedTracking?.status) as typeof terminalDispatchStatuses[number]);
+    const canCallCourier = selectedStatus === storeOrderStatuses.prepared
+      || (selectedStatus === storeOrderStatuses.courierCalled && selectedDispatchExpired);
     const workflowStatus = selectedTracking?.status === "PICKED_UP"
       ? "PICKED_UP"
       : selectedTracking?.status === "DELIVERED"
         ? "DELIVERED"
         : selectedTracking?.status === "PICKUP_VERIFICATION"
           ? "PICKUP_VERIFICATION"
-          : selectedOrder?.status;
+          : selectedStatus;
     const workflowSteps = selectedOrder ? [
       { key: storeOrderStatuses.paid, aliases: [storeOrderStatuses.confirmed], label: "Захиалга баталгаажсан" },
       { key: storeOrderStatuses.prepared, aliases: [storeOrderStatuses.courierCalled, "COURIER_ARRIVING", "PICKUP_VERIFICATION"], label: preparedLabel },
@@ -806,6 +811,16 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
       : 0;
     const selectedItems = selectedOrder?.items ?? [];
     const selectedAddress = selectedOrder?.addressText || selectedOrder?.district || "Хаяг бүртгэгдээгүй байна";
+    const liveStatusForOrder = (order: StoreOrderView) => dashboard.data?.orders.find((item) => item.id === order.id)?.status ?? order.status;
+    const trackingForOrder = (order: StoreOrderView) => dashboard.data?.orders.find((item) => item.id === order.id)?.deliveryTracking
+      ?? order.deliveryTracking
+      ?? dispatchTrackings[order.id];
+    const canCallCourierForOrder = (order: StoreOrderView) => {
+      const status = liveStatusForOrder(order);
+      const tracking = trackingForOrder(order);
+      const expired = terminalDispatchStatuses.includes(String(tracking?.status) as typeof terminalDispatchStatuses[number]);
+      return status === storeOrderStatuses.prepared || (status === storeOrderStatuses.courierCalled && expired);
+    };
 
     return (
       <article className="store-dash-card store-dash-wide">
@@ -819,7 +834,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               <div>
                 <span>#{selectedOrder.id}</span>
                 <h3>{selectedOrder.storeName ?? store?.storeName ?? text.storeName}</h3>
-                <p>{storeOrderStatusLabel(selectedOrder.status)}</p>
+                <p>{storeOrderStatusLabel(String(selectedStatus))}</p>
               </div>
               <strong>{selectedOrder.amountMnt} MNT</strong>
             </div>
@@ -856,7 +871,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
                 </span>
               ))}
             </div>
-            {selectedOrder.status === storeOrderStatuses.prepared ? (
+            {canCallCourier ? (
           <section className="store-dispatch-ready">
             <div>
               <strong>Бэлтгэж дууссан</strong>
@@ -874,13 +889,13 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             ) : null}
             {renderDeliveryTracking(selectedOrder, selectedTracking)}
             <div className="store-order-focus-actions">
-              {selectedOrder.status === storeOrderStatuses.prepared ? (
+              {canCallCourier ? (
                 null
-              ) : selectedOrder.status === storeOrderStatuses.courierCalled ? (
+              ) : selectedStatus === storeOrderStatuses.courierCalled ? (
                 <button disabled type="button">Хүргэлт дуудсан</button>
-              ) : selectedOrder.status === storeOrderStatuses.preparing ? (
+              ) : selectedStatus === storeOrderStatuses.preparing ? (
                 <button onClick={() => runAction(preparedLabel, selectedOrder.id)} type="button">{preparedLabel}</button>
-              ) : [storeOrderStatuses.paid, storeOrderStatuses.confirmed].includes(selectedOrder.status) ? (
+              ) : [storeOrderStatuses.paid, storeOrderStatuses.confirmed].includes(String(selectedStatus)) ? (
                 <button onClick={() => runAction(preparedLabel, selectedOrder.id)} type="button">{preparedLabel}</button>
               ) : (
                 <>
@@ -903,16 +918,16 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
                 <em>{orderLabel(index)}</em>
               </div>
               <strong>{order.district}</strong>
-              <p>{storeOrderStatusLabel(order.status)}</p>
+              <p>{storeOrderStatusLabel(liveStatusForOrder(order))}</p>
               <b>{order.amountMnt} MNT</b>
               <div>
-                {order.status === storeOrderStatuses.preparing ? (
+                {liveStatusForOrder(order) === storeOrderStatuses.preparing ? (
                   <button onClick={() => runAction(preparedLabel, order.id)} type="button">{preparedLabel}</button>
-                ) : [storeOrderStatuses.paid, storeOrderStatuses.confirmed].includes(order.status) ? (
+                ) : [storeOrderStatuses.paid, storeOrderStatuses.confirmed].includes(liveStatusForOrder(order)) ? (
                   <button onClick={() => runAction(preparedLabel, order.id)} type="button">{preparedLabel}</button>
-                ) : order.status === storeOrderStatuses.prepared ? (
+                ) : canCallCourierForOrder(order) ? (
                   <button onClick={() => runAction(text.callCourier, order.id)} type="button">{text.callCourier}</button>
-                ) : order.status === storeOrderStatuses.courierCalled ? (
+                ) : liveStatusForOrder(order) === storeOrderStatuses.courierCalled ? (
                   <button disabled type="button">Хүргэлт дуудсан</button>
                 ) : index === 0 ? (
                   <>

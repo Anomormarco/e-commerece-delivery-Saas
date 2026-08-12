@@ -422,6 +422,7 @@ async function loadCourierDashboard(userId) {
 export async function setCourierOnlineStatus(userId, online) {
   const employee = await updateCourierOnlineState(userId, Boolean(online));
   appCache.clearByPrefix(`courier:dashboard:${userId || "default"}`);
+  appCache.clearByPrefix("store:dashboard:");
   appCache.del("admin:dashboard");
   return employee ? formatCourierDashboard(employee) : getCourierDashboard(userId);
 }
