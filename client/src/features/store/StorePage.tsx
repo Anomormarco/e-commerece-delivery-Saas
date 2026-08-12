@@ -590,18 +590,16 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   }
 
   function currentOfferCourier(tracking?: StoreDeliveryTracking | null) {
-    if (tracking?.status !== "OFFERED") return null;
+    if (tracking?.status !== "OFFERED" || !tracking.courier?.id) return null;
 
     const nearbyCouriers = tracking.nearbyCouriers ?? [];
-    const matchedCourier = nearbyCouriers.find((courier) => courier.employeeId === tracking.courier?.id)
-      ?? nearbyCouriers[0]
-      ?? null;
-    const location = matchedCourier?.location ?? tracking.routePlan?.courier;
+    const matchedCourier = nearbyCouriers.find((courier) => courier.employeeId === tracking.courier?.id) ?? null;
+    const location = tracking.routePlan?.courier ?? matchedCourier?.location;
 
     if (!location) return null;
 
     return {
-      employeeId: matchedCourier?.employeeId ?? tracking.courier?.id ?? tracking.assignmentId,
+      employeeId: tracking.courier.id,
       name: matchedCourier?.name ?? tracking.courier?.name ?? "Ойрын employee",
       toPickupKm: matchedCourier?.toPickupKm ?? tracking.routePlan?.toPickupKm ?? 0,
       etaMinutes: matchedCourier?.etaMinutes ?? tracking.routePlan?.etaMinutes ?? 0,
@@ -750,10 +748,10 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             <b>{eta} мин</b>
             <b>{tracking.courier?.vehicleType ?? "AUTO"}</b>
           </div>
-          {nearbyCouriers.length ? (
+          {false && nearbyCouriers.length ? (
             <div className="store-nearby-couriers">
               {nearbyCouriers.slice(0, 4).map((courier, index) => (
-                <span className={(offerCourier?.employeeId ?? tracking.courier?.id) === courier.employeeId ? "matched" : ""} key={courier.employeeId}>
+                <span className={(offerCourier?.employeeId ?? tracking?.courier?.id) === courier.employeeId ? "matched" : ""} key={courier.employeeId}>
                   <i>{index + 1}</i>
                   <strong>{courier.employeeId}</strong>
                   {courier.name}
