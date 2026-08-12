@@ -625,13 +625,64 @@ export async function updateCourierOnlineState(userId, online) {
     return null;
   }
 
-  return prisma.deliveryEmployee.update({
-    where: { id: employee.id },
-    data: {
-      online,
-      ...(online ? { verificationStatus: "ACTIVE" } : {}),
-    },
-    include: includeCourierDashboard(),
+  return prisma.$transaction(async (transaction) => {
+    if (!online) {
+      const cancelledAssignments = await transaction.deliveryAssignment.findMany({
+        where: {
+          employeeId: employee.id,
+          status: { in: ["OFFERED", ...activeAssignmentStatuses] },
+        },
+        select: { id: true, orderId: true },
+      });
+
+      if (cancelledAssignments.length) {
+        await transaction.deliveryAssignment.updateMany({
+          where: { id: { in: cancelledAssignments.map((assignment) => assignment.id) } },
+          data: { status: "CANCELLED" },
+        });
+
+        await transaction.deliveryAttempt.createMany({
+          data: cancelledAssignments.map((assignment) => ({
+            assignmentId: assignment.id,
+            reason: "EMPLOYEE_CANCELLED_SHIFT_END",
+            note: "Employee went off work and cancelled the active delivery call.",
+          })),
+        });
+
+        for (const orderId of [...new Set(cancelledAssignments.map((assignment) => assignment.orderId))]) {
+          const remainingActiveAssignment = await transaction.deliveryAssignment.findFirst({
+            where: {
+              orderId,
+              status: { in: ["OFFERED", ...activeAssignmentStatuses] },
+            },
+            select: { id: true },
+          });
+
+          if (!remainingActiveAssignment) {
+            await transaction.order.update({
+              where: { id: orderId },
+              data: { status: "READY_FOR_PICKUP" },
+            });
+            await transaction.orderStatusHistory.create({
+              data: {
+                orderId,
+                status: "READY_FOR_PICKUP",
+                note: "Employee cancelled the active delivery while going off work. Store can call delivery again.",
+              },
+            });
+          }
+        }
+      }
+    }
+
+    return transaction.deliveryEmployee.update({
+      where: { id: employee.id },
+      data: {
+        online,
+        ...(online ? { verificationStatus: "ACTIVE" } : {}),
+      },
+      include: includeCourierDashboard(),
+    });
   });
 }
 
