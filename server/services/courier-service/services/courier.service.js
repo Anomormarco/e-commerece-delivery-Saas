@@ -32,12 +32,14 @@ const vehicleLabels = {
   CAR: "\u041C\u0430\u0448\u0438\u043D",
 };
 
+const courierAccessTokenMaxAgeSeconds = 60 * 60 * 24 * 30;
+
 function createCourierAccessToken(employee) {
   return signJwt({
     sub: employee.userId,
     tenantId: employee.tenantId,
     roles: ["DELIVERY_EMPLOYEE"],
-  });
+  }, { expiresInSeconds: courierAccessTokenMaxAgeSeconds });
 }
 
 function createHttpError(statusCode, message) {

@@ -26,7 +26,16 @@ type GeoPoint = {
 const fallbackPosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const tileSize = 256;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
-const employeeUiDeployMarker = "employee-work-mode-offer-card-v7";
+const employeeUiDeployMarker = "employee-work-mode-offer-card-v8";
+
+function isAuthSessionError(message?: string | null) {
+  const normalized = String(message ?? "").toLowerCase();
+  return normalized.includes("token")
+    || normalized.includes("expired")
+    || normalized.includes("unauthenticated")
+    || normalized.includes("нэвтрэх")
+    || normalized.includes("хугацаа");
+}
 
 const text = {
   title: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0430\u0436\u0438\u043B\u0442\u0430\u043D",
@@ -238,6 +247,11 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   ];
   const mapCenter = midpoint(mapPoints);
   const mapTiles = getVisibleTiles(mapCenter, zoom);
+
+  useEffect(() => {
+    if (!dashboard.error || !isAuthSessionError(dashboard.error)) return;
+    onLogout?.();
+  }, [dashboard.error, onLogout]);
 
   useEffect(() => {
     if (!("geolocation" in navigator)) {
