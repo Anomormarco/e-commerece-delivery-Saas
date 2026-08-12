@@ -586,14 +586,26 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     if (tracking?.status !== "OFFERED" || !tracking.createdAt) return null;
     const createdAtMs = new Date(tracking.createdAt).getTime();
     if (!Number.isFinite(createdAtMs)) return 10;
-    return Math.max(0, Math.ceil((createdAtMs + storeOfferTimeoutMs - dispatchClock) / 1000));
+    const elapsedMs = Math.max(0, dispatchClock - createdAtMs);
+    const remainingMs = storeOfferTimeoutMs - (elapsedMs % storeOfferTimeoutMs);
+    return Math.max(1, Math.ceil(remainingMs / 1000));
+  }
+
+  function offerQueueIndex(tracking?: StoreDeliveryTracking | null) {
+    if (tracking?.status !== "OFFERED" || !tracking.createdAt) return 0;
+    const queueLength = Math.max(1, tracking.nearbyCouriers?.length ?? 1);
+    const createdAtMs = new Date(tracking.createdAt).getTime();
+    if (!Number.isFinite(createdAtMs)) return 0;
+    return Math.floor(Math.max(0, dispatchClock - createdAtMs) / storeOfferTimeoutMs) % queueLength;
   }
 
   function currentOfferCourier(tracking?: StoreDeliveryTracking | null) {
     if (tracking?.status !== "OFFERED") return null;
 
     const nearbyCouriers = tracking.nearbyCouriers ?? [];
-    const matchedCourier = nearbyCouriers.find((courier) => courier.employeeId === tracking.courier?.id)
+    const queueIndex = offerQueueIndex(tracking);
+    const matchedCourier = nearbyCouriers[queueIndex]
+      ?? nearbyCouriers.find((courier) => courier.employeeId === tracking.courier?.id)
       ?? nearbyCouriers[0]
       ?? null;
     const location = matchedCourier?.location ?? tracking.routePlan?.courier;
@@ -706,6 +718,8 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const isAccepted = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"].includes(tracking.status);
     const isDelivering = ["PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF"].includes(tracking.status);
     const needsStoreOtp = tracking.status === "PICKUP_VERIFICATION";
+    const offerCourier = currentOfferCourier(tracking);
+    const offerRemaining = offerRemainingSec(tracking);
     const courierName = tracking.courier?.name ?? "Ойрын хүргэлтийн ажилтан";
     const eta = route?.etaMinutes ?? tracking.routePlan?.drivingMinutes ?? 0;
     const toPickupKm = route?.toPickupKm ?? 0;
@@ -740,6 +754,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         </div>
         <div className="store-dispatch-detail">
           <span>{dispatchStageText}</span>
+          {offerCourier && <span>{offerCourier.employeeId} дээр {offerRemaining ?? 10} сек хүлээж байна</span>}
           <h3>{courierName}</h3>
           <p>{tracking.statusLabel}</p>
           <div>
@@ -750,7 +765,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           {nearbyCouriers.length ? (
             <div className="store-nearby-couriers">
               {nearbyCouriers.slice(0, 4).map((courier, index) => (
-                <span className={tracking.courier?.id === courier.employeeId ? "matched" : ""} key={courier.employeeId}>
+                <span className={(offerCourier?.employeeId ?? tracking.courier?.id) === courier.employeeId ? "matched" : ""} key={courier.employeeId}>
                   <i>{index + 1}</i>
                   <strong>{courier.employeeId}</strong>
                   {courier.name}
