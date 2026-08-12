@@ -2,6 +2,7 @@
   "name": "@deliverhub/client",
   "private": true,
   "version": "0.1.0",
+  "description": "DeliverHub client applications",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --mode public --port 5173",
