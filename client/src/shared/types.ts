@@ -12,6 +12,7 @@ export type QueueItem = {
   name: string;
   pickupAddress?: string;
   dropoffAddress?: string;
+  customerPhone?: string | null;
   distance: string;
   weightKg?: number;
   requiredVehicle?: "WALK" | "MOPED" | "CAR";

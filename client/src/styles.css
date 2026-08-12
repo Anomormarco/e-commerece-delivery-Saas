@@ -11826,7 +11826,7 @@ h3 {
   backdrop-filter: blur(16px);
 }
 
-.employee-live-map > .courier-map-request-card {
+.employee-live-map > .courier-map-request-card.is-active-route {
   display: none;
 }
 
@@ -11844,6 +11844,32 @@ h3 {
 
 .employee-map-route-card {
   margin-top: 0;
+}
+
+.employee-route-contact {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px;
+}
+
+.employee-route-contact span,
+.employee-route-contact a {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-route-contact a {
+  flex: 0 0 auto;
+  color: #2563eb;
+  text-decoration: none;
 }
 
 .courier-map-request-card.is-active-route {

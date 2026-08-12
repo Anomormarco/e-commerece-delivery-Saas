@@ -218,7 +218,7 @@ function includeCourierDashboard() {
       take: 12,
       orderBy: { createdAt: "desc" },
       include: {
-        order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } },
+        order: { include: { store: true, branch: true, customer: { select: { phone: true } }, customerAddress: true, items: { include: { variant: true } } } },
         trackingSessions: {
           take: 1,
           orderBy: { startedAt: "desc" },

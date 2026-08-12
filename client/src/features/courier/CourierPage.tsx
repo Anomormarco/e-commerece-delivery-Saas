@@ -255,7 +255,6 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
 
     return matchesSearch && matchesFilter;
   });
-  const primaryJob = visibleJobs[0] ?? null;
   const newJobs = visibleJobs.filter((job) => job.state === "OFFERED");
   const deliveringJobs = visibleJobs.filter((job) => !["OFFERED", "DELIVERED"].includes(job.state));
   const deliveredJobs = visibleJobs.filter((job) => job.state === "DELIVERED");
@@ -540,35 +539,35 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     <strong>{locationError ?? text.locating}</strong>
                   </div>
                 )}
-                {false && primaryJob?.state === "OFFERED" && (
+                {offerJob && (
                   <article className="courier-map-request-card">
                     <div className="courier-map-request-head">
                       <div>
                         <span>{text.newRequest}</span>
-                        <strong>{typeof offerRemainingSeconds(primaryJob, offerClock) === "number" ? `${offerRemainingSeconds(primaryJob, offerClock)}s` : text.urgent}</strong>
+                        <strong>{typeof offerRemainingSeconds(offerJob, offerClock) === "number" ? `${offerRemainingSeconds(offerJob, offerClock)}s` : text.urgent}</strong>
                       </div>
-                      <b>{primaryJob.payoutMnt ?? "0"} MNT</b>
+                      <b>{offerJob.payoutMnt ?? "0"} MNT</b>
                     </div>
                     <div className="courier-map-route">
-                      <p><span aria-hidden="true">{"\u25A0"}</span>{primaryJob.pickupAddress ?? primaryJob.name}</p>
+                      <p><span aria-hidden="true">{"\u25A0"}</span>{offerJob.pickupAddress ?? offerJob.name}</p>
                       <i aria-hidden="true" />
-                      <p><span aria-hidden="true">{"\u25C6"}</span>{primaryJob.dropoffAddress ?? text.dropoff}</p>
+                      <p><span aria-hidden="true">{"\u25C6"}</span>{offerJob.dropoffAddress ?? text.dropoff}</p>
                     </div>
                     <div className="courier-map-request-meta">
-                      <span>{primaryJob.distance}</span>
+                      <span>{offerJob.distance}</span>
                       <span>{text.approximate} {text.eta}</span>
-                      {typeof offerRemainingSeconds(primaryJob, offerClock) === "number" && <span>{offerRemainingSeconds(primaryJob, offerClock)}s</span>}
+                      {typeof offerRemainingSeconds(offerJob, offerClock) === "number" && <span>{offerRemainingSeconds(offerJob, offerClock)}s</span>}
                     </div>
-                    {primaryJob.routePlan && (
+                    {offerJob.routePlan && (
                       <div className="employee-route-preview">
-                        <strong>{primaryJob.routePlan?.label}</strong>
-                        <span>{primaryJob.routePlan?.totalKm} км · ETA {primaryJob.routePlan?.etaMinutes} мин</span>
-                        <small>Явган {primaryJob.routePlan?.walkingMinutes} мин / Авто зам {primaryJob.routePlan?.drivingMinutes} мин</small>
+                        <strong>{offerJob.routePlan?.label}</strong>
+                        <span>{offerJob.routePlan?.totalKm} км · ETA {offerJob.routePlan?.etaMinutes} мин</span>
+                        <small>Явган {offerJob.routePlan?.walkingMinutes} мин / Авто зам {offerJob.routePlan?.drivingMinutes} мин</small>
                       </div>
                     )}
                     <div className="courier-map-request-actions">
-                      <button onClick={() => rejectJob(primaryJob.id)} type="button">{text.reject}</button>
-                      <button disabled={primaryJob.canAccept === false} onClick={() => acceptJob(primaryJob.id)} type="button">{text.acceptOrder}</button>
+                      <button onClick={() => rejectJob(offerJob.id)} type="button">{text.reject}</button>
+                      <button disabled={offerJob.canAccept === false} onClick={() => acceptJob(offerJob.id)} type="button">{text.acceptOrder}</button>
                     </div>
                   </article>
                 )}
@@ -614,6 +613,10 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     </div>
                     <b>{storeDistanceKm == null ? routeMapJob.distance : `${storeDistanceKm.toFixed(2)} км`}</b>
                   </div>
+                  <div className="employee-route-contact">
+                    <span>{routeMapJob.pickupAddress ?? routeMapJob.name}</span>
+                    {routeMapJob.customerPhone && <a href={`tel:${routeMapJob.customerPhone}`}>{routeMapJob.customerPhone}</a>}
+                  </div>
                   <div className="courier-map-request-meta">
                     <span>Store хүртэл шууд зай</span>
                     <span>ETA {storeEtaMinutes ?? routeMapJob.routePlan?.etaMinutes ?? 1} мин</span>
@@ -625,13 +628,13 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   </div>
                   {routeMapJob.state === "ACCEPTED" && (
                     <button className="employee-full-action" onClick={() => postJobAction(routeMapJob.id, "arrive-store")} type="button">
-                      {text.arrivedStore}
+                      Хүргэлт авах газар ирлээ
                     </button>
                   )}
                 </article>
               )}
 
-              {activeTab === "map" && offerJob && (
+              {false && activeTab === "map" && offerJob && (
                 <article className="employee-map-offer-card">
                   <div className="courier-map-request-head">
                     <div>
