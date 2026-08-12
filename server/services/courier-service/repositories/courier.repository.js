@@ -203,8 +203,18 @@ export async function advanceExpiredCourierOffers(tenantId) {
 
       if (activeAssignment) return { expired: true, reoffered: false };
 
-      const nextOffer = await createNextCourierOffer(transaction, { tenantId: tenantId ?? offer.tenantId, orderId: offer.orderId });
-      return { expired: true, reoffered: Boolean(nextOffer) };
+      await transaction.order.updateMany({
+        where: { id: offer.orderId, status: "COURIER_ASSIGNED" },
+        data: { status: "READY_FOR_PICKUP" },
+      });
+      await transaction.orderStatusHistory.create({
+        data: {
+          orderId: offer.orderId,
+          status: "READY_FOR_PICKUP",
+          note: "Courier offer expired; store can call delivery again.",
+        },
+      });
+      return { expired: true, reoffered: false };
     });
 
     if (result.expired) expiredCount += 1;

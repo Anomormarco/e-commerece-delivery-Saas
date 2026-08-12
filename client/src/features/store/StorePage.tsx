@@ -447,6 +447,22 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   }, [refreshDashboard]);
 
   useEffect(() => {
+    setDispatchTrackings((current) => {
+      let changed = false;
+      const next = Object.fromEntries(Object.entries(current).map(([orderId, tracking]) => {
+        if (tracking.status !== "OFFERED" || (offerRemainingSec(tracking) ?? 0) > 0) return [orderId, tracking];
+        changed = true;
+        return [orderId, {
+          ...tracking,
+          status: "REJECTED",
+          statusLabel: "Employee хариу өгөөгүй - дахин хүргэлт дуудаж болно",
+        }];
+      }));
+      return changed ? next : current;
+    });
+  }, [dispatchClock]);
+
+  useEffect(() => {
     setProductPage(1);
   }, [productSearch]);
 
@@ -799,7 +815,11 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? orders[0];
     const preparedLabel = "Бэлтгэж дууссан";
     const liveSelectedOrder = selectedOrder ? dashboard.data?.orders.find((order) => order.id === selectedOrder.id) : null;
-    const selectedTracking = selectedOrder ? liveSelectedOrder?.deliveryTracking ?? selectedOrder.deliveryTracking ?? dispatchTrackings[selectedOrder.id] : null;
+    const localSelectedTracking = selectedOrder ? dispatchTrackings[selectedOrder.id] : null;
+    const liveSelectedTracking = liveSelectedOrder?.deliveryTracking ?? selectedOrder?.deliveryTracking ?? null;
+    const selectedTracking = selectedOrder
+      ? (isDispatchExpired(localSelectedTracking) ? localSelectedTracking : liveSelectedTracking ?? localSelectedTracking)
+      : null;
     const selectedStatus = liveSelectedOrder?.status ?? selectedOrder?.status;
     const selectedDispatchExpired = isDispatchExpired(selectedTracking);
     const canCallCourier = selectedStatus === storeOrderStatuses.prepared
@@ -823,9 +843,11 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const selectedItems = selectedOrder?.items ?? [];
     const selectedAddress = selectedOrder?.addressText || selectedOrder?.district || "Хаяг бүртгэгдээгүй байна";
     const liveStatusForOrder = (order: StoreOrderView) => dashboard.data?.orders.find((item) => item.id === order.id)?.status ?? order.status;
-    const trackingForOrder = (order: StoreOrderView) => dashboard.data?.orders.find((item) => item.id === order.id)?.deliveryTracking
-      ?? order.deliveryTracking
-      ?? dispatchTrackings[order.id];
+    const trackingForOrder = (order: StoreOrderView) => {
+      const localTracking = dispatchTrackings[order.id];
+      const liveTracking = dashboard.data?.orders.find((item) => item.id === order.id)?.deliveryTracking ?? order.deliveryTracking ?? null;
+      return isDispatchExpired(localTracking) ? localTracking : liveTracking ?? localTracking;
+    };
     const canCallCourierForOrder = (order: StoreOrderView) => {
       const status = liveStatusForOrder(order);
       const tracking = trackingForOrder(order);
