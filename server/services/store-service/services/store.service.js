@@ -360,6 +360,14 @@ async function loadStoreDashboard(tenantId) {
 export async function requestStoreDelivery(tenantId, payload = {}) {
   const weightKg = Number(payload.weightKg ?? 1);
   const distanceKm = Number(payload.distanceKm ?? 2);
+
+  if (tenantId && await advanceExpiredStoreOffers(tenantId)) {
+    appCache.clearByPrefix(`store:dashboard:${tenantId}`);
+    appCache.clearByPrefix("courier:dashboard:");
+    appCache.clearByPrefix("customer:tracking:");
+    appCache.del("admin:dashboard");
+  }
+
   const order = await findDispatchOrder(tenantId, payload.orderId) ?? await findLatestDispatchableOrder(tenantId);
   const rule = dispatchRule(weightKg, distanceKm);
 
