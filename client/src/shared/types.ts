@@ -19,6 +19,7 @@ export type QueueItem = {
   payoutMnt?: string;
   canAccept?: boolean;
   offerExpiresInSec?: number | null;
+  createdAt?: string | null;
   routePlan?: {
     pickup?: { lat: number; lng: number };
     dropoff?: { lat: number; lng: number };

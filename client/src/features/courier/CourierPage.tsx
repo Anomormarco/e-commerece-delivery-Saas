@@ -25,6 +25,7 @@ type GeoPoint = {
 
 const fallbackPosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const tileSize = 256;
+const courierOfferTimeoutMs = 12_000;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
 const employeeUiDeployMarker = "employee-work-mode-offer-card-v11";
 
@@ -193,6 +194,31 @@ function lineStyle(from: { x: number; y: number }, to: { x: number; y: number })
   } as CSSProperties;
 }
 
+function walkingRouteSegments(from: { x: number; y: number }, to: { x: number; y: number }) {
+  const midX = from.x + (to.x - from.x) * 0.52;
+  const midY = from.y + (to.y - from.y) * 0.48;
+  const turnA = { x: midX, y: from.y + (midY - from.y) * 0.35 };
+  const turnB = { x: midX, y: midY };
+  const turnC = { x: to.x - (to.x - midX) * 0.2, y: midY };
+  const points = [from, turnA, turnB, turnC, to];
+
+  return points.slice(1).map((point, index) => ({
+    key: `${index}-${point.x.toFixed(2)}-${point.y.toFixed(2)}`,
+    style: lineStyle(points[index], point),
+  }));
+}
+
+function offerRemainingSeconds(job: QueueItem, now: number) {
+  if (job.state !== "OFFERED") return null;
+  const createdAtMs = job.createdAt ? new Date(job.createdAt).getTime() : NaN;
+
+  if (Number.isFinite(createdAtMs)) {
+    return Math.max(0, Math.ceil((createdAtMs + courierOfferTimeoutMs - now) / 1000));
+  }
+
+  return typeof job.offerExpiresInSec === "number" ? Math.max(0, job.offerExpiresInSec) : 12;
+}
+
 export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const dashboard = useRealtimeResource<CourierDashboard>("/dashboard", ["courier.dashboard.refresh", "courier.job.updated"]);
   const refreshDashboard = dashboard.refetch;
@@ -212,8 +238,12 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [acceptedRouteJobIds, setAcceptedRouteJobIds] = useState<Set<string>>(() => new Set());
   const [mapMode, setMapMode] = useState<MapMode>("white");
   const [zoom, setZoom] = useState(13);
+  const [offerClock, setOfferClock] = useState(Date.now());
   const isOnline = localOnline ?? dashboard.data?.online ?? true;
-  const visibleJobs = jobs ?? dashboard.data?.jobs ?? [];
+  const visibleJobs = (jobs ?? dashboard.data?.jobs ?? []).filter((job) => {
+    const remaining = offerRemainingSeconds(job, offerClock);
+    return remaining == null || remaining > 0;
+  });
   const filteredJobs = visibleJobs.filter((job) => {
     const normalizedSearch = orderSearch.trim().toLowerCase();
     const matchesSearch = !normalizedSearch || `${job.id} ${job.name} ${job.distance}`.toLowerCase().includes(normalizedSearch);
@@ -231,7 +261,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const deliveredJobs = visibleJobs.filter((job) => job.state === "DELIVERED");
   const offerJob = newJobs[0] ?? null;
   const activeMapJob = deliveringJobs[0] ?? null;
-  const routeMapJob = activeMapJob && acceptedRouteJobIds.has(activeMapJob.id) ? activeMapJob : null;
+  const routeMapJob = activeMapJob && (acceptedRouteJobIds.has(activeMapJob.id) || activePickupStates.includes(activeMapJob.state)) ? activeMapJob : null;
   const pickupPoint = routeMapJob?.routePlan?.pickup;
   const dropoffPoint = routeMapJob?.routePlan?.dropoff;
   const courierPoint = position ?? fallbackPosition;
@@ -266,6 +296,11 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
 
     return () => window.clearInterval(intervalId);
   }, [refreshDashboard]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => setOfferClock(Date.now()), 250);
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   useEffect(() => {
     if (!("geolocation" in navigator)) {
@@ -476,12 +511,12 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   <button onClick={() => setZoom((current) => Math.min(current + 1, 18))} type="button" aria-label="Zoom in">+</button>
                   <button onClick={() => setZoom((current) => Math.max(current - 1, 10))} type="button" aria-label="Zoom out">-</button>
                 </div>
-                {routeMapJob && pickupPoint && (
-                  <span className="employee-direct-route employee-route-pickup" style={lineStyle(courierMapPoint, pickupMapPoint)} />
-                )}
-                {routeMapJob && pickupPoint && dropoffPoint && (
-                  <span className="employee-direct-route employee-route-dropoff" style={lineStyle(pickupMapPoint, dropoffMapPoint)} />
-                )}
+                {routeMapJob && pickupPoint && walkingRouteSegments(courierMapPoint, pickupMapPoint).map((segment) => (
+                  <span className="employee-direct-route employee-route-pickup" key={`pickup-${segment.key}`} style={segment.style} />
+                ))}
+                {routeMapJob && pickupPoint && dropoffPoint && walkingRouteSegments(pickupMapPoint, dropoffMapPoint).map((segment) => (
+                  <span className="employee-direct-route employee-route-dropoff" key={`dropoff-${segment.key}`} style={segment.style} />
+                ))}
                 {routeMapJob && pickupPoint && (
                   <span
                     className="employee-store-pin"
@@ -510,7 +545,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     <div className="courier-map-request-head">
                       <div>
                         <span>{text.newRequest}</span>
-                        <strong>{typeof primaryJob.offerExpiresInSec === "number" ? `${primaryJob.offerExpiresInSec}s` : text.urgent}</strong>
+                        <strong>{typeof offerRemainingSeconds(primaryJob, offerClock) === "number" ? `${offerRemainingSeconds(primaryJob, offerClock)}s` : text.urgent}</strong>
                       </div>
                       <b>{primaryJob.payoutMnt ?? "0"} MNT</b>
                     </div>
@@ -522,7 +557,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     <div className="courier-map-request-meta">
                       <span>{primaryJob.distance}</span>
                       <span>{text.approximate} {text.eta}</span>
-                      {typeof primaryJob.offerExpiresInSec === "number" && <span>{primaryJob.offerExpiresInSec}s</span>}
+                      {typeof offerRemainingSeconds(primaryJob, offerClock) === "number" && <span>{offerRemainingSeconds(primaryJob, offerClock)}s</span>}
                     </div>
                     {primaryJob.routePlan && (
                       <div className="employee-route-preview">
@@ -575,7 +610,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   <div className="courier-map-request-head">
                     <div>
                       <span>{text.newRequest}</span>
-                      <strong>{typeof offerJob.offerExpiresInSec === "number" ? `${offerJob.offerExpiresInSec}s` : text.urgent}</strong>
+                      <strong>{typeof offerRemainingSeconds(offerJob, offerClock) === "number" ? `${offerRemainingSeconds(offerJob, offerClock)}s` : text.urgent}</strong>
                     </div>
                     <b>{offerJob.payoutMnt ?? "0"} MNT</b>
                   </div>
@@ -587,7 +622,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   <div className="courier-map-request-meta">
                     <span>{offerJob.distance}</span>
                     <span>{text.approximate} {text.eta}</span>
-                    {typeof offerJob.offerExpiresInSec === "number" && <span>{offerJob.offerExpiresInSec}s</span>}
+                    {typeof offerRemainingSeconds(offerJob, offerClock) === "number" && <span>{offerRemainingSeconds(offerJob, offerClock)}s</span>}
                   </div>
                   <div className="courier-map-request-actions">
                     <button onClick={() => rejectJob(offerJob.id)} type="button">{text.reject}</button>
@@ -654,7 +689,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     <span>{job.distance}</span>
                     <span>{text.eta}</span>
                     <span>{job.weightKg ?? 1} kg</span>
-                    {typeof job.offerExpiresInSec === "number" && <span>{job.offerExpiresInSec}s</span>}
+                    {typeof offerRemainingSeconds(job, offerClock) === "number" && <span>{offerRemainingSeconds(job, offerClock)}s</span>}
                     <b>{job.requiredVehicleLabel}</b>
                   </div>
                   {job.routePlan && (

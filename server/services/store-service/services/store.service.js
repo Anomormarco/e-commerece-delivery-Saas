@@ -19,7 +19,7 @@ const vehicleLabels = {
 };
 
 const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
-const offerTimeoutMs = 10_000;
+const offerTimeoutMs = 12_000;
 const maxStoreOfferAttempts = 5;
 const activeAssignmentStatuses = [
   "ACCEPTED",
@@ -236,7 +236,7 @@ async function advanceExpiredStoreOffers(tenantId) {
         data: {
           assignmentId: offer.id,
           reason: "OFFER_TIMEOUT",
-          note: "Store dashboard advanced the offer to the next online courier after 10 seconds.",
+          note: "Store dashboard advanced the offer to the next online courier after 12 seconds.",
         },
       });
 
@@ -392,6 +392,7 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
   return {
     assignmentId: assignment.id,
     orderId: order.id,
+    createdAt: assignment.createdAt,
     storeName: order.store.name,
     weightKg,
     distanceKm,

@@ -34,7 +34,7 @@ const vehicleLabels = {
 };
 
 const courierAccessTokenMaxAgeSeconds = 60 * 60 * 24 * 30;
-const courierOfferTimeoutMs = 10_000;
+const courierOfferTimeoutMs = 12_000;
 
 function createCourierAccessToken(employee) {
   return signJwt({
@@ -189,6 +189,7 @@ function formatCourierDashboard(employee) {
         requiredVehicleLabel: vehicleLabels[requirement],
         payoutMnt: String(5500 + Math.round(distanceKm * 900) + weightKg * 180),
         canAccept: assignment.employeeId === employee.id || canVehicleServe(vehicleType, requirement),
+        createdAt: assignment.createdAt,
         offerExpiresInSec: assignment.status === "OFFERED"
           ? Math.max(0, Math.ceil((assignment.createdAt.getTime() + courierOfferTimeoutMs - Date.now()) / 1000))
           : null,
@@ -227,6 +228,7 @@ function formatCourierAssignment(assignment) {
     requiredVehicleLabel: vehicleLabels[requirement],
     payoutMnt: String(5500 + Math.round(distanceKm * 900) + weightKg * 180),
     canAccept: true,
+    createdAt: assignment.createdAt,
     offerExpiresInSec: assignment.status === "OFFERED"
       ? Math.max(0, Math.ceil((assignment.createdAt.getTime() + courierOfferTimeoutMs - Date.now()) / 1000))
       : null,

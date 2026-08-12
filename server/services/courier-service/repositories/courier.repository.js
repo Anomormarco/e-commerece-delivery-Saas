@@ -14,7 +14,7 @@ const defaultTenant = {
   slug: "deliverhub-public",
 };
 
-const offerTimeoutMs = 10_000;
+const offerTimeoutMs = 12_000;
 const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
 
 function createHttpError(statusCode, message) {
@@ -187,7 +187,7 @@ export async function advanceExpiredCourierOffers(tenantId) {
         data: {
           assignmentId: offer.id,
           reason: "OFFER_TIMEOUT",
-          note: "Employee did not answer within 10 seconds; offer moved to the next nearest courier.",
+          note: "Employee did not answer within 12 seconds; offer moved to the next nearest courier.",
         },
       });
 

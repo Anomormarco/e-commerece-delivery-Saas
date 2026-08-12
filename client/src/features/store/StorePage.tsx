@@ -61,6 +61,7 @@ type StoreDispatchResponse = {
   } | null;
   nearbyCouriers?: StoreDeliveryTracking["nearbyCouriers"];
   routePlan?: StoreDeliveryTracking["routePlan"];
+  createdAt?: string | null;
   message?: string;
 };
 
@@ -71,7 +72,7 @@ const fixedNominStorePosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const fallbackStorePosition: GeoPoint = fixedNominStorePosition;
 const mapTileSize = 256;
 const storeMapZoom = 14;
-const storeOfferTimeoutMs = 10_000;
+const storeOfferTimeoutMs = 12_000;
 const storePreparedLocalBuildMarker = "prepared-local-v2";
 const terminalDispatchStatuses = ["REJECTED", "FAILED", "CANCELLED"] as const;
 
@@ -380,6 +381,27 @@ function mapRouteStyle(from: GeoPoint, to: GeoPoint, center: GeoPoint, zoomLevel
   } as CSSProperties;
 }
 
+function mapWalkingRouteSegments(from: GeoPoint, to: GeoPoint, center: GeoPoint, zoomLevel: number) {
+  const turnA = {
+    lat: from.lat + (to.lat - from.lat) * 0.22,
+    lng: from.lng,
+  };
+  const turnB = {
+    lat: turnA.lat,
+    lng: from.lng + (to.lng - from.lng) * 0.58,
+  };
+  const turnC = {
+    lat: from.lat + (to.lat - from.lat) * 0.72,
+    lng: turnB.lng,
+  };
+  const points = [from, turnA, turnB, turnC, to];
+
+  return points.slice(1).map((point, index) => ({
+    key: `${index}-${point.lat.toFixed(5)}-${point.lng.toFixed(5)}`,
+    style: mapRouteStyle(points[index], point, center, zoomLevel),
+  }));
+}
+
 function mapCenterFor(points: Array<GeoPoint | undefined | null>) {
   const usablePoints = points.filter(Boolean) as GeoPoint[];
   if (!usablePoints.length) return fallbackStorePosition;
@@ -472,7 +494,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             vehicleType: result.nearestCourier.vehicleType,
           }
         : null,
-      createdAt: new Date().toISOString(),
+      createdAt: result.createdAt ?? new Date().toISOString(),
       nearbyCouriers: result.nearbyCouriers ?? [],
       routePlan: result.routePlan,
     };
@@ -586,7 +608,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   function offerRemainingSec(tracking?: StoreDeliveryTracking | null) {
     if (tracking?.status !== "OFFERED" || !tracking.createdAt) return null;
     const createdAtMs = new Date(tracking.createdAt).getTime();
-    if (!Number.isFinite(createdAtMs)) return 10;
+    if (!Number.isFinite(createdAtMs)) return 12;
     return Math.max(0, Math.ceil((createdAtMs + storeOfferTimeoutMs - dispatchClock) / 1000));
   }
 
@@ -626,7 +648,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const dropoffPoint = hasAcceptedRoute ? route?.dropoff : undefined;
     const center = hasAcceptedRoute ? mapCenterFor([storePoint, courierPoint, dropoffPoint]) : mapCenterFor([storePoint, offerCourierPoint]);
     const tiles = getStoreMapTiles(center, storeMapZoom);
-    const offerProgressDeg = `${Math.max(0, Math.min(360, ((offerRemaining ?? 10) / 10) * 360))}deg`;
+    const offerProgressDeg = `${Math.max(0, Math.min(360, ((offerRemaining ?? 12) / 12) * 360))}deg`;
     const courierName = options.tracking?.courier?.name ?? "Ойрын employee";
 
     return (
@@ -642,20 +664,22 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             />
           ))}
         </div>
-        {courierPoint && !isOfferOnly && (
+        {courierPoint && !isOfferOnly && mapWalkingRouteSegments(courierPoint, storePoint, center, storeMapZoom).map((segment) => (
           <span
             className="store-live-route route-to-courier"
-            style={mapRouteStyle(courierPoint, storePoint, center, storeMapZoom)}
+            key={`courier-${segment.key}`}
+            style={segment.style}
             aria-hidden="true"
           />
-        )}
-        {dropoffPoint && !isOfferOnly && (
+        ))}
+        {dropoffPoint && !isOfferOnly && mapWalkingRouteSegments(storePoint, dropoffPoint, center, storeMapZoom).map((segment) => (
           <span
             className="store-live-route route-to-customer"
-            style={mapRouteStyle(storePoint, dropoffPoint, center, storeMapZoom)}
+            key={`customer-${segment.key}`}
+            style={segment.style}
             aria-hidden="true"
           />
-        )}
+        ))}
         <i className="store-live-pin store-pin" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-label="Дэлгүүр" />
         {dropoffPoint && <i className="store-live-pin customer-pin" style={mapPointStyle(dropoffPoint, center, storeMapZoom)} aria-label="Хүргэх хаяг" />}
         {courierPoint && <i className="store-live-pin courier-pin" style={mapPointStyle(courierPoint, center, storeMapZoom)} aria-label={courierName} />}
@@ -665,7 +689,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             style={{ ...mapPointStyle(offerCourierPoint, center, storeMapZoom), "--offer-progress": offerProgressDeg } as CSSProperties}
             title={`${offerCourier.employeeId} · ${offerCourier.toPickupKm.toFixed(1)} км`}
           >
-            <b>{offerRemaining ?? 10}</b>
+            <b>{offerRemaining ?? 12}</b>
             <span>{offerCourier.name}</span>
           </i>
         )}
@@ -741,7 +765,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         </div>
         <div className="store-dispatch-detail">
           <span>{dispatchStageText}</span>
-          {offerCourier && <span>{offerCourier.employeeId} дээр {offerRemaining ?? 10} сек хүлээж байна</span>}
+          {offerCourier && <span>{offerCourier.employeeId} дээр {offerRemaining ?? 12} сек хүлээж байна</span>}
           <h3>{courierName}</h3>
           <p>{tracking.statusLabel}</p>
           <div>
