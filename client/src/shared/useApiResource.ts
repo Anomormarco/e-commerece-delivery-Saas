@@ -3,6 +3,8 @@ import { getJson } from "./api";
 import { normalizeErrorMessage } from "./errors";
 import type { ApiState } from "./types";
 
+const requestTimeoutMs = 12_000;
+
 export function useApiResource<T>(path: string): ApiState<T> {
   const [state, setState] = useState<ApiState<T>>({
     data: null,
@@ -19,7 +21,15 @@ export function useApiResource<T>(path: string): ApiState<T> {
         return data;
       })
       .catch((error: unknown) => {
-        if (signal?.aborted) return null;
+        if (signal?.aborted) {
+          setState({
+            data: null,
+            loading: false,
+            error: normalizeErrorMessage(error, "Өгөгдөл татахад алдаа гарлаа."),
+          });
+          return null;
+        }
+
         setState({
           data: null,
           loading: false,
@@ -31,10 +41,14 @@ export function useApiResource<T>(path: string): ApiState<T> {
 
   useEffect(() => {
     const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), requestTimeoutMs);
 
-    void refetch(controller.signal);
+    void refetch(controller.signal).finally(() => window.clearTimeout(timeoutId));
 
-    return () => controller.abort();
+    return () => {
+      window.clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [refetch]);
 
   return { ...state, refetch } as ApiState<T> & { refetch: () => Promise<T | null> };
