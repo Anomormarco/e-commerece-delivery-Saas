@@ -50,7 +50,8 @@ async function command(socket, line, expected = /^[23]/) {
 
 function connectSocket({ host, port, secure }) {
   return new Promise((resolve, reject) => {
-    const socket = secure ? tls.connect({ host, port, servername: host }) : net.connect({ host, port });
+    const rejectUnauthorized = process.env.SMTP_REJECT_UNAUTHORIZED !== "false";
+    const socket = secure ? tls.connect({ host, port, servername: host, rejectUnauthorized }) : net.connect({ host, port });
     socket.setTimeout(Number(process.env.SMTP_TIMEOUT_MS ?? 10_000));
     socket.once("connect", () => resolve(socket));
     socket.once("secureConnect", () => resolve(socket));
@@ -106,7 +107,11 @@ export async function sendMail({ to, subject, text }) {
 
     if (!secure) {
       await command(socket, "STARTTLS", /^220/);
-      socket = tls.connect({ socket, servername: host });
+      socket = tls.connect({
+        socket,
+        servername: host,
+        rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED !== "false",
+      });
       await new Promise((resolve, reject) => {
         socket.once("secureConnect", resolve);
         socket.once("error", reject);
