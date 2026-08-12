@@ -53,18 +53,19 @@ function isPrismaUniqueError(error) {
 }
 
 function assignmentWeightKg(assignment) {
-  const grams = assignment.order.items.reduce((sum, item) => {
+  const items = assignment.order?.items ?? [];
+  const grams = items.reduce((sum, item) => {
     const weight = item.variant?.weightGrams ?? 500;
-    return sum + weight * item.quantity;
+    return sum + weight * Number(item.quantity ?? 0);
   }, 0);
 
   return Math.max(1, Math.ceil(grams / 1000));
 }
 
 function assignmentDistanceKm(assignment) {
-  const pickup = pickupLocation(assignment.order);
-  const dropoff = dropoffLocation(assignment.order, pickup);
-  return Number(haversineKm(pickup, dropoff).toFixed(1)) || (assignment.order.customerAddressId ? 4.8 : 2.4);
+  const pickup = pickupLocation(assignment.order ?? {});
+  const dropoff = dropoffLocation(assignment.order ?? {}, pickup);
+  return Number(haversineKm(pickup, dropoff).toFixed(1)) || (assignment.order?.customerAddressId ? 4.8 : 2.4);
 }
 
 const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
@@ -85,11 +86,11 @@ function dropoffLocation(order, pickup) {
   };
 }
 
-function pickupAddress(order) {
+function pickupAddress(order = {}) {
   return order.branch?.address ?? order.store?.name ?? "\u0414\u044D\u043B\u0433\u04AF\u04AF\u0440\u0438\u0439\u043D \u0431\u0430\u0439\u0440\u0448\u0438\u043B";
 }
 
-function dropoffAddress(order) {
+function dropoffAddress(order = {}) {
   return order.customerAddress?.address
     ?? order.customerAddress?.label
     ?? "\u0425\u04AF\u0440\u0433\u04AF\u04AF\u043B\u044D\u0445 \u0445\u0430\u044F\u0433 \u0431\u04AF\u0440\u0442\u0433\u044D\u0433\u0434\u044D\u044D\u0433\u04AF\u0439";
@@ -165,7 +166,9 @@ function verifiedFaceFromPayload(payload) {
 
 function formatCourierDashboard(employee) {
   const vehicleType = employee.vehicleType ?? "WALK";
-  const jobs = employee.assignments
+  const assignments = Array.isArray(employee.assignments) ? employee.assignments : [];
+  const jobs = assignments
+    .filter((assignment) => assignment?.order)
     .map((assignment) => {
       const weightKg = assignmentWeightKg(assignment);
       const distanceKm = assignmentDistanceKm(assignment);
@@ -175,7 +178,7 @@ function formatCourierDashboard(employee) {
       return {
         id: assignment.id,
         state: assignment.status,
-        name: assignment.order.store.name,
+        name: assignment.order?.store?.name ?? "\u0414\u044D\u043B\u0433\u04AF\u04AF\u0440",
         pickupAddress: pickupAddress(assignment.order),
         dropoffAddress: dropoffAddress(assignment.order),
         distance: `${distanceKm.toFixed(1)} \u043A\u043C`,
@@ -193,8 +196,8 @@ function formatCourierDashboard(employee) {
     .filter((job) => job.state !== "OFFERED" || job.canAccept);
 
   return {
-    online: employee.online,
-    expectedEarningMnt: employee.wallet?.balanceMnt.toString() ?? "0",
+    online: Boolean(employee.online),
+    expectedEarningMnt: employee.wallet?.balanceMnt?.toString() ?? "0",
     employeeName: employee.user?.fullName ?? "\u0410\u0436\u0438\u043B\u0442\u0430\u043D",
     vehicleType,
     vehicleLabel: vehicleLabels[vehicleType] ?? vehicleLabels.WALK,
@@ -213,7 +216,7 @@ function formatCourierAssignment(assignment) {
   return {
     id: assignment.id,
     state: assignment.status,
-    name: assignment.order.store.name,
+    name: assignment.order?.store?.name ?? "\u0414\u044D\u043B\u0433\u04AF\u04AF\u0440",
     pickupAddress: pickupAddress(assignment.order),
     dropoffAddress: dropoffAddress(assignment.order),
     distance: `${distanceKm.toFixed(1)} \u043A\u043C`,
