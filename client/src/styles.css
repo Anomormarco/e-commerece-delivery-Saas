@@ -11217,7 +11217,10 @@ h3 {
   gap: 12px;
   width: min(430px, calc(100% - 28px));
   min-height: min(780px, calc(100svh - 24px));
-  overflow: hidden;
+  max-height: min(780px, calc(100svh - 24px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-bottom: 86px;
   border: 1px solid #dbe5f2;
   border-radius: 28px;
   background: var(--surface);
@@ -11843,7 +11846,27 @@ h3 {
 }
 
 .employee-map-route-card {
-  margin-top: 0;
+  margin: 4px 14px 10px;
+  gap: 8px;
+  padding: 12px;
+}
+
+.employee-map-route-card .courier-map-request-head strong {
+  font-size: 15px;
+  line-height: 1.25;
+}
+
+.employee-map-route-card .courier-map-request-meta span {
+  padding: 5px 8px;
+  font-size: 10px;
+}
+
+.employee-map-route-card .employee-route-preview {
+  padding: 10px;
+}
+
+.employee-map-route-card .employee-full-action {
+  min-height: 42px;
 }
 
 .employee-route-contact {
@@ -14915,6 +14938,7 @@ h2 {
   .employee-mobile-shell {
     width: 100%;
     min-height: 100svh;
+    max-height: 100svh;
     border: 0;
     border-radius: 0;
   }
