@@ -3,8 +3,8 @@ import { appCache } from "@deliverhub/server-platform/cache/memory-cache";
 import {
   hashPassword,
   normalizeCourierLoginId,
-  normalizeGmailAddress,
   normalizePhone,
+  validateGmailAddress,
   validateStrongPassword,
   verifyPassword,
 } from "@deliverhub/server-platform/auth/credentials";
@@ -242,7 +242,7 @@ export async function registerCourier(payload = {}) {
   const fullName = String(payload.fullName ?? "").trim();
   const rawLoginId = payload.loginId ?? payload.phone ?? payload.email;
   const phone = payload.phone ? normalizePhone(payload.phone) : null;
-  const email = payload.email ? normalizeGmailAddress(payload.email) : null;
+  const email = payload.email ? validateGmailAddress(payload.email) : null;
   const password = String(payload.password ?? "");
   const vehicleType = String(payload.vehicleType ?? "WALK").toUpperCase();
   const vehiclePlate = String(payload.vehiclePlate ?? "").trim() || null;
@@ -261,6 +261,10 @@ export async function registerCourier(payload = {}) {
 
   if (!fullName || !rawLoginId || !password) {
     throw createHttpError(400, "Нэр, утас эсвэл Gmail ID, нууц үг шаардлагатай.");
+  }
+
+  if (!email) {
+    throw createHttpError(400, "OTP авах Gmail хаяг заавал шаардлагатай.");
   }
 
   if (!applicationProfile.firstName || !applicationProfile.lastName || !applicationProfile.age || !applicationProfile.gender || !applicationProfile.homeAddress || !applicationProfile.emergencyPhones) {

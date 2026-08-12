@@ -3,7 +3,7 @@ import { BrandLogo } from "../../components/BrandLogo";
 import { CourierPage } from "../../features/courier/CourierPage";
 import { postJson } from "../../shared/api";
 import { normalizeErrorMessage } from "../../shared/errors";
-import { isCourierLoginId, isStrongPassword } from "../../shared/validation";
+import { isCourierLoginId, isGmailAddress, isStrongPassword } from "../../shared/validation";
 
 type VehicleType = "WALK" | "MOPED" | "CAR";
 type AuthMode = "login" | "register";
@@ -62,7 +62,7 @@ const text = {
   phoneVerified: "Утасны дугаар баталгаажсан",
   firstName: "Нэр",
   lastName: "Овог",
-  email: "Имэйл",
+  email: "Gmail (OTP авах)",
   age: "Нас",
   gender: "Хүйс",
   homeAddress: "Гэрийн хаяг",
@@ -73,6 +73,7 @@ const text = {
   start: "Үргэлжлүүлэх",
   wait: "Түр хүлээнэ үү...",
   required: "Шаардлагатай талбаруудыг бөглөнө үү.",
+  gmailRequired: "OTP авах Gmail хаягаа зөв оруулна уу. Жишээ: name@gmail.com",
   idStep: "Бичиг баримт",
   faceStep: "Царай баталгаажуулалт",
   legalName: "Бичиг баримт дээрх нэр",
@@ -334,6 +335,11 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
 
       if (!isCourierLoginId(registerPhone)) {
         setError(text.invalidLoginId);
+        return;
+      }
+
+      if (!isGmailAddress(registerEmail)) {
+        setError(text.gmailRequired);
         return;
       }
 
