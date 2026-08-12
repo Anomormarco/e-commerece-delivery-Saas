@@ -612,6 +612,12 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     return Math.max(0, Math.ceil((createdAtMs + storeOfferTimeoutMs - dispatchClock) / 1000));
   }
 
+  function isDispatchExpired(tracking?: StoreDeliveryTracking | null) {
+    if (!tracking) return false;
+    if (terminalDispatchStatuses.includes(String(tracking.status) as typeof terminalDispatchStatuses[number])) return true;
+    return tracking.status === "OFFERED" && offerRemainingSec(tracking) === 0;
+  }
+
   function currentOfferCourier(tracking?: StoreDeliveryTracking | null) {
     if (tracking?.status !== "OFFERED" || !tracking.courier?.id) return null;
 
@@ -744,25 +750,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     return (
       <section className={`store-dispatch-tracker ${isDelivering ? "is-delivering" : isAccepted ? "is-accepted" : "is-searching"}`}>
         {renderLiveStoreMap({ tracking, orderId: order.id, className: "store-dispatch-map" })}
-        <div className="store-dispatch-map" aria-label="Хүргэлтийн газрын зураг">
-          <span className="store-dispatch-route route-to-store" aria-hidden="true" />
-          <span className="store-dispatch-route route-to-customer" aria-hidden="true" />
-          <i className="store-dispatch-pin store-pin" aria-hidden="true" />
-          <i className="store-dispatch-pin customer-pin" aria-hidden="true" />
-          <i className="store-dispatch-pin courier-pin" aria-hidden="true" />
-          {nearbyCouriers.slice(0, 5).map((courier, index) => (
-            <i
-              aria-hidden="true"
-              className={`store-dispatch-nearby nearby-${index}`}
-              key={courier.employeeId}
-              title={courier.name}
-            />
-          ))}
-          <div className="store-dispatch-map-status">
-            <strong>{tracking?.statusLabel}</strong>
-            <span>#{order.id} · {courierName}</span>
-          </div>
-        </div>
         <div className="store-dispatch-detail">
           <span>{dispatchStageText}</span>
           {offerCourier && <span>{offerCourier.employeeId} дээр {offerRemaining ?? 12} сек хүлээж байна</span>}
@@ -814,7 +801,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const liveSelectedOrder = selectedOrder ? dashboard.data?.orders.find((order) => order.id === selectedOrder.id) : null;
     const selectedTracking = selectedOrder ? liveSelectedOrder?.deliveryTracking ?? selectedOrder.deliveryTracking ?? dispatchTrackings[selectedOrder.id] : null;
     const selectedStatus = liveSelectedOrder?.status ?? selectedOrder?.status;
-    const selectedDispatchExpired = terminalDispatchStatuses.includes(String(selectedTracking?.status) as typeof terminalDispatchStatuses[number]);
+    const selectedDispatchExpired = isDispatchExpired(selectedTracking);
     const canCallCourier = selectedStatus === storeOrderStatuses.prepared
       || (selectedStatus === storeOrderStatuses.courierCalled && selectedDispatchExpired);
     const workflowStatus = selectedTracking?.status === "PICKED_UP"
@@ -842,7 +829,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const canCallCourierForOrder = (order: StoreOrderView) => {
       const status = liveStatusForOrder(order);
       const tracking = trackingForOrder(order);
-      const expired = terminalDispatchStatuses.includes(String(tracking?.status) as typeof terminalDispatchStatuses[number]);
+      const expired = isDispatchExpired(tracking);
       return status === storeOrderStatuses.prepared || (status === storeOrderStatuses.courierCalled && expired);
     };
 
@@ -903,12 +890,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             </div>
             <button onClick={() => runAction(text.callCourier, selectedOrder.id)} type="button">{text.callCourier}</button>
             {renderLiveStoreMap({ statusLabel: "Дэлгүүрийн байршил", className: "store-real-ready-map" })}
-            <div className="store-ready-map" aria-label="Дэлгүүрийн байршил">
-              <span className="store-ready-radius" aria-hidden="true" />
-              <i className="store-ready-pin" aria-hidden="true" />
-              <strong>{store?.storeName ?? text.storeName}</strong>
-              <small>2 км радиус дотор ойрын employee хайна</small>
-            </div>
           </section>
             ) : null}
             {renderDeliveryTracking(selectedOrder, selectedTracking)}

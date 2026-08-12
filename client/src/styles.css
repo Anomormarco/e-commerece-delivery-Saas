@@ -11220,7 +11220,7 @@ h3 {
   max-height: min(780px, calc(100svh - 24px));
   overflow-x: hidden;
   overflow-y: auto;
-  padding-bottom: 86px;
+  padding-bottom: 120px;
   border: 1px solid #dbe5f2;
   border-radius: 28px;
   background: var(--surface);
@@ -11846,7 +11846,7 @@ h3 {
 }
 
 .employee-map-route-card {
-  margin: 4px 14px 10px;
+  margin: 4px 14px 92px;
   gap: 8px;
   padding: 12px;
 }
@@ -11867,6 +11867,7 @@ h3 {
 
 .employee-map-route-card .employee-full-action {
   min-height: 42px;
+  margin-top: 2px;
 }
 
 .employee-route-contact {
