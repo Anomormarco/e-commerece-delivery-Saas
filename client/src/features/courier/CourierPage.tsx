@@ -434,6 +434,10 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
               type="button"
             >
               <span aria-hidden="true" className="courier-work-mode-track" />
+              <span aria-hidden="true" className="courier-work-mode-labels">
+                <span>{text.stopWork}</span>
+                <span>{text.startWork}</span>
+              </span>
               <span className="courier-work-mode-thumb">{isOnline ? text.stopWork : text.startWork}</span>
             </button>
             <NotificationBell className="employee-header-notifications" />

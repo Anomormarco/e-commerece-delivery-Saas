@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import "../../styles.css";
 import { CourierApp } from "./CourierApp";
 
-document.documentElement.dataset.deliverhubApp = "courier-session-flow-v20";
+document.documentElement.dataset.deliverhubApp = "courier-session-flow-v21";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

@@ -15,6 +15,20 @@ import {
   verifyCourierStoreOtp,
 } from "../services/courier.service.js";
 
+function fallbackCourierDashboard(userId = "") {
+  return {
+    online: false,
+    expectedEarningMnt: "0",
+    employeeName: userId ? "Хүргэлтийн ажилтан" : "Ажилтан",
+    vehicleType: "WALK",
+    vehicleLabel: "Явган хүргэлт",
+    jobs: [],
+    verificationText: "Dashboard мэдээлэл түр уншигдсангүй. Дахин шинэчилнэ үү.",
+    verificationStatus: "ACTIVE",
+    degraded: true,
+  };
+}
+
 export async function registerCourierAccount(request, response) {
   const result = await registerCourier(request.body);
   courierEventBus.publishSoon("courier.registered", { userId: result.userId });
@@ -26,7 +40,18 @@ export async function loginCourierAccount(request, response) {
 }
 
 export async function showCourierDashboard(request, response) {
-  response.json(await getCourierDashboard(userIdFromRequest(request)));
+  const userId = userIdFromRequest(request);
+
+  try {
+    response.json(await getCourierDashboard(userId));
+  } catch (error) {
+    console.error("[courier-service] dashboard fallback", {
+      userId,
+      message: error?.message,
+      code: error?.code,
+    });
+    response.json(fallbackCourierDashboard(userId));
+  }
 }
 
 export async function verifyCourierIdentity(request, response) {
