@@ -26,7 +26,7 @@ type GeoPoint = {
 const fallbackPosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const tileSize = 256;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
-const employeeUiDeployMarker = "employee-work-mode-offer-card-v10";
+const employeeUiDeployMarker = "employee-work-mode-offer-card-v11";
 
 function isAuthSessionError(message?: string | null) {
   const normalized = String(message ?? "").toLowerCase();
@@ -209,6 +209,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const workModeDraggedRef = useRef(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [otpByJob, setOtpByJob] = useState<Record<string, string>>({});
+  const [acceptedRouteJobIds, setAcceptedRouteJobIds] = useState<Set<string>>(() => new Set());
   const [mapMode, setMapMode] = useState<MapMode>("white");
   const [zoom, setZoom] = useState(13);
   const isOnline = localOnline ?? dashboard.data?.online ?? true;
@@ -230,8 +231,9 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const deliveredJobs = visibleJobs.filter((job) => job.state === "DELIVERED");
   const offerJob = newJobs[0] ?? null;
   const activeMapJob = deliveringJobs[0] ?? null;
-  const pickupPoint = activeMapJob?.routePlan?.pickup;
-  const dropoffPoint = activeMapJob?.routePlan?.dropoff;
+  const routeMapJob = activeMapJob && acceptedRouteJobIds.has(activeMapJob.id) ? activeMapJob : null;
+  const pickupPoint = routeMapJob?.routePlan?.pickup;
+  const dropoffPoint = routeMapJob?.routePlan?.dropoff;
   const courierPoint = position ?? fallbackPosition;
   const mapPoints = [courierPoint, pickupPoint, dropoffPoint].filter(Boolean) as GeoPoint[];
   const projectMapPoint = createMapProjector(mapPoints);
@@ -352,6 +354,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
 
     try {
       const acceptedJob = await postJson<QueueItem>(`/jobs/${jobId}/accept`);
+      setAcceptedRouteJobIds((currentIds) => new Set(currentIds).add(acceptedJob.id));
       setLocalOnline(true);
       setJobs((currentJobs) =>
         (currentJobs ?? visibleJobs).map((job) => (job.id === acceptedJob.id ? acceptedJob : job)),
@@ -473,20 +476,20 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   <button onClick={() => setZoom((current) => Math.min(current + 1, 18))} type="button" aria-label="Zoom in">+</button>
                   <button onClick={() => setZoom((current) => Math.max(current - 1, 10))} type="button" aria-label="Zoom out">-</button>
                 </div>
-                {activeMapJob && pickupPoint && (
+                {routeMapJob && pickupPoint && (
                   <span className="employee-direct-route employee-route-pickup" style={lineStyle(courierMapPoint, pickupMapPoint)} />
                 )}
-                {activeMapJob && pickupPoint && dropoffPoint && (
+                {routeMapJob && pickupPoint && dropoffPoint && (
                   <span className="employee-direct-route employee-route-dropoff" style={lineStyle(pickupMapPoint, dropoffMapPoint)} />
                 )}
-                {activeMapJob && pickupPoint && (
+                {routeMapJob && pickupPoint && (
                   <span
                     className="employee-store-pin"
                     style={{ "--pin-x": `${pickupMapPoint.x}%`, "--pin-y": `${pickupMapPoint.y}%` } as CSSProperties}
                     aria-label={text.pickup}
                   />
                 )}
-                {activeMapJob && dropoffPoint && (
+                {routeMapJob && dropoffPoint && (
                   <span
                     className="employee-drop-pin"
                     style={{ "--pin-x": `${dropoffMapPoint.x}%`, "--pin-y": `${dropoffMapPoint.y}%` } as CSSProperties}
@@ -534,26 +537,26 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     </div>
                   </article>
                 )}
-                {activeMapJob && activePickupStates.includes(activeMapJob.state) && (
+                {routeMapJob && activePickupStates.includes(routeMapJob.state) && (
                   <article className="courier-map-request-card is-active-route">
                     <div className="courier-map-request-head">
                       <div>
                         <span>{text.pickup}</span>
-                        <strong>{activeMapJob.pickupAddress ?? activeMapJob.name}</strong>
+                        <strong>{routeMapJob.pickupAddress ?? routeMapJob.name}</strong>
                       </div>
-                      <b>{storeDistanceKm == null ? activeMapJob.distance : `${storeDistanceKm.toFixed(2)} км`}</b>
+                      <b>{storeDistanceKm == null ? routeMapJob.distance : `${storeDistanceKm.toFixed(2)} км`}</b>
                     </div>
                     <div className="courier-map-request-meta">
                       <span>Store хүртэл шууд зай</span>
-                      <span>ETA {storeEtaMinutes ?? activeMapJob.routePlan?.etaMinutes ?? 1} мин</span>
+                      <span>ETA {storeEtaMinutes ?? routeMapJob.routePlan?.etaMinutes ?? 1} мин</span>
                       <span>{position ? "Live GPS" : text.locating}</span>
                     </div>
                     <div className="employee-route-preview">
                       <strong>Employee → Store route realtime</strong>
-                      <span>{activeMapJob.routePlan?.label ?? "Store руу хамгийн ойр зам"}</span>
+                      <span>{routeMapJob.routePlan?.label ?? "Store руу хамгийн ойр зам"}</span>
                     </div>
-                    {activeMapJob.state === "ACCEPTED" && (
-                      <button className="employee-full-action" onClick={() => postJobAction(activeMapJob.id, "arrive-store")} type="button">
+                    {routeMapJob.state === "ACCEPTED" && (
+                      <button className="employee-full-action" onClick={() => postJobAction(routeMapJob.id, "arrive-store")} type="button">
                         {text.arrivedStore}
                       </button>
                     )}
