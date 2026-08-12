@@ -4,16 +4,31 @@ import { normalizeErrorMessage } from "./errors";
 import type { ApiState } from "./types";
 
 const requestTimeoutMs = 12_000;
+const defaultErrorMessage = "Өгөгдөл татахад алдаа гарлаа.";
 
-export function useApiResource<T>(path: string): ApiState<T> {
+type RefetchOptions = {
+  signal?: AbortSignal;
+  silent?: boolean;
+};
+
+export type ApiResourceState<T> = ApiState<T> & {
+  refetch: (options?: AbortSignal | RefetchOptions) => Promise<T | null>;
+};
+
+export function useApiResource<T>(path: string): ApiResourceState<T> {
   const [state, setState] = useState<ApiState<T>>({
     data: null,
     loading: true,
     error: null,
   });
 
-  const refetch = useCallback((signal?: AbortSignal) => {
-    setState({ data: null, loading: true, error: null });
+  const refetch = useCallback((options?: AbortSignal | RefetchOptions) => {
+    const signal = options instanceof AbortSignal ? options : options?.signal;
+    const silent = !(options instanceof AbortSignal) && Boolean(options?.silent);
+
+    if (!silent) {
+      setState({ data: null, loading: true, error: null });
+    }
 
     return getJson<T>(path, signal)
       .then((data) => {
@@ -21,20 +36,14 @@ export function useApiResource<T>(path: string): ApiState<T> {
         return data;
       })
       .catch((error: unknown) => {
-        if (signal?.aborted) {
+        if (!silent) {
           setState({
             data: null,
             loading: false,
-            error: normalizeErrorMessage(error, "Өгөгдөл татахад алдаа гарлаа."),
+            error: normalizeErrorMessage(error, defaultErrorMessage),
           });
-          return null;
         }
 
-        setState({
-          data: null,
-          loading: false,
-          error: normalizeErrorMessage(error, "Өгөгдөл татахад алдаа гарлаа."),
-        });
         return null;
       });
   }, [path]);
@@ -51,5 +60,5 @@ export function useApiResource<T>(path: string): ApiState<T> {
     };
   }, [refetch]);
 
-  return { ...state, refetch } as ApiState<T> & { refetch: () => Promise<T | null> };
+  return { ...state, refetch };
 }

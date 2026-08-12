@@ -71,6 +71,7 @@ const fixedNominStorePosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const fallbackStorePosition: GeoPoint = fixedNominStorePosition;
 const mapTileSize = 256;
 const storeMapZoom = 14;
+const storeOfferTimeoutMs = 10_000;
 const storePreparedLocalBuildMarker = "prepared-local-v2";
 
 type StoreIdentity = {
@@ -402,6 +403,8 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [dispatchTrackings, setDispatchTrackings] = useState<Record<string, StoreDeliveryTracking>>({});
   const [pickupOtpByAssignment, setPickupOtpByAssignment] = useState<Record<string, string>>({});
+  const [dispatchClock, setDispatchClock] = useState(Date.now());
+  const refreshDashboard = dashboard.refetch;
 
   useEffect(() => {
     localStorage.setItem("deliverhub-store-theme", themeMode);
@@ -410,6 +413,15 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   useEffect(() => {
     localStorage.setItem(localStoreProductsKey, JSON.stringify(products));
   }, [products]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setDispatchClock(Date.now());
+      void refreshDashboard({ silent: true });
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [refreshDashboard]);
 
   useEffect(() => {
     setProductPage(1);
@@ -570,6 +582,33 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     window.setTimeout(() => setNotice(null), 2200);
   }
 
+  function offerRemainingSec(tracking?: StoreDeliveryTracking | null) {
+    if (tracking?.status !== "OFFERED" || !tracking.createdAt) return null;
+    const createdAtMs = new Date(tracking.createdAt).getTime();
+    if (!Number.isFinite(createdAtMs)) return 10;
+    return Math.max(0, Math.ceil((createdAtMs + storeOfferTimeoutMs - dispatchClock) / 1000));
+  }
+
+  function currentOfferCourier(tracking?: StoreDeliveryTracking | null) {
+    if (tracking?.status !== "OFFERED") return null;
+
+    const nearbyCouriers = tracking.nearbyCouriers ?? [];
+    const matchedCourier = nearbyCouriers.find((courier) => courier.employeeId === tracking.courier?.id)
+      ?? nearbyCouriers[0]
+      ?? null;
+    const location = matchedCourier?.location ?? tracking.routePlan?.courier;
+
+    if (!location) return null;
+
+    return {
+      employeeId: matchedCourier?.employeeId ?? tracking.courier?.id ?? tracking.assignmentId,
+      name: matchedCourier?.name ?? tracking.courier?.name ?? "Ойрын employee",
+      toPickupKm: matchedCourier?.toPickupKm ?? tracking.routePlan?.toPickupKm ?? 0,
+      etaMinutes: matchedCourier?.etaMinutes ?? tracking.routePlan?.etaMinutes ?? 0,
+      location,
+    };
+  }
+
   function renderLiveStoreMap(options: {
     tracking?: StoreDeliveryTracking | null;
     statusLabel?: string;
@@ -579,12 +618,16 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const route = options.tracking?.routePlan;
     const nearbyCouriers = options.tracking?.nearbyCouriers ?? [];
     const isOfferOnly = options.tracking?.status === "OFFERED";
+    const offerCourier = currentOfferCourier(options.tracking);
+    const offerRemaining = offerRemainingSec(options.tracking);
     const hasAcceptedRoute = Boolean(route && !isOfferOnly);
     const storePoint = fallbackStorePosition;
+    const offerCourierPoint = offerCourier?.location;
     const courierPoint = hasAcceptedRoute ? route?.courier : undefined;
     const dropoffPoint = hasAcceptedRoute ? route?.dropoff : undefined;
-    const center = hasAcceptedRoute ? mapCenterFor([storePoint, courierPoint, dropoffPoint]) : storePoint;
+    const center = hasAcceptedRoute ? mapCenterFor([storePoint, courierPoint, dropoffPoint]) : mapCenterFor([storePoint, offerCourierPoint]);
     const tiles = getStoreMapTiles(center, storeMapZoom);
+    const offerProgressDeg = `${Math.max(0, Math.min(360, ((offerRemaining ?? 10) / 10) * 360))}deg`;
     const courierName = options.tracking?.courier?.name ?? "Ойрын employee";
 
     return (
@@ -617,6 +660,16 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         <i className="store-live-pin store-pin" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-label="Дэлгүүр" />
         {dropoffPoint && <i className="store-live-pin customer-pin" style={mapPointStyle(dropoffPoint, center, storeMapZoom)} aria-label="Хүргэх хаяг" />}
         {courierPoint && <i className="store-live-pin courier-pin" style={mapPointStyle(courierPoint, center, storeMapZoom)} aria-label={courierName} />}
+        {isOfferOnly && offerCourierPoint && offerCourier && (
+          <i
+            className="store-live-offer-courier"
+            style={{ ...mapPointStyle(offerCourierPoint, center, storeMapZoom), "--offer-progress": offerProgressDeg } as CSSProperties}
+            title={`${offerCourier.employeeId} · ${offerCourier.toPickupKm.toFixed(1)} км`}
+          >
+            <b>{offerRemaining ?? 10}</b>
+            <span>{offerCourier.name}</span>
+          </i>
+        )}
         {false && nearbyCouriers.slice(0, 8).map((courier, index) => {
           const point = courier.location ?? {
             lat: storePoint.lat + (index % 2 === 0 ? 0.004 : -0.003) * (index + 1),
@@ -732,7 +785,8 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   function renderOrders(orders: StoreOrderView[]) {
     const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? orders[0];
     const preparedLabel = "Бэлтгэж дууссан";
-    const selectedTracking = selectedOrder ? selectedOrder.deliveryTracking ?? dispatchTrackings[selectedOrder.id] : null;
+    const liveSelectedOrder = selectedOrder ? dashboard.data?.orders.find((order) => order.id === selectedOrder.id) : null;
+    const selectedTracking = selectedOrder ? liveSelectedOrder?.deliveryTracking ?? selectedOrder.deliveryTracking ?? dispatchTrackings[selectedOrder.id] : null;
     const workflowStatus = selectedTracking?.status === "PICKED_UP"
       ? "PICKED_UP"
       : selectedTracking?.status === "DELIVERED"

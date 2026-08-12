@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { REALTIME_URL } from "./api";
-import { useApiResource } from "./useApiResource";
+import { useApiResource, type ApiResourceState } from "./useApiResource";
 import type { ApiState } from "./types";
 
 type RealtimeMessage = {
@@ -12,11 +12,11 @@ type RealtimeMessage = {
 type RealtimeState<T> = ApiState<T> & {
   live: boolean;
   lastEvent: string | null;
-  refetch: () => Promise<T | null>;
+  refetch: ApiResourceState<T>["refetch"];
 };
 
 export function useRealtimeResource<T>(path: string, events: string[]): RealtimeState<T> {
-  const resource = useApiResource<T>(path) as ApiState<T> & { refetch: () => Promise<T | null> };
+  const resource = useApiResource<T>(path);
   const { refetch } = resource;
   const [live, setLive] = useState(false);
   const [lastEvent, setLastEvent] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export function useRealtimeResource<T>(path: string, events: string[]): Realtime
         if (!payload.event || !eventKey.split("|").includes(payload.event)) return;
 
         setLastEvent(payload.event);
-        void refetch();
+        void refetch({ silent: true });
       });
       socket.addEventListener("close", () => {
         setLive(false);

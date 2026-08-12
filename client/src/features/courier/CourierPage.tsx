@@ -261,7 +261,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
-      void refreshDashboard();
+      void refreshDashboard({ silent: true });
     }, 2000);
 
     return () => window.clearInterval(intervalId);
