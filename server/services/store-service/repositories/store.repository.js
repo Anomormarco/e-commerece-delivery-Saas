@@ -1,4 +1,5 @@
 import { prisma } from "@deliverhub/server-platform/database/prisma";
+import { otpMatches } from "@deliverhub/server-platform/security/otp";
 
 const busyAssignmentStatuses = [
   "OFFERED",
@@ -192,12 +193,6 @@ export async function updateOrderStatus(tenantId, orderId, status, note) {
 }
 
 export async function verifyPickupOtpByStore(tenantId, assignmentId, otp) {
-  if (String(otp) !== "123456") {
-    const error = new Error("Store OTP буруу байна.");
-    error.statusCode = 422;
-    throw error;
-  }
-
   return prisma.$transaction(async (tx) => {
     const assignment = await tx.deliveryAssignment.findFirst({
       where: {
@@ -211,6 +206,13 @@ export async function verifyPickupOtpByStore(tenantId, assignmentId, otp) {
     if (!assignment) {
       const error = new Error("OTP баталгаажуулах хүргэлт олдсонгүй.");
       error.statusCode = 404;
+      throw error;
+    }
+
+    const verification = await tx.pickupVerification.findUnique({ where: { assignmentId } });
+    if (!otpMatches(otp, verification?.qrTokenHash)) {
+      const error = new Error("Store OTP буруу байна.");
+      error.statusCode = 422;
       throw error;
     }
 

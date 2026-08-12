@@ -7,6 +7,7 @@
     "./auth/credentials": "./platform/auth/credentials.js",
     "./cache/memory-cache": "./platform/cache/memory-cache.js",
     "./database/prisma": "./database/prisma.js",
+    "./email/smtp-mailer": "./platform/email/smtp-mailer.js",
     "./http/create-service-app": "./platform/http/create-service-app.js",
     "./http/jwt": "./platform/http/jwt.js",
     "./messaging/event-bus": "./platform/messaging/event-bus.js",
@@ -15,11 +16,12 @@
     "./observability/metrics": "./platform/observability/metrics.js",
     "./realtime/websocket": "./platform/realtime/websocket.js",
     "./redis/client": "./platform/redis/client.js",
+    "./security/otp": "./platform/security/otp.js",
     "./http/request-context": "./platform/http/request-context.js",
     "./runtime/start-service": "./platform/runtime/start-service.js"
   },
   "scripts": {
-    "build": "node --check database/prisma.js && node --check platform/auth/credentials.js && node --check platform/cache/memory-cache.js && node --check platform/http/create-service-app.js && node --check platform/http/jwt.js && node --check platform/http/request-context.js && node --check platform/messaging/event-bus.js && node --check platform/notifications/notification-center.js && node --check platform/observability/logger.js && node --check platform/observability/metrics.js && node --check platform/redis/client.js && node --check platform/realtime/websocket.js && node --check platform/runtime/start-service.js && node --check scripts/prisma-service.js && node --check scripts/prisma-studio.js"
+    "build": "node --check database/prisma.js && node --check platform/auth/credentials.js && node --check platform/cache/memory-cache.js && node --check platform/email/smtp-mailer.js && node --check platform/http/create-service-app.js && node --check platform/http/jwt.js && node --check platform/http/request-context.js && node --check platform/messaging/event-bus.js && node --check platform/notifications/notification-center.js && node --check platform/observability/logger.js && node --check platform/observability/metrics.js && node --check platform/redis/client.js && node --check platform/realtime/websocket.js && node --check platform/runtime/start-service.js && node --check platform/security/otp.js && node --check scripts/prisma-service.js && node --check scripts/prisma-studio.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^6.19.3",

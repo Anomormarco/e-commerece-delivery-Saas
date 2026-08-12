@@ -1,4 +1,6 @@
 import { prisma } from "@deliverhub/server-platform/database/prisma";
+import { sendMail } from "@deliverhub/server-platform/email/smtp-mailer";
+import { createSixDigitOtp, hashOtp, otpMatches } from "@deliverhub/server-platform/security/otp";
 
 const activeAssignmentStatuses = [
   "ACCEPTED",
@@ -817,10 +819,12 @@ async function findEmployeeForAssignment(transaction, userId) {
 }
 
 export async function markCourierArrivedAtStore(userId, assignmentId) {
-  return prisma.$transaction(async (transaction) => {
+  const pickupOtp = createSixDigitOtp();
+  const assignment = await prisma.$transaction(async (transaction) => {
     const employee = await findEmployeeForAssignment(transaction, userId);
     const assignment = await transaction.deliveryAssignment.findFirst({
       where: { id: assignmentId, employeeId: employee.id, status: "ACCEPTED" },
+      include: { order: { include: { store: true } } },
     });
 
     if (!assignment) {
@@ -829,10 +833,14 @@ export async function markCourierArrivedAtStore(userId, assignmentId) {
 
     await transaction.pickupVerification.upsert({
       where: { assignmentId },
-      update: { qrTokenHash: "demo-store-otp-123456" },
+      update: {
+        qrTokenHash: hashOtp(pickupOtp),
+        evidence: { otpSentAt: new Date().toISOString(), source: "courier-arrived-store" },
+      },
       create: {
         assignmentId,
-        qrTokenHash: "demo-store-otp-123456",
+        qrTokenHash: hashOtp(pickupOtp),
+        evidence: { otpSentAt: new Date().toISOString(), source: "courier-arrived-store" },
       },
     });
 
@@ -851,16 +859,31 @@ export async function markCourierArrivedAtStore(userId, assignmentId) {
     return transaction.deliveryAssignment.update({
       where: { id: assignmentId },
       data: { status: "PICKUP_VERIFICATION" },
-      include: { order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } } },
+      include: {
+        employee: { include: { user: { select: { email: true, fullName: true } } } },
+        order: { include: { store: true, branch: true, customerAddress: true, items: { include: { variant: true } } } },
+      },
     });
   });
+
+  const courierEmail = assignment.employee?.user?.email;
+  if (courierEmail) {
+    await sendMail({
+      to: courierEmail,
+      subject: "DeliverHub pickup OTP",
+      text: [
+        `Pickup OTP: ${pickupOtp}`,
+        "",
+        `${assignment.order?.store?.name ?? "Store"} дээр очоод энэ 6 оронтой кодыг store owner-д өгнө.`,
+        "Store кодыг баталгаажуулсны дараа захиалга хүргэлтэнд гарна.",
+      ].join("\n"),
+    });
+  }
+
+  return assignment;
 }
 
 export async function verifyCourierPickupOtp(userId, assignmentId, otp) {
-  if (String(otp) !== "123456") {
-    throw createHttpError(422, "Store OTP \u0431\u0443\u0440\u0443\u0443 \u0431\u0430\u0439\u043D\u0430.");
-  }
-
   return prisma.$transaction(async (transaction) => {
     const employee = await findEmployeeForAssignment(transaction, userId);
     const assignment = await transaction.deliveryAssignment.findFirst({
@@ -869,6 +892,11 @@ export async function verifyCourierPickupOtp(userId, assignmentId, otp) {
 
     if (!assignment) {
       throw createHttpError(409, "Pickup OTP \u0431\u0430\u0442\u0430\u043B\u0433\u0430\u0430\u0436\u0443\u0443\u043B\u0430\u0445 \u0442\u04E9\u043B\u04E9\u0432 \u0431\u0438\u0448 \u0431\u0430\u0439\u043D\u0430.");
+    }
+
+    const verification = await transaction.pickupVerification.findUnique({ where: { assignmentId } });
+    if (!otpMatches(otp, verification?.qrTokenHash)) {
+      throw createHttpError(422, "Store OTP \u0431\u0443\u0440\u0443\u0443 \u0431\u0430\u0439\u043D\u0430.");
     }
 
     await transaction.pickupVerification.update({
