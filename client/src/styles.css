@@ -1507,9 +1507,21 @@ h3 {
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
 }
 
+.nomad-scroll-page.is-courier-route .landing-commerce-nav {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.1);
+}
+
 .nomad-scroll-page.is-market-route .landing-commerce-nav a,
 .nomad-scroll-page.is-market-route .landing-commerce-nav button,
+.nomad-scroll-page.is-courier-route .landing-commerce-nav a,
+.nomad-scroll-page.is-courier-route .landing-commerce-nav button,
 .nomad-scroll-page.is-market-route .landing-commerce-brand .brand-logo-text strong {
+  color: #111827;
+}
+
+.nomad-scroll-page.is-courier-route .landing-commerce-brand .brand-logo-text strong {
   color: #111827;
 }
 
@@ -1517,10 +1529,18 @@ h3 {
   color: #d97706;
 }
 
+.nomad-scroll-page.is-courier-route .landing-commerce-brand .brand-logo-text strong em {
+  color: #d97706;
+}
+
 .nomad-scroll-page.is-market-route .landing-commerce-nav a:not(.landing-commerce-brand):hover,
 .nomad-scroll-page.is-market-route .landing-commerce-nav button:hover,
 .nomad-scroll-page.is-market-route .landing-commerce-nav a:not(.landing-commerce-brand).active,
-.nomad-scroll-page.is-market-route .landing-commerce-nav button.active {
+.nomad-scroll-page.is-market-route .landing-commerce-nav button.active,
+.nomad-scroll-page.is-courier-route .landing-commerce-nav a:not(.landing-commerce-brand):hover,
+.nomad-scroll-page.is-courier-route .landing-commerce-nav button:hover,
+.nomad-scroll-page.is-courier-route .landing-commerce-nav a:not(.landing-commerce-brand).active,
+.nomad-scroll-page.is-courier-route .landing-commerce-nav button.active {
   border-color: rgba(15, 23, 42, 0.08);
   background: rgba(15, 23, 42, 0.08);
   color: #111827;
@@ -1533,7 +1553,19 @@ h3 {
   box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
 }
 
+.nomad-scroll-page.is-courier-route .landing-nav-actions button {
+  border-color: rgba(15, 23, 42, 0.08);
+  background: rgba(241, 245, 249, 0.96);
+  color: #111827;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.08);
+}
+
 .nomad-scroll-page.is-market-route .landing-nav-actions button.active {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: white;
+}
+
+.nomad-scroll-page.is-courier-route .landing-nav-actions button.active {
   background: linear-gradient(135deg, #f59e0b, #f97316);
   color: white;
 }
@@ -10687,6 +10719,7 @@ h3 {
   gap: 0;
   width: 100%;
   margin: 0;
+  background: #f8f9ff;
   color: #0f172a;
 }
 
@@ -10696,8 +10729,8 @@ h3 {
   grid-template-columns: minmax(0, 0.9fr) minmax(320px, 1fr);
   gap: 72px;
   align-items: center;
-  min-height: 610px;
-  padding: 96px max(34px, calc((100vw - 1120px) / 2));
+  min-height: 100vh;
+  padding: 118px max(34px, calc((100vw - 1120px) / 2)) 96px;
   overflow: hidden;
   background-color: #0f172a;
   background-image: none;
@@ -10853,7 +10886,7 @@ h3 {
   gap: 58px;
   align-items: center;
   padding: 82px max(34px, calc((100vw - 1120px) / 2));
-  background: white;
+  background: #f8f9ff;
 }
 
 .landing-courier-benefit figure {
@@ -10887,8 +10920,8 @@ h3 {
 .landing-courier-benefit h3 {
   margin: 0;
   color: #0f172a;
-  font-size: clamp(26px, 3.4vw, 40px);
-  line-height: 1.05;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 1.08;
   font-weight: 950;
 }
 
@@ -10901,14 +10934,14 @@ h3 {
   max-width: 520px;
   margin: 0 0 10px;
   color: #64748b;
-  font-size: 13px;
-  line-height: 1.7;
+  font-size: 12px;
+  line-height: 1.65;
   font-weight: 700;
 }
 
 .landing-courier-benefit ul {
   display: grid;
-  gap: 16px;
+  gap: 14px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -10916,33 +10949,42 @@ h3 {
 
 .landing-courier-benefit li {
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
-  gap: 14px;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 12px;
   align-items: start;
 }
 
 .landing-courier-benefit li::before {
-  content: "";
+  content: none;
+}
+
+.landing-courier-benefit li > span {
+  display: grid;
   width: 28px;
   height: 28px;
+  place-items: center;
   border: 1px solid #dbe5f2;
   border-radius: 8px;
-  background: #eff4ff;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 12px;
+  font-weight: 950;
   box-shadow: none;
 }
 
 .landing-courier-benefit b {
   display: block;
   color: #0f172a;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.25;
 }
 
 .landing-courier-benefit small {
   display: block;
   margin-top: 4px;
   color: #64748b;
-  font-size: 12px;
-  line-height: 1.55;
+  font-size: 11px;
+  line-height: 1.5;
   font-weight: 700;
 }
 

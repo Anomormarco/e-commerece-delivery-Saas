@@ -1,5 +1,15 @@
 # Identity-Verified Multi-Tenant E-Commerce Delivery SaaS Platform
 
+## SSL / HTTPS Compliance
+
+SSL шаардлага хангахад дараах технологи, тохиргоог ашиглана:
+
+- **Vercel HTTPS**: frontend production deployment-үүд Vercel-ийн HTTPS endpoint-оор ажиллана.
+- **Render HTTPS**: gateway болон backend service-үүд Render-ийн HTTPS endpoint-оор ажиллана.
+- **HSTS**: `Strict-Transport-Security` header ашиглаж browser-д HTTPS-ийг enforce хийнэ.
+- **Express security headers**: backend service platform дээр `Strict-Transport-Security`, `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, `X-Frame-Options` headers тавина.
+- **Frontend URL guard**: production build дээр `http://` API URL-ийг `https://`, `ws://` realtime URL-ийг `wss://` болгож mixed-content алдаанаас хамгаална.
+
 ## Runtime URL And Endpoint Map
 
 This project must not run the role UIs as one React Router-style screen switcher. Each actor has a separate frontend URL and talks to its own backend service port.
