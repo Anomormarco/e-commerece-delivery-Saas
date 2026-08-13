@@ -1825,6 +1825,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           </aside>
           <section className="market-products">
             <section className="market-filtered-store-section">
+              <label className="market-store-search">
+                <span>⌕</span>
+                <input
+                  onChange={(event) => setStoreSearch(event.target.value)}
+                  placeholder="Төрөл эсвэл нэрээр хайх..."
+                  value={storeSearch}
+                />
+              </label>
               <header className="market-store-filter-head">
                 <div>
                   <span>Сонгосон төрөл</span>
@@ -1832,14 +1840,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                 </div>
                 <small>{filteredStores.length} дэлгүүр</small>
               </header>
-              <label className="market-store-search">
-                <span>⌕</span>
-                <input
-                  onChange={(event) => setStoreSearch(event.target.value)}
-                  placeholder="Таарах маркет, хаяг, төрлөө хайх..."
-                  value={storeSearch}
-                />
-              </label>
               <div className="landing-store-cards">
                 {filteredStores.map((store) => {
                   const brand = storeBrandFor(store.name);
@@ -2127,13 +2127,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <section className="landing-courier-portal landing-courier-intro" aria-label="Хүргэлтийн ажилтан">
           <section className="landing-courier-hero">
             <div className="landing-courier-copy">
-              <span>DELIVERHUB EMPLOYEE</span>
               <h2>Чөлөөт хүргэлтийн <b>нэгдсэн платформ</b></h2>
               <p>Дэлгүүрүүдээс ирэх дуудлагыг ойр байршлаар хүлээн авч, өөрийн цагтаа ажиллан тогтмол орлого олох боломж.</p>
-              <div className="landing-courier-auth-links">
-                <a href={`${employeePortalUrl}/?mode=login`}>Нэвтрэх</a>
-                <a href={`${employeePortalUrl}/?mode=register`}>Бүртгүүлэх</a>
-              </div>
             </div>
             <figure className="landing-courier-visual">
               <img
@@ -2145,30 +2140,29 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
           <section className="landing-courier-feature-block" aria-label="Давуу тал">
             <header>
-              <span>ЯАГААД DELIVERHUB ГЭЖ?</span>
-              <h3>Хүргэлтийн ажлаа нэг апп дотор удирд</h3>
-              <p>Байршил, санал, баталгаажуулалт, орлого бүгд нэг урсгалаар ажиллана.</p>
+              <h3>Яагаад DeliverHub гэж?</h3>
+              <p>Бизнесээ өргөжүүлэхэд шаардлагатай логистикийн цогц шийдлийг нэг дороос.</p>
             </header>
             <div className="landing-courier-portal-grid">
               <article>
-                <span>01</span>
-                <strong>Баталгаажсан ажилтан</strong>
-                <p>Бүртгэл, email, OTP баталгаажуулалттай найдвартай профайл.</p>
+                <span>◎</span>
+                <strong>Баталгаажсан ажилтнууд</strong>
+                <p>Манай сүлжээний хүргэлтийн ажилтнууд аюулгүй байдлын бүрэн шалгалтад хамрагдсан.</p>
               </article>
               <article>
-                <span>02</span>
+                <span>⌖</span>
                 <strong>Бодит хяналт</strong>
-                <p>Дуудлага авсны дараа дэлгүүр хүртэлх чиглэл realtime харагдана.</p>
+                <p>Захиалга хаана явааг болон хүргэлтийн явцыг гар утаснаасаа хянах боломжтой.</p>
               </article>
               <article>
-                <span>03</span>
+                <span>▣</span>
                 <strong>Хялбар тооцоо</strong>
-                <p>Хийсэн хүргэлтийн орлого, хүлээгдэж буй дүн түрийвчинд цэгцтэй харагдана.</p>
+                <p>Хүргэлтийн төлбөр болон тооцоо хийх процессийг системээр автоматжуулсан.</p>
               </article>
               <article>
-                <span>04</span>
+                <span>▱</span>
                 <strong>Уян хатан тариф</strong>
-                <p>Зай, төрөл, захиалгын нөхцлөөс хамаарсан шударга үнэлгээ.</p>
+                <p>Зай, жин болон яаралтай байдлаас хамаарсан хамгийн оновчтой тарифын систем.</p>
               </article>
             </div>
           </section>
@@ -2181,15 +2175,35 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               />
             </figure>
             <div>
-              <span>ЧӨЛӨӨТ ЦАГААРАА ОРЛОГО ОЛ</span>
-              <h3>Мэргэжлийн хүргэлт, өөрийн хуваариар</h3>
+              <h3>Мэргэжлийн хүргэлт,<br /> <b>Чөлөөт цагаараа орлого олох</b></h3>
+              <p>DeliverHub-д нэгдсэнээр та чанартай цүнхтэй, ухаалаг системээр ажлаа хянан, найдвартай орлого олох бүрэн боломжтой болно.</p>
               <ul>
-                <li><b>Хүссэн үедээ ажилла</b><small>Ажлаа эхлүүлэх үед л ойрын дуудлагууд ирнэ.</small></li>
-                <li><b>Шууд дэмжлэг</b><small>Захиалга, OTP, pickup үеийн асуудлыг нэг урсгалаар шийднэ.</small></li>
-                <li><b>Тогтмол орлого</b><small>Дууссан хүргэлтийн дүн түрийвчинд тодорхой харагдана.</small></li>
+                <li><b>Хүссэн үедээ ажилла</b><small>Өдрийн боломжит цагтаа та хүргэлтийн ажил хийж, орлого нэмэгдүүлэх бүрэн боломжтой.</small></li>
+                <li><b>Шууд дэмжлэг</b><small>Хүргэлтийн үед тулгарсан аливаа асуудалд 24/7 цагийн шуурхай тусламж үзүүлнэ.</small></li>
+                <li><b>Тогтмол орлого</b><small>Хийсэн хүргэлтээсээ тогтмол түрийвч бүрт нь баталгаатай хянагдана.</small></li>
               </ul>
             </div>
           </section>
+
+          <footer className="landing-courier-footer">
+            <strong>Хүргэлтийн асуудлаа<br /> өнөөдөр шийд.</strong>
+            <span>Хэдхэн минутын дотор бүртгүүлээд эхний захиалгаа илгээж эхлээрэй.</span>
+            <nav className="landing-courier-auth-links" aria-label="Хүргэлтийн ажилтан нэвтрэх">
+              <a href={`${employeePortalUrl}/?mode=login`}>Нэвтрэх</a>
+              <a href={`${employeePortalUrl}/?mode=register`}>Бүртгүүлэх</a>
+            </nav>
+          </footer>
+
+          <footer className="landing-courier-site-footer">
+            <strong>DeliverHub</strong>
+            <span>© 2026 DeliverHub Logistics Inc. Бүх эрх хуулиар хамгаалагдсан.</span>
+            <nav aria-label="DeliverHub холбоосууд">
+              <a href="#stores">Нууцлалын бодлого</a>
+              <a href="#stores">Үйлчилгээний нөхцөл</a>
+              <a href="#stores">API баримт бичиг</a>
+              <a href="#contact">Тусламж</a>
+            </nav>
+          </footer>
         </section>
       ) : null}
     </main>
