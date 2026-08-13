@@ -74,13 +74,6 @@ function latestAssignmentLocation(assignment) {
 }
 
 function latestEmployeeLocation(employee) {
-  if (employee?.lastLatitude != null && employee?.lastLongitude != null) {
-    return {
-      lat: toNumber(employee.lastLatitude, defaultStoreLocation.lat),
-      lng: toNumber(employee.lastLongitude, defaultStoreLocation.lng),
-    };
-  }
-
   const location = employee?.assignments?.[0]?.trackingSessions?.[0]?.locations?.[0];
   if (!location) return null;
 
@@ -123,7 +116,6 @@ function selectNearestEmployee(order, employees, distanceKm) {
       const routePlan = routePlanFor(order, employee, distanceKm);
       return { employee, routePlan, score: routePlan?.toPickupKm ?? Number.POSITIVE_INFINITY };
     })
-    .filter((item) => item.routePlan)
     .sort((left, right) => left.score - right.score)[0] ?? null;
 }
 
@@ -137,7 +129,6 @@ function rankNearbyEmployees(order, employees, distanceKm) {
         score: routePlan?.toPickupKm ?? Number.POSITIVE_INFINITY,
       };
     })
-    .filter((item) => item.routePlan)
     .sort((left, right) => left.score - right.score);
 }
 
@@ -488,30 +479,30 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
     dispatchQueue: rankedEmployees.map(({ employee, routePlan: candidateRoute }) => ({
       employeeId: employee.id,
       name: employee.user?.fullName ?? "Хүргэлтийн ажилтан",
-      toPickupKm: candidateRoute.toPickupKm,
-      etaMinutes: candidateRoute.etaMinutes,
-      location: candidateRoute.courier,
+      toPickupKm: candidateRoute?.toPickupKm ?? null,
+      etaMinutes: candidateRoute?.etaMinutes ?? null,
+      location: candidateRoute?.courier,
     })),
     nearbyCouriers: rankedEmployees.slice(0, 8).map(({ employee, routePlan: candidateRoute }) => ({
       employeeId: employee.id,
       name: employee.user?.fullName ?? "Хүргэлтийн ажилтан",
       vehicleType: employee.vehicleType,
-      toPickupKm: candidateRoute.toPickupKm,
-      etaMinutes: candidateRoute.etaMinutes,
-      location: candidateRoute.courier,
+      toPickupKm: candidateRoute?.toPickupKm ?? null,
+      etaMinutes: candidateRoute?.etaMinutes ?? null,
+      location: candidateRoute?.courier,
     })),
     nearestCourier: nearest
       ? {
           employeeId: nearest.employee.id,
           name: nearest.employee.user?.fullName ?? "Хүргэлтийн ажилтан",
           vehicleType: nearest.employee.vehicleType,
-          toPickupKm: routePlan.toPickupKm,
-          etaMinutes: routePlan.etaMinutes,
+          toPickupKm: routePlan?.toPickupKm ?? null,
+          etaMinutes: routePlan?.etaMinutes ?? null,
         }
       : null,
     routePlan,
     message: nearest
-      ? `${nearest.employee.user?.fullName ?? "Ойрын ажилтан"} руу хүргэлтийн санал илгээлээ. ETA ${routePlan.etaMinutes} мин.`
+      ? `${nearest.employee.user?.fullName ?? "Ойрын ажилтан"} руу хүргэлтийн санал илгээлээ.${routePlan?.etaMinutes ? ` ETA ${routePlan.etaMinutes} мин.` : ""}`
       : "Хүргэлтийн ажилтан олдсонгүй. Дуудлага queue-д үлдлээ.",
   };
 }

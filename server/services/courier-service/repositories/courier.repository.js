@@ -292,15 +292,6 @@ export async function recordCourierLocation(userId, payload = {}) {
     });
 
     if (!employee) throw createHttpError(404, "Хүргэлтийн ажилтан олдсонгүй.");
-    await transaction.deliveryEmployee.update({
-      where: { id: employee.id },
-      data: {
-        lastLatitude: lat,
-        lastLongitude: lng,
-        locationUpdatedAt: new Date(),
-      },
-    });
-
     const assignment = employee.assignments[0];
     if (!assignment) return { ok: true, assignmentId: null };
 
