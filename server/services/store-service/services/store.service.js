@@ -19,7 +19,7 @@ const vehicleLabels = {
 };
 
 const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
-const offerTimeoutMs = 12_000;
+const offerTimeoutMs = 30_000;
 const maxStoreOfferAttempts = 5;
 const busyAssignmentWindowMs = 2 * 60 * 60 * 1000;
 const activeAssignmentStatuses = [
@@ -246,6 +246,13 @@ async function findAvailableEmployeesForOffer(transaction, { tenantId, vehicleTy
   return [];
 }
 
+async function findAvailableEmployeesAllowingRetry(transaction, { tenantId, vehicleTypes, excludedEmployeeIds = [] }) {
+  const employees = await findAvailableEmployeesForOffer(transaction, { tenantId, vehicleTypes, excludedEmployeeIds });
+  if (employees.length || !excludedEmployeeIds.length) return employees;
+
+  return findAvailableEmployeesForOffer(transaction, { tenantId, vehicleTypes, excludedEmployeeIds: [] });
+}
+
 async function createNextStoreCourierOffer(transaction, { tenantId, orderId }) {
   const order = await transaction.order.findFirst({
     where: { id: orderId, tenantId },
@@ -260,7 +267,7 @@ async function createNextStoreCourierOffer(transaction, { tenantId, orderId }) {
   const weightKg = orderWeightKg(order);
   const distanceKm = orderDistanceKm(order);
   const rule = dispatchRule(weightKg, distanceKm);
-  const candidates = await findAvailableEmployeesForOffer(transaction, {
+  const candidates = await findAvailableEmployeesAllowingRetry(transaction, {
     tenantId,
     vehicleTypes: rule.eligibleVehicles,
     excludedEmployeeIds,
@@ -309,7 +316,7 @@ async function advanceExpiredStoreOffers(tenantId) {
         data: {
           assignmentId: offer.id,
           reason: "OFFER_TIMEOUT",
-          note: "Store dashboard advanced the offer to the next online courier after 12 seconds.",
+          note: "Store dashboard advanced the offer to the next online courier after 30 seconds.",
         },
       });
 
@@ -453,9 +460,13 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
   const tenantEmployees = await listMatchingEmployees(dispatchTenantId, rule.eligibleVehicles);
   const allEmployees = await listMatchingEmployeesAnyTenant(rule.eligibleVehicles);
   const employeeById = new Map([...tenantEmployees, ...allEmployees].map((employee) => [employee.id, employee]));
-  let eligibleEmployees = [...employeeById.values()].filter((employee) => !excludedEmployeeIds.includes(employee.id));
-  if (!eligibleEmployees.length && excludedEmployeeIds.length < maxStoreOfferAttempts) {
-    eligibleEmployees = await prisma.$transaction((transaction) => findAvailableEmployeesForOffer(transaction, {
+  const availableEmployees = [...employeeById.values()];
+  let eligibleEmployees = availableEmployees.filter((employee) => !excludedEmployeeIds.includes(employee.id));
+  if (!eligibleEmployees.length && availableEmployees.length) {
+    eligibleEmployees = availableEmployees;
+  }
+  if (!eligibleEmployees.length) {
+    eligibleEmployees = await prisma.$transaction((transaction) => findAvailableEmployeesAllowingRetry(transaction, {
       tenantId: dispatchTenantId,
       vehicleTypes: rule.eligibleVehicles,
       excludedEmployeeIds,

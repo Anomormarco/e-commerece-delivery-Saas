@@ -17,7 +17,7 @@ const defaultTenant = {
   slug: "deliverhub-public",
 };
 
-const offerTimeoutMs = 12_000;
+const offerTimeoutMs = 30_000;
 const busyAssignmentWindowMs = 2 * 60 * 60 * 1000;
 const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
 
@@ -198,7 +198,7 @@ export async function advanceExpiredCourierOffers(tenantId) {
         data: {
           assignmentId: offer.id,
           reason: "OFFER_TIMEOUT",
-          note: "Employee did not answer within 12 seconds; offer moved to the next nearest courier.",
+          note: "Employee did not answer within 30 seconds; offer moved to the next nearest courier.",
         },
       });
 

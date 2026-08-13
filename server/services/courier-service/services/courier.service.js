@@ -36,7 +36,7 @@ const vehicleLabels = {
 };
 
 const courierAccessTokenMaxAgeSeconds = 60 * 60 * 24 * 30;
-const courierOfferTimeoutMs = 12_000;
+const courierOfferTimeoutMs = 30_000;
 const faceAuditFreshMs = 2 * 60 * 1000;
 
 function createCourierAccessToken(employee) {
