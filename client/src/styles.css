@@ -13139,11 +13139,20 @@ h3 {
   font-weight: 950;
 }
 
+.employee-menu-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 140;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: auto;
+}
+
 .employee-drawer {
   position: absolute;
   inset: 0 auto 0 0;
   left: 0;
-  z-index: 120;
+  z-index: 2;
   display: grid;
   align-content: start;
   gap: 10px;
@@ -13197,7 +13206,7 @@ h3 {
 .employee-drawer-backdrop {
   position: absolute;
   inset: 0;
-  z-index: 110;
+  z-index: 1;
   border: 0;
   background: rgba(15, 23, 42, 0.38);
   backdrop-filter: blur(3px) saturate(0.82);
@@ -19336,18 +19345,19 @@ h2 {
 
 .employee-mobile-shell .courier-bottom-nav {
   position: absolute !important;
-  inset-inline: 10px !important;
-  right: 10px !important;
+  right: auto !important;
   bottom: 10px !important;
-  left: 10px !important;
+  left: 50% !important;
   z-index: 30;
-  width: auto;
+  width: calc(100% - 20px);
+  max-width: calc(100% - 20px);
   margin: 0;
   border: 1px solid rgba(219, 229, 242, 0.95);
   border-radius: 18px 18px 28px 28px;
   padding: 6px 8px 12px;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 -12px 28px rgba(15, 23, 42, 0.08);
+  transform: translateX(-50%);
 }
 
 .employee-mobile-shell .courier-bottom-nav button {
@@ -19368,11 +19378,11 @@ h2 {
 
 @media (max-width: 430px) {
   .employee-mobile-shell .courier-bottom-nav {
-    inset-inline: 8px !important;
-    right: 8px !important;
+    right: auto !important;
     bottom: 8px !important;
-    left: 8px !important;
-    width: auto;
+    left: 50% !important;
+    width: calc(100% - 16px);
+    max-width: calc(100% - 16px);
     margin: 0;
     border-radius: 16px;
     padding-bottom: max(8px, env(safe-area-inset-bottom));

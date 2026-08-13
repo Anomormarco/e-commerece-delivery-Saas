@@ -451,28 +451,6 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   return (
     <main className="courier-page role-page" data-employee-ui-build={employeeUiDeployMarker}>
       <section className={`employee-mobile-shell ${sidebarOpen ? "is-menu-open" : ""}`}>
-        <aside className={`employee-drawer ${sidebarOpen ? "open" : ""}`} aria-hidden={!sidebarOpen}>
-          <div className="employee-drawer-brand">
-            <BrandLogo showText size={32} />
-            <span className="employee-drawer-subtitle">{dashboard.data?.employeeName ?? text.title}</span>
-          </div>
-          {tabItems.map((item) => (
-            <button
-              className={activeTab === item.key ? "active" : ""}
-              key={item.key}
-              onClick={() => {
-                setActiveTab(item.key);
-                setSidebarOpen(false);
-              }}
-              type="button"
-            >
-              {item.label}
-            </button>
-          ))}
-          {onLogout && <button onClick={onLogout} type="button">{text.logout}</button>}
-        </aside>
-        {sidebarOpen && <button className="employee-drawer-backdrop" onClick={() => setSidebarOpen(false)} type="button" aria-label="Close menu" />}
-
         <header className="employee-app-header" data-header-version="work-mode-v7">
           <button className="employee-menu-button" onClick={() => setSidebarOpen(true)} type="button" aria-label={text.menu}>
             <span />
@@ -1032,6 +1010,31 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
             </>
           )}
         </StateBlock>
+        {sidebarOpen && (
+          <div className="employee-menu-layer">
+            <button className="employee-drawer-backdrop" onClick={() => setSidebarOpen(false)} type="button" aria-label="Close menu" />
+            <aside className="employee-drawer open" aria-hidden={false}>
+              <div className="employee-drawer-brand">
+                <BrandLogo showText size={32} />
+                <span className="employee-drawer-subtitle">{dashboard.data?.employeeName ?? text.title}</span>
+              </div>
+              {tabItems.map((item) => (
+                <button
+                  className={activeTab === item.key ? "active" : ""}
+                  key={item.key}
+                  onClick={() => {
+                    setActiveTab(item.key);
+                    setSidebarOpen(false);
+                  }}
+                  type="button"
+                >
+                  {item.label}
+                </button>
+              ))}
+              {onLogout && <button onClick={onLogout} type="button">{text.logout}</button>}
+            </aside>
+          </div>
+        )}
       </section>
     </main>
   );
