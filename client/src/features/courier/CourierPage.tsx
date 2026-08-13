@@ -598,6 +598,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
         <StateBlock loading={dashboard.loading} error={dashboard.error} empty={!dashboard.data}>
           {dashboard.data && (
             <>
+              <div className="employee-app-scroll">
               {activeTab === "map" && (
                 <section className={`employee-live-map map-mode-${mapMode}`} style={{ "--employee-map-zoom": zoom } as CSSProperties}>
                 <div className="employee-map-tiles" aria-label={text.mapTab}>
@@ -1179,6 +1180,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   {onLogout && <button className="employee-full-action" onClick={onLogout} type="button">{text.logout}</button>}
                 </section>
               )}
+              </div>
               <nav className="courier-bottom-nav" aria-label={text.title}>
                 {tabItems.map((item) => (
                   <button
