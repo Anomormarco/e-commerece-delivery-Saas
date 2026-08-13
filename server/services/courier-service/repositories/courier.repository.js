@@ -1,6 +1,7 @@
 import { prisma } from "@deliverhub/server-platform/database/prisma";
 import { sendMail } from "@deliverhub/server-platform/email/smtp-mailer";
 import { createSixDigitOtp, hashOtp, otpMatches } from "@deliverhub/server-platform/security/otp";
+import { appCache } from "@deliverhub/server-platform/cache/memory-cache";
 
 const activeAssignmentStatuses = [
   "ACCEPTED",
@@ -292,8 +293,15 @@ export async function recordCourierLocation(userId, payload = {}) {
     });
 
     if (!employee) throw createHttpError(404, "Хүргэлтийн ажилтан олдсонгүй.");
+    await appCache.set(`courier:live-location:${employee.id}`, {
+      lat,
+      lng,
+      userId,
+      updatedAt: new Date().toISOString(),
+    }, 60_000);
+
     const assignment = employee.assignments[0];
-    if (!assignment) return { ok: true, assignmentId: null };
+    if (!assignment) return { ok: true, assignmentId: null, employeeId: employee.id, userId, lat, lng };
 
     const session = await transaction.trackingSession.findFirst({
       where: { assignmentId: assignment.id, endedAt: null },
@@ -313,7 +321,7 @@ export async function recordCourierLocation(userId, payload = {}) {
       },
     });
 
-    return { ok: true, assignmentId: assignment.id, orderId: assignment.orderId };
+    return { ok: true, assignmentId: assignment.id, orderId: assignment.orderId, employeeId: employee.id, userId, lat, lng };
   });
 }
 

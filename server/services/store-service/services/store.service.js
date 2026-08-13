@@ -110,26 +110,38 @@ function routePlanFor(order, employee, distanceKm, courierLocation = null) {
   };
 }
 
-function selectNearestEmployee(order, employees, distanceKm) {
-  return employees
-    .map((employee) => {
-      const routePlan = routePlanFor(order, employee, distanceKm);
-      return { employee, routePlan, score: routePlan?.toPickupKm ?? Number.POSITIVE_INFINITY };
-    })
-    .sort((left, right) => left.score - right.score)[0] ?? null;
+async function liveLocationForEmployee(employee) {
+  const cached = await appCache.get(`courier:live-location:${employee.id}`);
+  if (cached?.lat == null || cached?.lng == null) return latestEmployeeLocation(employee);
+
+  const lat = Number(cached.lat);
+  const lng = Number(cached.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return latestEmployeeLocation(employee);
+
+  return { lat, lng };
 }
 
-function rankNearbyEmployees(order, employees, distanceKm) {
-  return employees
-    .map((employee) => {
-      const routePlan = routePlanFor(order, employee, distanceKm);
-      return {
-        employee,
-        routePlan,
-        score: routePlan?.toPickupKm ?? Number.POSITIVE_INFINITY,
-      };
-    })
-    .sort((left, right) => left.score - right.score);
+async function selectNearestEmployee(order, employees, distanceKm) {
+  const ranked = await rankNearbyEmployees(order, employees, distanceKm);
+  return ranked[0] ?? null;
+}
+
+async function rankNearbyEmployees(order, employees, distanceKm) {
+  const ranked = await Promise.all(employees.map(async (employee) => {
+    const liveLocation = await liveLocationForEmployee(employee);
+    const routePlan = liveLocation ? routePlanFor(order, employee, distanceKm, liveLocation) : null;
+    return {
+      employee,
+      routePlan,
+      score: routePlan?.toPickupKm ?? Number.POSITIVE_INFINITY,
+      hasLiveLocation: Boolean(liveLocation),
+    };
+  }));
+
+  return ranked.sort((left, right) => (
+    Number(right.hasLiveLocation) - Number(left.hasLiveLocation)
+    || left.score - right.score
+  ));
 }
 
 function orderWeightKg(order) {
@@ -253,7 +265,7 @@ async function createNextStoreCourierOffer(transaction, { tenantId, orderId }) {
     vehicleTypes: rule.eligibleVehicles,
     excludedEmployeeIds,
   });
-  const rankedEmployees = rankNearbyEmployees(order, candidates, distanceKm);
+  const rankedEmployees = await rankNearbyEmployees(order, candidates, distanceKm);
   const nextEmployee = rankedEmployees[0]?.employee;
 
   if (!nextEmployee) return null;
@@ -449,8 +461,8 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
       excludedEmployeeIds,
     }));
   }
-  const rankedEmployees = rankNearbyEmployees(order, eligibleEmployees, distanceKm);
-  const nearest = rankedEmployees[0] ?? selectNearestEmployee(order, eligibleEmployees, distanceKm);
+  const rankedEmployees = await rankNearbyEmployees(order, eligibleEmployees, distanceKm);
+  const nearest = rankedEmployees[0] ?? await selectNearestEmployee(order, eligibleEmployees, distanceKm);
   if (!nearest?.employee?.id) {
     const error = new Error("Хүргэлтийн ажилтан олдсонгүй.");
     error.statusCode = 409;

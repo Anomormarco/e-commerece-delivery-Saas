@@ -101,7 +101,12 @@ export async function updateCourierPosition(request, response) {
   const result = await updateCourierLocation(userIdFromRequest(request), request.body);
   courierEventBus.publishSoon("courier.location.updated", {
     assignmentId: result.assignmentId,
+    employeeId: result.employeeId,
+    userId: result.userId,
     orderId: result.orderId,
+    lat: result.lat,
+    lng: result.lng,
+    updatedAt: new Date().toISOString(),
   });
   response.json(result);
 }
