@@ -254,8 +254,9 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
 
     return matchesSearch && matchesFilter;
   });
-  const newJobs = visibleJobs.filter((job) => job.state === "OFFERED");
-  const deliveringJobs = visibleJobs.filter((job) => !["OFFERED", "DELIVERED"].includes(job.state));
+  const workVisibleJobs = isOnline ? visibleJobs : [];
+  const newJobs = workVisibleJobs.filter((job) => job.state === "OFFERED");
+  const deliveringJobs = workVisibleJobs.filter((job) => !["OFFERED", "DELIVERED"].includes(job.state));
   const deliveredJobs = visibleJobs.filter((job) => job.state === "DELIVERED");
   const offerJob = newJobs[0] ?? null;
   const activeMapJob = deliveringJobs[0] ?? null;
@@ -356,11 +357,21 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     const confirmed = window.confirm(nextOnline ? text.confirmStart : text.confirmStop);
     if (!confirmed) return;
     setActionError(null);
+    if (!nextOnline) {
+      setAcceptedRouteJobIds(new Set());
+      setJobs((currentJobs) =>
+        (currentJobs ?? visibleJobs).filter((job) => job.state === "DELIVERED"),
+      );
+    }
 
     try {
       const nextDashboard = await postJson<CourierDashboard>("/status", { online: nextOnline });
       setLocalOnline(nextDashboard.online);
-      setJobs(nextDashboard.jobs);
+      setJobs(nextOnline ? nextDashboard.jobs : nextDashboard.jobs.filter((job) => job.state === "DELIVERED"));
+      if (!nextOnline) {
+        setActiveTab("map");
+        setAcceptedRouteJobIds(new Set());
+      }
     } catch (error) {
       setActionError(error instanceof Error ? error.message : text.actionError);
     }
@@ -439,7 +450,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
 
   return (
     <main className="courier-page role-page" data-employee-ui-build={employeeUiDeployMarker}>
-      <section className="employee-mobile-shell">
+      <section className={`employee-mobile-shell ${sidebarOpen ? "is-menu-open" : ""}`}>
         <aside className={`employee-drawer ${sidebarOpen ? "open" : ""}`} aria-hidden={!sidebarOpen}>
           <div className="employee-drawer-brand">
             <BrandLogo showText size={32} />
