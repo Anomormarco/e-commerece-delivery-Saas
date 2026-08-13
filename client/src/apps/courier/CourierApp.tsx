@@ -115,7 +115,13 @@ const text = {
   cameraCapture: "Царай шалгах",
   cameraMatched: "Царай паспорттой таарлаа",
   cameraDeclined: "Царай паспорттой таарахгүй байна",
-  cameraUnavailable: "Камерын зөвшөөрөл хаалттай байна. Browser дээр camera permission зөвшөөрнө үү.",
+  cameraUnavailable: "Камер нээгдсэнгүй. Browser camera allow хийсэн бол page refresh хийгээд дахин оролдоно уу.",
+  cameraInsecure: "Камер зөвхөн HTTPS эсвэл localhost дээр ажиллана. Домайн HTTPS эсэхийг шалгана уу.",
+  cameraPolicyBlocked: "Browser allow хийсэн ч site/iframe camera policy хорьж байна. App-аа HTTPS tab дээр шууд нээнэ үү.",
+  cameraPermissionDenied: "Camera permission Deny байна. Address bar дээрх camera icon/site settings-ээс Allow болгоод refresh хийнэ үү.",
+  cameraBusy: "Камер өөр app/browser tab дээр ашиглагдаж байна. Тэр app-аа хаагаад дахин оролдоно уу.",
+  cameraMissing: "Камер олдсонгүй. Device camera холбогдсон эсэхийг шалгана уу.",
+  cameraStarting: "Камер нээгдэж байна...",
   simulateMismatch: "Зөрсөн гэж шалгах",
   registerStepOne: "1. Хувийн мэдээлэл",
   registerStepTwo: "2. Баталгаажуулалт",
@@ -145,6 +151,63 @@ function documentFileMeta(file: File | null): SelectedDocumentFile | null {
     lastModified: file.lastModified,
   };
 }
+
+async function cameraPermissionState() {
+  try {
+    const permissionStatus = await navigator.permissions?.query?.({ name: "camera" as PermissionName });
+    return permissionStatus?.state ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+}
+
+async function cameraErrorMessage(error: unknown) {
+  const errorName = error instanceof DOMException ? error.name : "";
+
+  if (!window.isSecureContext) return text.cameraInsecure;
+  if (errorName === "NotAllowedError" || errorName === "SecurityError") {
+    const permissionState = await cameraPermissionState();
+    return permissionState === "denied" ? text.cameraPermissionDenied : text.cameraPolicyBlocked;
+  }
+  if (errorName === "NotFoundError" || errorName === "DevicesNotFoundError") return text.cameraMissing;
+  if (errorName === "NotReadableError" || errorName === "TrackStartError") return text.cameraBusy;
+  if (errorName === "OverconstrainedError" || errorName === "ConstraintNotSatisfiedError") return text.cameraMissing;
+  return text.cameraUnavailable;
+}
+
+function waitForVideoReady(video: HTMLVideoElement) {
+  if (video.videoWidth > 0 && video.videoHeight > 0) return Promise.resolve();
+
+  return new Promise<void>((resolve, reject) => {
+    const timeoutId = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("VIDEO_METADATA_TIMEOUT"));
+    }, 4000);
+
+    function cleanup() {
+      window.clearTimeout(timeoutId);
+      video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      video.removeEventListener("canplay", handleLoadedMetadata);
+      video.removeEventListener("error", handleError);
+    }
+
+    function handleLoadedMetadata() {
+      if (video.videoWidth <= 0 || video.videoHeight <= 0) return;
+      cleanup();
+      resolve();
+    }
+
+    function handleError() {
+      cleanup();
+      reject(new Error("VIDEO_ELEMENT_ERROR"));
+    }
+
+    video.addEventListener("loadedmetadata", handleLoadedMetadata);
+    video.addEventListener("canplay", handleLoadedMetadata);
+    video.addEventListener("error", handleError);
+  });
+}
+
 function FaceCameraCheck({
   mode,
   title,
@@ -162,6 +225,7 @@ function FaceCameraCheck({
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
   const [cameraStartedAt, setCameraStartedAt] = useState<string | null>(null);
   const [capturedAt, setCapturedAt] = useState<string | null>(null);
 
@@ -173,25 +237,56 @@ function FaceCameraCheck({
 
   async function startCamera() {
     setCameraError(null);
+    setCameraLoading(true);
+
+    if (!window.isSecureContext) {
+      setCameraError(text.cameraInsecure);
+      setCameraLoading(false);
+      return;
+    }
 
     if (!navigator.mediaDevices?.getUserMedia) {
-      setCameraError(text.cameraUnavailable);
+      setCameraError(text.cameraPolicyBlocked);
+      setCameraLoading(false);
       return;
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      const constraints: MediaStreamConstraints[] = [
+        { video: { facingMode: { ideal: "user" }, width: { ideal: 640 }, height: { ideal: 480 } }, audio: false },
+        { video: true, audio: false },
+      ];
+      let stream: MediaStream | null = null;
+      let lastError: unknown = null;
+
+      for (const constraint of constraints) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraint);
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      if (!stream) throw lastError;
       streamRef.current = stream;
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
+        await waitForVideoReady(videoRef.current);
       }
 
       setCameraReady(true);
       setCameraStartedAt(new Date().toISOString());
-    } catch {
-      setCameraError(text.cameraUnavailable);
+    } catch (error) {
+      streamRef.current?.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+      setCameraReady(false);
+      setCameraError(await cameraErrorMessage(error));
+    } finally {
+      setCameraLoading(false);
     }
   }
 
@@ -235,8 +330,8 @@ function FaceCameraCheck({
       <div className="employee-camera-preview">
         <video muted playsInline ref={videoRef} />
         {!cameraReady ? (
-          <button className="employee-camera-start" onClick={startCamera} type="button">
-            {text.cameraStart}
+          <button className="employee-camera-start" disabled={cameraLoading} onClick={startCamera} type="button">
+            {cameraLoading ? text.cameraStarting : text.cameraStart}
           </button>
         ) : null}
       </div>
