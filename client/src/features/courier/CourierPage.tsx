@@ -46,8 +46,14 @@ type GeoPoint = {
   lng: number;
 };
 
+type MapPoint = {
+  x: number;
+  y: number;
+};
+
 const fallbackPosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const tileSize = 256;
+const mapViewportCenterY = 195;
 const courierOfferTimeoutMs = 12_000;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
 const serverConfirmedRouteStates = ["ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
@@ -185,10 +191,6 @@ function haversineKm(from: GeoPoint, to: GeoPoint) {
   return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
-}
-
 function midpoint(points: GeoPoint[]) {
   if (!points.length) return fallbackPosition;
 
@@ -198,36 +200,36 @@ function midpoint(points: GeoPoint[]) {
   };
 }
 
-function createMapProjector(points: GeoPoint[]) {
-  const usablePoints = points.length ? points : [fallbackPosition];
-  const lats = usablePoints.map((point) => point.lat);
-  const lngs = usablePoints.map((point) => point.lng);
-  const minLat = Math.min(...lats);
-  const maxLat = Math.max(...lats);
-  const minLng = Math.min(...lngs);
-  const maxLng = Math.max(...lngs);
-  const latSpan = Math.max(maxLat - minLat, 0.02);
-  const lngSpan = Math.max(maxLng - minLng, 0.02);
+function createMapProjector(center: GeoPoint, zoomLevel: number) {
+  const centerX = longitudeToTileX(center.lng, zoomLevel);
+  const centerY = latitudeToTileY(center.lat, zoomLevel);
 
-  return (point: GeoPoint) => ({
-    x: clamp(12 + ((point.lng - minLng) / lngSpan) * 76, 12, 88),
-    y: clamp(88 - ((point.lat - minLat) / latSpan) * 76, 12, 88),
+  return (point: GeoPoint): MapPoint => ({
+    x: (longitudeToTileX(point.lng, zoomLevel) - centerX) * tileSize,
+    y: (latitudeToTileY(point.lat, zoomLevel) - centerY) * tileSize,
   });
 }
 
-function lineStyle(from: { x: number; y: number }, to: { x: number; y: number }) {
+function pinStyle(point: MapPoint): CSSProperties {
+  return {
+    "--pin-x": `calc(50% + ${point.x}px)`,
+    "--pin-y": `${mapViewportCenterY + point.y}px`,
+  } as CSSProperties;
+}
+
+function lineStyle(from: MapPoint, to: MapPoint) {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
 
   return {
-    "--route-left": `${from.x}%`,
-    "--route-top": `${from.y}%`,
-    "--route-width": `${Math.sqrt(dx ** 2 + dy ** 2)}%`,
+    "--route-left": `calc(50% + ${from.x}px)`,
+    "--route-top": `${mapViewportCenterY + from.y}px`,
+    "--route-width": `${Math.sqrt(dx ** 2 + dy ** 2)}px`,
     "--route-angle": `${Math.atan2(dy, dx)}rad`,
   } as CSSProperties;
 }
 
-function walkingRouteSegments(from: { x: number; y: number }, to: { x: number; y: number }) {
+function walkingRouteSegments(from: MapPoint, to: MapPoint) {
   const midX = from.x + (to.x - from.x) * 0.52;
   const midY = from.y + (to.y - from.y) * 0.48;
   const turnA = { x: midX, y: from.y + (midY - from.y) * 0.35 };
@@ -322,10 +324,6 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const pickupPoint = routeMapJob?.routePlan?.pickup;
   const dropoffPoint = routeMapJob?.routePlan?.dropoff;
   const mapPoints = [position, pickupPoint, dropoffPoint].filter(Boolean) as GeoPoint[];
-  const projectMapPoint = createMapProjector(mapPoints);
-  const courierMapPoint = position ? projectMapPoint(position) : null;
-  const pickupMapPoint = pickupPoint ? projectMapPoint(pickupPoint) : { x: 24, y: 74 };
-  const dropoffMapPoint = dropoffPoint ? projectMapPoint(dropoffPoint) : { x: 78, y: 32 };
   const storeDistanceKm = position && pickupPoint ? haversineKm(position, pickupPoint) : null;
   const storeEtaMinutes = storeDistanceKm == null ? null : Math.max(1, Math.round(storeDistanceKm * 13));
   const totalPayoutMnt = visibleJobs.reduce((sum, job) => sum + Number(job.payoutMnt ?? 0), 0);
@@ -342,6 +340,10 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     { key: "profile", label: text.profileTab, icon: "\u25CB" },
   ];
   const mapCenter = midpoint(mapPoints);
+  const projectMapPoint = createMapProjector(mapCenter, zoom);
+  const courierMapPoint = position ? projectMapPoint(position) : null;
+  const pickupMapPoint = pickupPoint ? projectMapPoint(pickupPoint) : null;
+  const dropoffMapPoint = dropoffPoint ? projectMapPoint(dropoffPoint) : null;
   const mapTiles = getVisibleTiles(mapCenter, zoom);
 
   useEffect(() => {
@@ -602,30 +604,30 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   <button onClick={() => setZoom((current) => Math.min(current + 1, 18))} type="button" aria-label="Zoom in">+</button>
                   <button onClick={() => setZoom((current) => Math.max(current - 1, 10))} type="button" aria-label="Zoom out">-</button>
                 </div>
-                {routeMapJob && pickupPoint && courierMapPoint && walkingRouteSegments(courierMapPoint, pickupMapPoint).map((segment) => (
+                {routeMapJob && pickupMapPoint && courierMapPoint && walkingRouteSegments(courierMapPoint, pickupMapPoint).map((segment) => (
                   <span className="employee-direct-route employee-route-pickup" key={`pickup-${segment.key}`} style={segment.style} />
                 ))}
-                {routeMapJob && pickupPoint && dropoffPoint && walkingRouteSegments(pickupMapPoint, dropoffMapPoint).map((segment) => (
+                {routeMapJob && pickupMapPoint && dropoffMapPoint && walkingRouteSegments(pickupMapPoint, dropoffMapPoint).map((segment) => (
                   <span className="employee-direct-route employee-route-dropoff" key={`dropoff-${segment.key}`} style={segment.style} />
                 ))}
-                {routeMapJob && pickupPoint && (
+                {routeMapJob && pickupMapPoint && (
                   <span
                     className="employee-store-pin"
-                    style={{ "--pin-x": `${pickupMapPoint.x}%`, "--pin-y": `${pickupMapPoint.y}%` } as CSSProperties}
+                    style={pinStyle(pickupMapPoint)}
                     aria-label={text.pickup}
                   />
                 )}
-                {routeMapJob && dropoffPoint && (
+                {routeMapJob && dropoffMapPoint && (
                   <span
                     className="employee-drop-pin"
-                    style={{ "--pin-x": `${dropoffMapPoint.x}%`, "--pin-y": `${dropoffMapPoint.y}%` } as CSSProperties}
+                    style={pinStyle(dropoffMapPoint)}
                     aria-label={text.dropoff}
                   />
                 )}
                 {courierMapPoint && (
                   <span
                     className="employee-location-dot is-live"
-                    style={{ "--pin-x": `${courierMapPoint.x}%`, "--pin-y": `${courierMapPoint.y}%` } as CSSProperties}
+                    style={pinStyle(courierMapPoint)}
                   />
                 )}
                 {(locationError || !position) && (
