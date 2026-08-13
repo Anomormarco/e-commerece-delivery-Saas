@@ -19481,3 +19481,83 @@ h2 {
     border-radius: 0 !important;
   }
 }
+
+.employee-mobile-shell {
+  grid-template-rows: auto minmax(0, 1fr) auto !important;
+  isolation: isolate;
+}
+
+.employee-mobile-shell::before {
+  position: absolute !important;
+  top: 0 !important;
+  left: 50% !important;
+  z-index: 40;
+  width: 132px !important;
+  height: 28px !important;
+  margin: 0 !important;
+  border-radius: 0 0 18px 18px !important;
+  transform: translateX(-50%) !important;
+}
+
+.employee-mobile-shell::after {
+  position: absolute !important;
+  right: auto !important;
+  bottom: 10px !important;
+  left: 50% !important;
+  z-index: 40;
+  width: 108px !important;
+  height: 4px !important;
+  margin: 0 !important;
+  transform: translateX(-50%) !important;
+}
+
+.employee-mobile-shell .employee-app-header {
+  position: relative !important;
+  top: auto !important;
+  min-height: 92px !important;
+  padding: 30px 14px 10px !important;
+  align-self: start;
+}
+
+.employee-mobile-shell .employee-app-scroll {
+  align-self: stretch;
+  padding-bottom: 10px;
+}
+
+.employee-mobile-shell .courier-bottom-nav {
+  padding: 7px 10px 24px !important;
+}
+
+.employee-mobile-shell .employee-wallet-header button,
+.employee-mobile-shell .employee-wallet-section-title button,
+.employee-mobile-shell .employee-wallet-withdraw,
+.employee-mobile-shell .employee-wallet-breakdown span,
+.employee-mobile-shell .employee-wallet-transactions small,
+.employee-mobile-shell .employee-wallet-transactions b {
+  font-size: 11px !important;
+  line-height: 1.2;
+}
+
+.employee-mobile-shell .employee-wallet-withdraw {
+  min-height: 42px;
+  padding: 10px 14px !important;
+}
+
+.employee-mobile-shell .employee-wallet-balance-card strong {
+  font-size: 24px !important;
+}
+
+@media (max-width: 430px) {
+  .employee-mobile-shell::before,
+  .employee-mobile-shell::after {
+    content: "" !important;
+  }
+
+  .employee-mobile-shell .employee-app-header {
+    padding-top: max(30px, env(safe-area-inset-top)) !important;
+  }
+
+  .employee-mobile-shell .courier-bottom-nav {
+    padding-bottom: max(24px, env(safe-area-inset-bottom)) !important;
+  }
+}
