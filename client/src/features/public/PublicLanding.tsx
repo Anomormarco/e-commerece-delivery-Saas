@@ -126,10 +126,34 @@ type StoreDirectoryResponse = {
   totalPages: number;
 };
 
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:3000/api";
-const customerRealtimeUrl = import.meta.env.VITE_CUSTOMER_REALTIME_URL ?? "ws://127.0.0.1:3104/realtime";
-const employeePortalUrl = import.meta.env.VITE_EMPLOYEE_PORTAL_URL ?? "http://127.0.0.1:5176";
-const storePortalUrl = import.meta.env.VITE_SHOP_APP_URL ?? "http://127.0.0.1:5175";
+function secureHttpUrl(url: string, fallback: string) {
+  if (!import.meta.env.PROD) return url;
+  if (url.startsWith("http://localhost") || url.startsWith("http://127.0.0.1")) return fallback;
+  return url.replace(/^http:\/\//, "https://");
+}
+
+function secureRealtimeUrl(url: string, fallback: string) {
+  if (!import.meta.env.PROD) return url;
+  if (url.startsWith("ws://localhost") || url.startsWith("ws://127.0.0.1")) return fallback;
+  return url.replace(/^http:\/\//, "https://").replace(/^ws:\/\//, "wss://");
+}
+
+const productionApiBaseUrl = "https://deliverhub-gateway.onrender.com/api";
+const productionCustomerRealtimeUrl = "wss://deliverhub-customer-service.onrender.com/realtime";
+const productionEmployeePortalUrl = "https://deliverhub-employee.vercel.app";
+const productionStorePortalUrl = "https://deliverhub-store.vercel.app";
+const apiBaseUrl = secureHttpUrl(import.meta.env.VITE_API_BASE_URL ?? (
+  import.meta.env.PROD ? productionApiBaseUrl : "http://127.0.0.1:3000/api"
+), productionApiBaseUrl);
+const customerRealtimeUrl = secureRealtimeUrl(import.meta.env.VITE_CUSTOMER_REALTIME_URL ?? (
+  import.meta.env.PROD ? productionCustomerRealtimeUrl : "ws://127.0.0.1:3104/realtime"
+), productionCustomerRealtimeUrl);
+const employeePortalUrl = secureHttpUrl(import.meta.env.VITE_EMPLOYEE_PORTAL_URL ?? (
+  import.meta.env.PROD ? productionEmployeePortalUrl : "http://127.0.0.1:5176"
+), productionEmployeePortalUrl);
+const storePortalUrl = secureHttpUrl(import.meta.env.VITE_SHOP_APP_URL ?? (
+  import.meta.env.PROD ? productionStorePortalUrl : "http://127.0.0.1:5175"
+), productionStorePortalUrl);
 const tokenStorageKey = "deliverhub-customer-access-token";
 const customerStorageKey = "deliverhub-customer-profile";
 const wishlistStorageKey = "deliverhub-customer-wishlist";

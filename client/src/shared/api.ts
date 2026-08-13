@@ -6,7 +6,20 @@ const productionGatewayUrl = "https://deliverhub-gateway.onrender.com/api";
 const localGatewayUrl = "http://127.0.0.1:3000/api";
 const defaultGatewayUrl = import.meta.env.PROD ? productionGatewayUrl : localGatewayUrl;
 const defaultApiBaseUrl = roleApiModes.includes(mode) ? `${defaultGatewayUrl}/${mode}` : defaultGatewayUrl;
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl;
+function enforceSecureUrl(url: string) {
+  if (!import.meta.env.PROD) return url;
+  if (url.startsWith("http://localhost") || url.startsWith("http://127.0.0.1")) return defaultApiBaseUrl;
+  return url.replace(/^http:\/\//, "https://");
+}
+
+function enforceSecureRealtimeUrl(url: string) {
+  if (!import.meta.env.PROD) return url;
+  const fallback = defaultRealtimeBaseUrls[mode] ?? "";
+  if (url.startsWith("ws://localhost") || url.startsWith("ws://127.0.0.1")) return fallback;
+  return url.replace(/^http:\/\//, "https://").replace(/^ws:\/\//, "wss://");
+}
+
+const API_BASE_URL = enforceSecureUrl(import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl);
 const accessTokenStorageKeys: Record<string, string> = {
   admin: "deliverhub-admin-access-token",
   courier: "deliverhub-courier-access-token",
@@ -19,7 +32,7 @@ const defaultRealtimeBaseUrls: Record<string, string> = {
   customer: import.meta.env.PROD ? "wss://deliverhub-customer-service.onrender.com/realtime" : "ws://127.0.0.1:3104/realtime",
 };
 
-export const REALTIME_URL = import.meta.env.VITE_REALTIME_URL ?? defaultRealtimeBaseUrls[mode] ?? "";
+export const REALTIME_URL = enforceSecureRealtimeUrl(import.meta.env.VITE_REALTIME_URL ?? defaultRealtimeBaseUrls[mode] ?? "");
 
 function currentAccessToken() {
   const storageKey = accessTokenStorageKeys[mode];

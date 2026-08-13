@@ -22,12 +22,33 @@ function corsMiddleware(request, response, next) {
   next();
 }
 
+function securityHeadersMiddleware(request, response, next) {
+  const forwardedProto = request.header("x-forwarded-proto");
+  const shouldRedirectToHttps = process.env.NODE_ENV === "production"
+    && forwardedProto
+    && forwardedProto !== "https";
+
+  if (shouldRedirectToHttps) {
+    response.redirect(308, `https://${request.header("host")}${request.originalUrl}`);
+    return;
+  }
+
+  response.header("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
+  response.header("X-Content-Type-Options", "nosniff");
+  response.header("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.header("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)");
+  response.header("X-Frame-Options", "DENY");
+  next();
+}
+
 export function createServiceApp({ serviceName, registerRoutes }) {
   const app = express();
 
+  app.set("trust proxy", 1);
   process.env.SERVICE_NAME = serviceName;
   app.use(requestLogger(serviceName));
   app.use(metricsMiddleware());
+  app.use(securityHeadersMiddleware);
   app.use(corsMiddleware);
   app.use(express.json());
 
