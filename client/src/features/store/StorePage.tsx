@@ -75,6 +75,7 @@ const storeMapZoom = 14;
 const storeOfferTimeoutMs = 12_000;
 const storePreparedLocalBuildMarker = "prepared-local-v2";
 const terminalDispatchStatuses = ["REJECTED", "FAILED", "CANCELLED"] as const;
+const activeDispatchStatuses = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION", "PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF", "DELIVERED"];
 
 type StoreIdentity = {
   id: string;
@@ -88,6 +89,31 @@ type ManualOrderForm = {
   productSku: string;
   feePayer: "store" | "customer";
 };
+
+function vehicleLabel(vehicleType?: string | null) {
+  if (vehicleType === "WALK") return "Явган хүргэлт";
+  if (vehicleType === "MOPED") return "Мопед";
+  if (vehicleType === "CAR") return "Машин";
+  return "Тээврийн төрөл";
+}
+
+function isActiveDispatchStatus(status?: string | null) {
+  return activeDispatchStatuses.includes(String(status));
+}
+
+function trackingStatusLabel(tracking?: StoreDeliveryTracking | null) {
+  if (!tracking) return "";
+  if (tracking.status === "REJECTED") return "Хүргэлтийн ажилтан хариу өгөөгүй - дахин хүргэлт дуудаж болно";
+  if (tracking.status === "OFFERED") return "Ойрын хүргэлтийн ажилтанд санал илгээгдсэн";
+  if (tracking.status === "ACCEPTED") return "Хүргэлтийн ажилтан захиалгыг авлаа";
+  if (tracking.status === "ARRIVING_PICKUP") return "Хүргэлтийн ажилтан дэлгүүр рүү ирж байна";
+  if (tracking.status === "PICKUP_VERIFICATION") return "Хүргэлтийн ажилтан ирсэн - store OTP баталгаажуулна";
+  if (tracking.status === "PICKED_UP") return "Захиалга хүргэлтэнд гарлаа";
+  if (tracking.status === "IN_TRANSIT") return "Хэрэглэгч рүү хүргэж байна";
+  if (tracking.status === "ARRIVING_DROPOFF") return "Хүлээн авагчид ойртож байна";
+  if (tracking.status === "DELIVERED") return "Захиалга дууссан";
+  return tracking.statusLabel ?? tracking.status;
+}
 
 function isForStore(order: StoreOrder, store?: StoreIdentity) {
   if (!store) return true;
@@ -315,7 +341,7 @@ function storeOrderStatusLabel(status: string) {
   if (status === storeOrderStatuses.prepared) return "Бэлтгэж дууслаа - хүргэлт дуудахад бэлэн";
   if (status === storeOrderStatuses.courierCalled) return "Хүргэлт дуудсан - courier assignment хүлээгдэж байна";
   if (status === "COURIER_ARRIVING") return "Хүргэлтийн ажилтан дэлгүүр рүү ирж байна";
-  if (status === "PICKUP_VERIFICATION") return "Employee ирсэн - store OTP баталгаажуулна";
+  if (status === "PICKUP_VERIFICATION") return "Хүргэлтийн ажилтан ирсэн - store OTP баталгаажуулна";
   if (status === "PICKED_UP" || status === "IN_TRANSIT") return "Хүргэлтэнд гарсан";
   if (status === "DELIVERED" || status === "COMPLETED") return "Захиалга дууссан";
   if (status === storeOrderStatuses.rejected) return "Татгалзсан";
@@ -472,12 +498,31 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         return [orderId, {
           ...tracking,
           status: "REJECTED",
-          statusLabel: "Employee хариу өгөөгүй - дахин хүргэлт дуудаж болно",
+          statusLabel: "Хүргэлтийн ажилтан хариу өгөөгүй - дахин хүргэлт дуудаж болно",
         }];
       }));
       return changed ? next : current;
     });
   }, [dispatchClock]);
+
+  useEffect(() => {
+    const liveOrders = dashboard.data?.orders ?? [];
+    if (!liveOrders.length) return;
+
+    setDispatchTrackings((current) => {
+      let changed = false;
+      const next = { ...current };
+
+      liveOrders.forEach((order) => {
+        if (isActiveDispatchStatus(order.deliveryTracking?.status) && next[order.id]) {
+          delete next[order.id];
+          changed = true;
+        }
+      });
+
+      return changed ? next : current;
+    });
+  }, [dashboard.data?.orders]);
 
   useEffect(() => {
     setProductPage(1);
@@ -593,7 +638,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
       status: "OFFERED",
       statusLabel: result.nearestCourier
         ? "Ойрын хүргэлтийн ажилтанд санал илгээгдсэн"
-        : "Nearest employee queue-д санал илгээгдсэн",
+        : "Ойрын хүргэлтийн ажилтны queue-д санал илгээгдсэн",
       courier: result.nearestCourier
         ? {
             id: result.nearestCourier.employeeId ?? result.nearestCourier.id ?? result.assignmentId,
@@ -736,7 +781,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
 
     return {
       employeeId: tracking.courier.id,
-      name: matchedCourier?.name ?? tracking.courier?.name ?? "Ойрын employee",
+      name: matchedCourier?.name ?? tracking.courier?.name ?? "Ойрын хүргэлтийн ажилтан",
       toPickupKm: matchedCourier?.toPickupKm ?? tracking.routePlan?.toPickupKm ?? 0,
       etaMinutes: matchedCourier?.etaMinutes ?? tracking.routePlan?.etaMinutes ?? 0,
       location,
@@ -762,7 +807,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const center = hasAcceptedRoute ? mapCenterFor([storePoint, courierPoint, dropoffPoint]) : mapCenterFor([storePoint, offerCourierPoint]);
     const tiles = getStoreMapTiles(center, storeMapZoom);
     const offerProgressDeg = `${Math.max(0, Math.min(360, ((offerRemaining ?? 12) / 12) * 360))}deg`;
-    const courierName = options.tracking?.courier?.name ?? "Ойрын employee";
+    const courierName = options.tracking?.courier?.name ?? "Ойрын хүргэлтийн ажилтан";
 
     return (
       <div className={`store-live-map ${options.className ?? ""}`} aria-label="Дэлгүүрийн газрын зураг">
@@ -800,7 +845,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           <i
             className="store-live-offer-courier"
             style={{ ...mapPointStyle(offerCourierPoint, center, storeMapZoom), "--offer-progress": offerProgressDeg } as CSSProperties}
-            title={`${offerCourier.employeeId} · ${offerCourier.toPickupKm.toFixed(1)} км`}
+            title={`${offerCourier.name} · ${offerCourier.toPickupKm.toFixed(1)} км`}
           >
             <b>{offerRemaining ?? 12}</b>
             <span>{offerCourier.name}</span>
@@ -825,10 +870,10 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         })}
         {false && options.tracking?.status === "OFFERED" && <b className="store-live-scan" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-hidden="true" />}
         <div className="store-live-map-status">
-          <strong>{options.statusLabel ?? options.tracking?.statusLabel ?? "Дэлгүүрийн байршил"}</strong>
+          <strong>{options.statusLabel || trackingStatusLabel(options.tracking) || "Дэлгүүрийн байршил"}</strong>
           <span>
             {options.orderId ? `#${options.orderId} · ` : ""}
-            {isOfferOnly ? "Nearest employee queue - ID ба зайгаар эрэмбэлсэн" : "Nomin fixed pickup - Бөхийн Өргөө"}
+            {isOfferOnly ? "Ойрын хүргэлтийн ажилтнууд - зайгаар эрэмбэлсэн" : "Nomin тогтмол авах цэг - Бөхийн Өргөө"}
           </span>
         </div>
       </div>
@@ -852,28 +897,27 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
       ? "Хэрэглэгч рүү хүргэж байна"
       : isAccepted
         ? "Хүргэлтийн ажилтан ирж байна"
-        : "Nearest employee-д санал илгээгдсэн";
+        : "Ойрын хүргэлтийн ажилтанд санал илгээгдсэн";
 
     return (
       <section className={`store-dispatch-tracker ${isDelivering ? "is-delivering" : isAccepted ? "is-accepted" : "is-searching"}`}>
         {renderLiveStoreMap({ tracking, orderId: order.id, className: "store-dispatch-map" })}
         <div className="store-dispatch-detail">
           <span>{dispatchStageText}</span>
-          {offerCourier && <span>{offerCourier.employeeId} дээр {offerRemaining ?? 12} сек хүлээж байна</span>}
+          {offerCourier && <span>{offerCourier.name} дээр {offerRemaining ?? 12} сек хүлээж байна</span>}
           <h3>{courierName}</h3>
-          <p>{tracking.statusLabel}</p>
+          <p>{trackingStatusLabel(tracking)}</p>
           <div>
             <b>{toPickupKm.toFixed(1)} км</b>
             <b>{eta} мин</b>
-            <b>{tracking.courier?.vehicleType ?? "AUTO"}</b>
+            <b>{vehicleLabel(tracking.courier?.vehicleType)}</b>
           </div>
           {false && nearbyCouriers.length ? (
             <div className="store-nearby-couriers">
               {nearbyCouriers.slice(0, 4).map((courier, index) => (
                 <span className={(offerCourier?.employeeId ?? tracking?.courier?.id) === courier.employeeId ? "matched" : ""} key={courier.employeeId}>
                   <i>{index + 1}</i>
-                  <strong>{courier.employeeId}</strong>
-                  {courier.name}
+                  <strong>{courier.name}</strong>
                   <b>{courier.toPickupKm.toFixed(1)} км · {courier.etaMinutes} мин</b>
                 </span>
               ))}
@@ -881,7 +925,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           ) : null}
           {needsStoreOtp ? (
             <label className="store-pickup-otp">
-              <span>Employee өгсөн 6 оронтой OTP</span>
+              <span>Хүргэлтийн ажилтны өгсөн 6 оронтой OTP</span>
               <input
                 inputMode="numeric"
                 maxLength={6}
@@ -1017,7 +1061,11 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const localSelectedTracking = selectedOrder ? dispatchTrackings[selectedOrder.id] : null;
     const liveSelectedTracking = liveSelectedOrder?.deliveryTracking ?? selectedOrder?.deliveryTracking ?? null;
     const selectedTracking = selectedOrder
-      ? (isDispatchExpired(localSelectedTracking) ? localSelectedTracking : liveSelectedTracking ?? localSelectedTracking)
+      ? (isActiveDispatchStatus(liveSelectedTracking?.status)
+          ? liveSelectedTracking
+          : isDispatchExpired(localSelectedTracking)
+            ? localSelectedTracking
+            : liveSelectedTracking ?? localSelectedTracking)
       : null;
     const selectedStatus = liveSelectedOrder?.status ?? selectedOrder?.status;
     const selectedDispatchExpired = isDispatchExpired(selectedTracking);
@@ -1045,6 +1093,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const trackingForOrder = (order: StoreOrderView) => {
       const localTracking = dispatchTrackings[order.id];
       const liveTracking = dashboard.data?.orders.find((item) => item.id === order.id)?.deliveryTracking ?? order.deliveryTracking ?? null;
+      if (isActiveDispatchStatus(liveTracking?.status)) return liveTracking;
       return isDispatchExpired(localTracking) ? localTracking : liveTracking ?? localTracking;
     };
     const canCallCourierForOrder = (order: StoreOrderView) => {
@@ -1108,7 +1157,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           <section className="store-dispatch-ready">
             <div>
               <strong>Бэлтгэж дууссан</strong>
-              <span>Хүргэлтэнд гаргахын өмнө courier employee хайж хүргэлт дуудна.</span>
+              <span>Хүргэлтэнд гаргахын өмнө хүргэлтийн ажилтан хайж хүргэлт дуудна.</span>
             </div>
             <button onClick={() => runAction(text.callCourier, selectedOrder.id)} type="button">{text.callCourier}</button>
             {renderLiveStoreMap({ statusLabel: "Дэлгүүрийн байршил", className: "store-real-ready-map" })}
