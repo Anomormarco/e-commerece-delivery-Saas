@@ -285,7 +285,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const dashboard = useRealtimeResource<CourierDashboard>("/dashboard", ["courier.dashboard.refresh", "courier.job.updated"]);
   const refreshDashboard = dashboard.refetch;
   const [activeTab, setActiveTab] = useState<CourierTab>("map");
-  const [localOnline, setLocalOnline] = useState<boolean | null>(true);
+  const [localOnline, setLocalOnline] = useState<boolean | null>(null);
   const [jobs, setJobs] = useState<QueueItem[] | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
@@ -305,7 +305,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [mapMode, setMapMode] = useState<MapMode>("white");
   const [zoom, setZoom] = useState(13);
   const [offerClock, setOfferClock] = useState(Date.now());
-  const isOnline = localOnline ?? dashboard.data?.online ?? true;
+  const isOnline = localOnline ?? dashboard.data?.online ?? false;
   const visibleJobs = (jobs ?? dashboard.data?.jobs ?? []).filter((job) => {
     const remaining = offerRemainingSeconds(job, offerClock);
     return remaining == null || remaining > 0;

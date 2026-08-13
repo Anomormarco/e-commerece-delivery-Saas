@@ -10,6 +10,14 @@ const busyAssignmentStatuses = [
   "IN_TRANSIT",
   "ARRIVING_DROPOFF",
 ];
+const busyAssignmentWindowMs = 2 * 60 * 60 * 1000;
+
+function busyAssignmentWhere() {
+  return {
+    status: { in: busyAssignmentStatuses },
+    createdAt: { gte: new Date(Date.now() - busyAssignmentWindowMs) },
+  };
+}
 
 export async function listRecentOrdersByTenant(tenantId, { limit = 10 } = {}) {
   return prisma.order.findMany({
@@ -70,7 +78,7 @@ export async function findLatestDispatchableOrder(tenantId) {
     where: {
       status: { in: statuses },
       deliveryAssignments: {
-        none: { status: { in: ["OFFERED", "ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION", "PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF"] } },
+        none: busyAssignmentWhere(),
       },
     },
     orderBy: { createdAt: "desc" },
@@ -94,7 +102,7 @@ function availableEmployeeWhere({ tenantId, vehicleTypes, onlineOnly, activeOnly
     ...(activeOnly ? { verificationStatus: "ACTIVE" } : {}),
     ...(vehicleOnly ? { vehicleType: { in: vehicleTypes } } : {}),
     assignments: {
-      none: { status: { in: busyAssignmentStatuses } },
+      none: busyAssignmentWhere(),
     },
   };
 }
@@ -135,7 +143,7 @@ export async function countMatchingEmployees(tenantId, vehicleTypes) {
       verificationStatus: "ACTIVE",
       vehicleType: { in: vehicleTypes },
       assignments: {
-        none: { status: { in: busyAssignmentStatuses } },
+        none: busyAssignmentWhere(),
       },
     },
   });

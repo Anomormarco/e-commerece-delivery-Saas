@@ -21,6 +21,7 @@ const vehicleLabels = {
 const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
 const offerTimeoutMs = 12_000;
 const maxStoreOfferAttempts = 5;
+const busyAssignmentWindowMs = 2 * 60 * 60 * 1000;
 const activeAssignmentStatuses = [
   "ACCEPTED",
   "ARRIVING_PICKUP",
@@ -149,6 +150,80 @@ function orderDistanceKm(order) {
   return Number(haversineKm(pickup, dropoff).toFixed(1)) || 2.4;
 }
 
+function busyAssignmentWhere() {
+  return {
+    status: { in: ["OFFERED", ...activeAssignmentStatuses] },
+    createdAt: { gte: new Date(Date.now() - busyAssignmentWindowMs) },
+  };
+}
+
+async function offerWindowForOrder(transaction, orderId) {
+  const [latestDispatchStart, latestReadyReset] = await Promise.all([
+    transaction.orderStatusHistory.findFirst({
+      where: { orderId, status: "COURIER_ASSIGNED" },
+      select: { createdAt: true },
+      orderBy: { createdAt: "desc" },
+    }),
+    transaction.orderStatusHistory.findFirst({
+      where: { orderId, status: "READY_FOR_PICKUP" },
+      select: { createdAt: true },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+  const activeDispatchStart = latestDispatchStart
+    && (!latestReadyReset || latestDispatchStart.createdAt > latestReadyReset.createdAt)
+    ? latestDispatchStart.createdAt
+    : null;
+
+  return {
+    orderId,
+    employeeId: { not: null },
+    ...(activeDispatchStart ? { createdAt: { gte: activeDispatchStart } } : { createdAt: { gt: new Date() } }),
+  };
+}
+
+async function previousOfferEmployeeIds(transaction, orderId) {
+  const previousOffers = await transaction.deliveryAssignment.findMany({
+    where: await offerWindowForOrder(transaction, orderId),
+    select: { employeeId: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return previousOffers.map((offer) => offer.employeeId).filter(Boolean);
+}
+
+async function findAvailableEmployeesForOffer(transaction, { tenantId, vehicleTypes, excludedEmployeeIds = [] }) {
+  const whereFor = ({ tenantScoped, vehicleOnly }) => ({
+    ...(tenantScoped && tenantId ? { tenantId } : {}),
+    online: true,
+    verificationStatus: "ACTIVE",
+    ...(vehicleOnly ? { vehicleType: { in: vehicleTypes } } : {}),
+    ...(excludedEmployeeIds.length ? { id: { notIn: excludedEmployeeIds } } : {}),
+    assignments: {
+      none: busyAssignmentWhere(),
+    },
+  });
+
+  const steps = [
+    whereFor({ tenantScoped: true, vehicleOnly: true }),
+    whereFor({ tenantScoped: true, vehicleOnly: false }),
+    whereFor({ tenantScoped: false, vehicleOnly: true }),
+    whereFor({ tenantScoped: false, vehicleOnly: false }),
+  ];
+
+  for (const where of steps) {
+    const employees = await transaction.deliveryEmployee.findMany({
+      where,
+      include: { user: true },
+      orderBy: { id: "asc" },
+    });
+
+    if (employees.length) return employees;
+  }
+
+  return [];
+}
+
 async function createNextStoreCourierOffer(transaction, { tenantId, orderId }) {
   const order = await transaction.order.findFirst({
     where: { id: orderId, tenantId },
@@ -157,42 +232,18 @@ async function createNextStoreCourierOffer(transaction, { tenantId, orderId }) {
 
   if (!order) return null;
 
-  const latestDispatchStart = await transaction.orderStatusHistory.findFirst({
-    where: { orderId, status: "COURIER_ASSIGNED" },
-    select: { createdAt: true },
-    orderBy: { createdAt: "desc" },
-  });
-  const offerWindow = {
-    orderId,
-    employeeId: { not: null },
-    ...(latestDispatchStart ? { createdAt: { gte: latestDispatchStart.createdAt } } : {}),
-  };
-  const previousOffers = await transaction.deliveryAssignment.findMany({
-    where: offerWindow,
-    select: { employeeId: true },
-    orderBy: { createdAt: "asc" },
-  });
+  const excludedEmployeeIds = await previousOfferEmployeeIds(transaction, orderId);
+  if (excludedEmployeeIds.length >= maxStoreOfferAttempts) return null;
 
-  if (previousOffers.length >= maxStoreOfferAttempts) return null;
-
-  const excludedEmployeeIds = previousOffers.map((offer) => offer.employeeId).filter(Boolean);
   const weightKg = orderWeightKg(order);
   const distanceKm = orderDistanceKm(order);
   const rule = dispatchRule(weightKg, distanceKm);
-  const candidates = await transaction.deliveryEmployee.findMany({
-    where: {
-      tenantId,
-      online: true,
-      verificationStatus: "ACTIVE",
-      ...(excludedEmployeeIds.length ? { id: { notIn: excludedEmployeeIds } } : {}),
-      assignments: {
-        none: { status: { in: ["OFFERED", ...activeAssignmentStatuses] } },
-      },
-    },
-    include: { user: true },
+  const candidates = await findAvailableEmployeesForOffer(transaction, {
+    tenantId,
+    vehicleTypes: rule.eligibleVehicles,
+    excludedEmployeeIds,
   });
-  const rankedEmployees = rankNearbyEmployees(order, candidates, distanceKm)
-    .filter(({ employee }) => rule.eligibleVehicles.includes(employee.vehicleType ?? "WALK"));
+  const rankedEmployees = rankNearbyEmployees(order, candidates, distanceKm);
   const nextEmployee = rankedEmployees[0]?.employee;
 
   if (!nextEmployee) return null;
@@ -241,10 +292,7 @@ async function advanceExpiredStoreOffers(tenantId) {
       });
 
       const activeAssignment = await transaction.deliveryAssignment.findFirst({
-        where: {
-          orderId: offer.orderId,
-          status: { in: ["OFFERED", ...activeAssignmentStatuses] },
-        },
+        where: { orderId: offer.orderId, ...busyAssignmentWhere() },
         select: { id: true },
       });
 
@@ -379,10 +427,18 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
   }
 
   const dispatchTenantId = order.tenantId ?? tenantId;
+  const excludedEmployeeIds = await previousOfferEmployeeIds(prisma, order.id);
   const tenantEmployees = await listMatchingEmployees(dispatchTenantId, rule.eligibleVehicles);
   const allEmployees = await listMatchingEmployeesAnyTenant(rule.eligibleVehicles);
   const employeeById = new Map([...tenantEmployees, ...allEmployees].map((employee) => [employee.id, employee]));
-  const eligibleEmployees = [...employeeById.values()];
+  let eligibleEmployees = [...employeeById.values()].filter((employee) => !excludedEmployeeIds.includes(employee.id));
+  if (!eligibleEmployees.length && excludedEmployeeIds.length < maxStoreOfferAttempts) {
+    eligibleEmployees = await prisma.$transaction((transaction) => findAvailableEmployeesForOffer(transaction, {
+      tenantId: dispatchTenantId,
+      vehicleTypes: rule.eligibleVehicles,
+      excludedEmployeeIds,
+    }));
+  }
   const rankedEmployees = rankNearbyEmployees(order, eligibleEmployees, distanceKm);
   const nearest = rankedEmployees[0] ?? selectNearestEmployee(order, eligibleEmployees, distanceKm);
   if (!nearest?.employee?.id) {
