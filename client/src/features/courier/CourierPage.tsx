@@ -322,8 +322,8 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     )
     ? activeMapJob
     : null;
-  const pickupPoint = routeMapJob?.routePlan?.pickup;
-  const dropoffPoint = routeMapJob?.routePlan?.dropoff;
+  const pickupPoint = routeMapJob?.routePlan?.pickup ?? offerJob?.routePlan?.pickup;
+  const dropoffPoint = routeMapJob?.routePlan?.dropoff ?? offerJob?.routePlan?.dropoff;
   const mapPoints = [position, pickupPoint, dropoffPoint].filter(Boolean) as GeoPoint[];
   const storeDistanceKm = position && pickupPoint ? haversineKm(position, pickupPoint) : null;
   const storeEtaMinutes = storeDistanceKm == null ? null : Math.max(1, Math.round(storeDistanceKm * 13));
@@ -601,32 +601,28 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   statusLabel={locationError || !position ? (locationError ?? text.locating) : undefined}
                 >
                 {offerJob && (
-                  <article className="courier-map-request-card">
-                    <div className="courier-map-request-head">
+                  <article className="courier-map-request-card courier-offer-bar">
+                    <div className="courier-offer-head">
+                      <span className="courier-offer-icon" aria-hidden="true">▣</span>
                       <div>
-                        <span>{text.newRequest}</span>
-                        <strong>{typeof offerRemainingSeconds(offerJob, offerClock) === "number" ? `${offerRemainingSeconds(offerJob, offerClock)}s` : text.urgent}</strong>
+                        <strong>Шинэ хүсэлт</strong>
+                        <small>{typeof offerRemainingSeconds(offerJob, offerClock) === "number" ? `${offerRemainingSeconds(offerJob, offerClock)} сек` : text.urgent}</small>
                       </div>
-                      <b>{offerJob.payoutMnt ?? "0"} MNT</b>
+                      <b>{offerJob.payoutMnt ?? "0"}₮</b>
                     </div>
-                    <div className="courier-map-route">
+
+                    <div className="courier-offer-route">
                       <p><span aria-hidden="true">{"\u25A0"}</span>{offerJob.pickupAddress ?? offerJob.name}</p>
                       <i aria-hidden="true" />
                       <p><span aria-hidden="true">{"\u25C6"}</span>{offerJob.dropoffAddress ?? text.dropoff}</p>
                     </div>
-                    <div className="courier-map-request-meta">
-                      <span>{offerJob.distance}</span>
-                      <span>{text.approximate} {text.eta}</span>
-                      {typeof offerRemainingSeconds(offerJob, offerClock) === "number" && <span>{offerRemainingSeconds(offerJob, offerClock)}s</span>}
+
+                    <div className="courier-offer-meta">
+                      <span>{offerJob.routePlan?.totalKm ? `${offerJob.routePlan.totalKm} км` : offerJob.distance}</span>
+                      <span>Ойролцоогоор {offerJob.routePlan?.etaMinutes ?? 12} мин</span>
                     </div>
-                    {offerJob.routePlan && (
-                      <div className="employee-route-preview">
-                        <strong>{offerJob.routePlan?.label}</strong>
-                        <span>{offerJob.routePlan?.totalKm} км · Ирэх хугацаа {offerJob.routePlan?.etaMinutes} мин</span>
-                        <small>Явган {offerJob.routePlan?.walkingMinutes} мин / Авто зам {offerJob.routePlan?.drivingMinutes} мин</small>
-                      </div>
-                    )}
-                    <div className="courier-map-request-actions">
+
+                    <div className="courier-offer-actions">
                       <button onClick={() => rejectJob(offerJob.id)} type="button">{text.reject}</button>
                       <button disabled={offerJob.canAccept === false} onClick={() => acceptJob(offerJob.id)} type="button">{text.acceptOrder}</button>
                     </div>

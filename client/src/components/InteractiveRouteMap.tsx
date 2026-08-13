@@ -141,6 +141,7 @@ export function InteractiveRouteMap({
   }
 
   function onPointerDown(event: PointerEvent<HTMLDivElement>) {
+    if ((event.target as HTMLElement).closest("button, a, input, textarea, select")) return;
     event.currentTarget.setPointerCapture(event.pointerId);
     dragRef.current = { x: event.clientX, y: event.clientY, center };
   }
