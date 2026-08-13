@@ -604,6 +604,9 @@ model DeliveryEmployee {
   online             Boolean              @default(false)
   vehicleType        String?
   vehiclePlate       String?
+  lastLatitude       Decimal?             @db.Decimal(10, 7)
+  lastLongitude      Decimal?             @db.Decimal(10, 7)
+  locationUpdatedAt  DateTime?
   rating             Decimal?             @db.Decimal(3, 2)
   user               User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   assignments        DeliveryAssignment[]
@@ -942,4 +945,3 @@ model RiskEvent {
   @@index([tenantId, severity])
   @@map("risk_events")
 }
-

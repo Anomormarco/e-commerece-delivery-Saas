@@ -11,6 +11,20 @@ const busyAssignmentStatuses = [
   "ARRIVING_DROPOFF",
 ];
 const busyAssignmentWindowMs = 2 * 60 * 60 * 1000;
+const employeeLocationInclude = {
+  user: true,
+  assignments: {
+    take: 1,
+    orderBy: { createdAt: "desc" },
+    include: {
+      trackingSessions: {
+        take: 1,
+        orderBy: { startedAt: "desc" },
+        include: { locations: { take: 1, orderBy: { recordedAt: "desc" } } },
+      },
+    },
+  },
+};
 
 function busyAssignmentWhere() {
   return {
@@ -111,7 +125,7 @@ async function findEmployeesByPriority(steps) {
   for (const where of steps) {
     const employees = await prisma.deliveryEmployee.findMany({
       where,
-      include: { user: true },
+      include: employeeLocationInclude,
       orderBy: { id: "asc" },
     });
 

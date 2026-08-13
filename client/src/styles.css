@@ -13286,26 +13286,6 @@ h3 {
   user-select: none;
 }
 
-.employee-live-map.map-mode-dark {
-  background-color: #111827;
-  --map-road: rgba(71, 85, 105, 0.82);
-  --map-road-soft: rgba(51, 65, 85, 0.78);
-  --map-label: #93a4b8;
-  --map-major: #475569;
-  --map-building: rgba(30, 41, 59, 0.62);
-  --map-tint: rgba(15, 23, 42, 0.58);
-}
-
-.employee-live-map.map-mode-satellite {
-  background: #243423;
-  --map-road: rgba(226, 232, 240, 0.48);
-  --map-road-soft: rgba(203, 213, 225, 0.34);
-  --map-label: #dbeafe;
-  --map-major: rgba(226, 232, 240, 0.32);
-  --map-building: rgba(15, 23, 42, 0.18);
-  --map-tint: rgba(15, 23, 42, 0.18);
-}
-
 .employee-map-zoom {
   position: absolute;
   top: 14px;
@@ -13673,42 +13653,6 @@ h3 {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.employee-map-modes {
-  position: absolute;
-  right: 50%;
-  bottom: 18px;
-  z-index: 6;
-  display: flex;
-  overflow: hidden;
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.14);
-  transform: translateX(50%);
-  backdrop-filter: blur(14px);
-}
-
-.employee-map-modes button {
-  min-height: 40px;
-  border: 0;
-  border-right: 1px solid #dde5ef;
-  padding: 0 14px;
-  background: transparent;
-  color: var(--color-primary);
-  font-size: 12px;
-  font-weight: 950;
-  white-space: nowrap;
-}
-
-.employee-map-modes button:last-child {
-  border-right: 0;
-}
-
-.employee-map-modes button.active {
-  background: var(--color-secondary);
-  color: white;
 }
 
 .employee-location-dot.is-live {

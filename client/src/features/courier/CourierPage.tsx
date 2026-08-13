@@ -39,7 +39,6 @@ type EmployeeProfile = {
   vehiclePlate?: string;
 };
 
-type MapMode = "dark" | "white" | "satellite";
 type CourierTab = "map" | "deliveries" | "wallet" | "profile";
 
 type GeoPoint = {
@@ -118,9 +117,6 @@ const text = {
   verifyDropoff: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442 \u0434\u0443\u0443\u0441\u0433\u0430\u0445",
   delivered: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442 \u0430\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439",
   otpHint: "Туршилтын код: дэлгүүр 123456, хэрэглэгч 654321",
-  darkMode: "\u0425\u0430\u0440\u0430\u043D\u0445\u0443\u0439",
-  whiteMode: "\u0426\u0430\u0439\u0432\u0430\u0440",
-  satelliteMode: "\u0425\u0438\u0439\u043C\u044D\u043B \u0434\u0430\u0433\u0443\u0443\u043B",
   home: "\u041D\u04AF\u04AF\u0440",
   history: "\u0422\u04AF\u04AF\u0445",
   control: "\u0425\u044F\u043D\u0430\u043B\u0442",
@@ -151,15 +147,7 @@ function latitudeToTileY(lat: number, zoomLevel: number) {
   return ((1 - Math.log(Math.tan(latitudeRadians) + 1 / Math.cos(latitudeRadians)) / Math.PI) / 2) * 2 ** zoomLevel;
 }
 
-function getTileUrl(mapMode: MapMode, x: number, y: number, zoomLevel: number) {
-  if (mapMode === "dark") {
-    return `https://a.basemaps.cartocdn.com/dark_all/${zoomLevel}/${x}/${y}.png`;
-  }
-
-  if (mapMode === "satellite") {
-    return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${zoomLevel}/${y}/${x}`;
-  }
-
+function getTileUrl(x: number, y: number, zoomLevel: number) {
   return `https://tile.openstreetmap.org/${zoomLevel}/${x}/${y}.png`;
 }
 
@@ -302,7 +290,6 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [otpByJob, setOtpByJob] = useState<Record<string, string>>({});
   const [acceptedRouteJobIds, setAcceptedRouteJobIds] = useState<Set<string>>(() => new Set());
-  const [mapMode, setMapMode] = useState<MapMode>("white");
   const [zoom, setZoom] = useState(13);
   const [offerClock, setOfferClock] = useState(Date.now());
   const isOnline = localOnline ?? dashboard.data?.online ?? false;
@@ -334,13 +321,12 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     : null;
   const pickupPoint = routeMapJob?.routePlan?.pickup;
   const dropoffPoint = routeMapJob?.routePlan?.dropoff;
-  const courierPoint = position ?? fallbackPosition;
-  const mapPoints = [courierPoint, pickupPoint, dropoffPoint].filter(Boolean) as GeoPoint[];
+  const mapPoints = [position, pickupPoint, dropoffPoint].filter(Boolean) as GeoPoint[];
   const projectMapPoint = createMapProjector(mapPoints);
-  const courierMapPoint = projectMapPoint(courierPoint);
+  const courierMapPoint = position ? projectMapPoint(position) : null;
   const pickupMapPoint = pickupPoint ? projectMapPoint(pickupPoint) : { x: 24, y: 74 };
   const dropoffMapPoint = dropoffPoint ? projectMapPoint(dropoffPoint) : { x: 78, y: 32 };
-  const storeDistanceKm = pickupPoint ? haversineKm(courierPoint, pickupPoint) : null;
+  const storeDistanceKm = position && pickupPoint ? haversineKm(position, pickupPoint) : null;
   const storeEtaMinutes = storeDistanceKm == null ? null : Math.max(1, Math.round(storeDistanceKm * 13));
   const totalPayoutMnt = visibleJobs.reduce((sum, job) => sum + Number(job.payoutMnt ?? 0), 0);
   const deliveredPayoutMnt = deliveredJobs.reduce((sum, job) => sum + Number(job.payoutMnt ?? 0), 0);
@@ -600,14 +586,14 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
             <>
               <div className="employee-app-scroll">
               {activeTab === "map" && (
-                <section className={`employee-live-map map-mode-${mapMode}`} style={{ "--employee-map-zoom": zoom } as CSSProperties}>
+                <section className="employee-live-map" style={{ "--employee-map-zoom": zoom } as CSSProperties}>
                 <div className="employee-map-tiles" aria-label={text.mapTab}>
                   {mapTiles.map((tile) => (
                     <img
                       alt=""
                       draggable={false}
                       key={tile.key}
-                      src={getTileUrl(mapMode, tile.urlX, tile.urlY, zoom)}
+                      src={getTileUrl(tile.urlX, tile.urlY, zoom)}
                       style={tile.style}
                     />
                   ))}
@@ -616,7 +602,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   <button onClick={() => setZoom((current) => Math.min(current + 1, 18))} type="button" aria-label="Zoom in">+</button>
                   <button onClick={() => setZoom((current) => Math.max(current - 1, 10))} type="button" aria-label="Zoom out">-</button>
                 </div>
-                {routeMapJob && pickupPoint && walkingRouteSegments(courierMapPoint, pickupMapPoint).map((segment) => (
+                {routeMapJob && pickupPoint && courierMapPoint && walkingRouteSegments(courierMapPoint, pickupMapPoint).map((segment) => (
                   <span className="employee-direct-route employee-route-pickup" key={`pickup-${segment.key}`} style={segment.style} />
                 ))}
                 {routeMapJob && pickupPoint && dropoffPoint && walkingRouteSegments(pickupMapPoint, dropoffMapPoint).map((segment) => (
@@ -636,10 +622,12 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     aria-label={text.dropoff}
                   />
                 )}
-                <span
-                  className={`employee-location-dot ${position ? "is-live" : ""}`}
-                  style={{ "--pin-x": `${courierMapPoint.x}%`, "--pin-y": `${courierMapPoint.y}%` } as CSSProperties}
-                />
+                {courierMapPoint && (
+                  <span
+                    className="employee-location-dot is-live"
+                    style={{ "--pin-x": `${courierMapPoint.x}%`, "--pin-y": `${courierMapPoint.y}%` } as CSSProperties}
+                  />
+                )}
                 {(locationError || !position) && (
                   <div className="employee-map-status">
                     <strong>{locationError ?? text.locating}</strong>
@@ -702,11 +690,6 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     )}
                   </article>
                 )}
-                <div className="employee-map-modes">
-                  <button className={mapMode === "dark" ? "active" : ""} onClick={() => setMapMode("dark")} type="button">{text.darkMode}</button>
-                  <button className={mapMode === "white" ? "active" : ""} onClick={() => setMapMode("white")} type="button">{text.whiteMode}</button>
-                  <button className={mapMode === "satellite" ? "active" : ""} onClick={() => setMapMode("satellite")} type="button">{text.satelliteMode}</button>
-                </div>
                 </section>
               )}
 

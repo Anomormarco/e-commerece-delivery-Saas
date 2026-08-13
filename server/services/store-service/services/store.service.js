@@ -42,21 +42,6 @@ function toNumber(value, fallback) {
   return Number.isFinite(next) ? next : fallback;
 }
 
-function hashToUnit(input = "") {
-  let hash = 0;
-  for (const char of String(input)) {
-    hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  }
-  return (hash % 10_000) / 10_000;
-}
-
-function employeeLiveLocation(employee, pickup) {
-  return {
-    lat: pickup.lat + (hashToUnit(`${employee.id}:lat`) - 0.5) * 0.045,
-    lng: pickup.lng + (hashToUnit(`${employee.id}:lng`) - 0.5) * 0.06,
-  };
-}
-
 function haversineKm(from, to) {
   const earthKm = 6371;
   const dLat = ((to.lat - from.lat) * Math.PI) / 180;
@@ -88,10 +73,29 @@ function latestAssignmentLocation(assignment) {
   };
 }
 
+function latestEmployeeLocation(employee) {
+  if (employee?.lastLatitude != null && employee?.lastLongitude != null) {
+    return {
+      lat: toNumber(employee.lastLatitude, defaultStoreLocation.lat),
+      lng: toNumber(employee.lastLongitude, defaultStoreLocation.lng),
+    };
+  }
+
+  const location = employee?.assignments?.[0]?.trackingSessions?.[0]?.locations?.[0];
+  if (!location) return null;
+
+  return {
+    lat: toNumber(location.latitude, defaultStoreLocation.lat),
+    lng: toNumber(location.longitude, defaultStoreLocation.lng),
+  };
+}
+
 function routePlanFor(order, employee, distanceKm, courierLocation = null) {
   const pickup = pickupLocation(order);
   const dropoff = dropoffLocation(order, pickup, distanceKm);
-  const courier = courierLocation ?? (employee ? employeeLiveLocation(employee, pickup) : pickup);
+  const courier = courierLocation ?? latestEmployeeLocation(employee);
+  if (!courier) return null;
+
   const toPickupKm = haversineKm(courier, pickup);
   const deliveryKm = haversineKm(pickup, dropoff);
   const totalKm = toPickupKm + deliveryKm;
@@ -117,8 +121,9 @@ function selectNearestEmployee(order, employees, distanceKm) {
   return employees
     .map((employee) => {
       const routePlan = routePlanFor(order, employee, distanceKm);
-      return { employee, routePlan, score: routePlan.toPickupKm };
+      return { employee, routePlan, score: routePlan?.toPickupKm ?? Number.POSITIVE_INFINITY };
     })
+    .filter((item) => item.routePlan)
     .sort((left, right) => left.score - right.score)[0] ?? null;
 }
 
@@ -129,9 +134,10 @@ function rankNearbyEmployees(order, employees, distanceKm) {
       return {
         employee,
         routePlan,
-        score: routePlan.toPickupKm,
+        score: routePlan?.toPickupKm ?? Number.POSITIVE_INFINITY,
       };
     })
+    .filter((item) => item.routePlan)
     .sort((left, right) => left.score - right.score);
 }
 
@@ -214,7 +220,20 @@ async function findAvailableEmployeesForOffer(transaction, { tenantId, vehicleTy
   for (const where of steps) {
     const employees = await transaction.deliveryEmployee.findMany({
       where,
-      include: { user: true },
+      include: {
+        user: true,
+        assignments: {
+          take: 1,
+          orderBy: { createdAt: "desc" },
+          include: {
+            trackingSessions: {
+              take: 1,
+              orderBy: { startedAt: "desc" },
+              include: { locations: { take: 1, orderBy: { recordedAt: "desc" } } },
+            },
+          },
+        },
+      },
       orderBy: { id: "asc" },
     });
 
@@ -332,7 +351,7 @@ function formatAssignmentTracking(order) {
 
   const courierLocation = latestAssignmentLocation(assignment);
   const firstRoute = routePlanFor(order, assignment.employee, 2, courierLocation);
-  const routePlan = routePlanFor(order, assignment.employee, firstRoute.totalKm || 2, courierLocation);
+  const routePlan = firstRoute ? (routePlanFor(order, assignment.employee, firstRoute.totalKm || 2, courierLocation) ?? firstRoute) : null;
   const statusLabels = {
     OFFERED: "Ойрын хүргэлтийн ажилтанд санал илгээгдсэн",
     ACCEPTED: "Хүргэлтийн ажилтан дэлгүүр рүү ирж байна",
@@ -448,7 +467,7 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
     throw error;
   }
   const assignment = await createDeliveryOffer(dispatchTenantId, order.id, nearest.employee.id);
-  const routePlan = nearest?.routePlan ?? routePlanFor(order, null, distanceKm);
+  const routePlan = nearest.routePlan;
   await updateOrderStatus(dispatchTenantId, order.id, "COURIER_ASSIGNED", "Дэлгүүр хүргэлт дуудлаа.");
 
   appCache.clearByPrefix(`store:dashboard:${dispatchTenantId}`);
