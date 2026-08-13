@@ -144,6 +144,16 @@ const paymentMethods: Array<{ id: PaymentMethod; label: string; mark: string }> 
   { id: "card", label: "Bank Card", mark: "CC" },
 ];
 const productsPerMarketPage = marketRowsPerPage * marketCardsPerRow;
+const marketCategoryFilters = ["Бүгд", "Хүнс", "Гэр ахуй", "Хоол захиалга", "Цахилгаан бараа", "Хувцас", "Гар утас, дагалдах", "Гоо сайхан", "Бусад"] as const;
+const groupedMarketCategories: Record<string, string[]> = {
+  "Хүнс": ["Хүнс", "Мах", "Талх", "Сүү"],
+  "Гэр ахуй": ["Гэр ахуй"],
+  "Хоол захиалга": ["24/7 дэлгүүр", "Хоол", "Бэлэн хоол"],
+  "Цахилгаан бараа": ["Цахилгаан бараа"],
+  "Хувцас": ["Хувцас"],
+  "Гар утас, дагалдах": ["Гар утас", "Таблет", "Дагалдах хэрэгсэл"],
+  "Гоо сайхан": ["Гоо сайхан"],
+};
 const landingHeroImages = [
   heroPromaxImage,
   heroMacbookImage,
@@ -201,11 +211,29 @@ function stableStockCount(seed: string) {
   return Array.from(seed).reduce((sum, char) => sum + char.charCodeAt(0), 17) % 101;
 }
 
+function marketCategoryMatches(category: string, filter: string) {
+  if (filter === "Бүгд") return true;
+  const directMatches = groupedMarketCategories[filter] ?? [];
+  if (directMatches.includes(category)) return true;
+  if (filter !== "Бусад") return false;
+
+  return !Object.values(groupedMarketCategories).some((categories) => categories.includes(category));
+}
+
+function storeMatchesMarketFilter(store: StoreDirectoryItem, filter: string) {
+  return store.categories.some((category) => marketCategoryMatches(category, filter))
+    || store.products.some((product) => marketCategoryMatches(product.category, filter));
+}
+
 const marketTemplates = [
   { category: "Хүнс", stores: ["Номин Маркет", "Fresh Mart", "Good Price Market", "Оргил Хүнс", "Minii Delguur"], products: [["Цагаан будаа", "rice bag"], ["Гурил", "flour"], ["Сүү", "milk bottle"], ["Өндөг", "eggs carton"], ["Алим", "apples"], ["Төмс", "potatoes"], ["Лууван", "carrots"], ["Үхрийн мах", "beef meat"], ["Тахианы мах", "chicken breast"], ["Бяслаг", "cheese"]] },
   { category: "24/7 дэлгүүр", stores: ["CU Mongolia", "GS25 Mongolia", "Quick Stop", "City Express", "Night Mart"], products: [["Сэндвич", "sandwich"], ["Кимбап", "kimbap"], ["Рамен", "instant ramen"], ["Ус", "water bottle"], ["Кола", "cola can"], ["Чипс", "potato chips"], ["Шоколад", "chocolate bar"], ["Зайрмаг", "ice cream"], ["Салат", "fresh salad"], ["Бэлэн хоол", "ready meal"]] },
   { category: "Гэр ахуй", stores: ["Home Plaza", "Ger Ahuin Tuv", "Cozy Home", "Kitchen House", "Houseware Hub"], products: [["Тавагны сет", "dinnerware"], ["Аяга", "mug"], ["Хайруулын таваг", "frying pan"], ["Сав суулга", "cookware"], ["Хутганы сет", "kitchen knife"], ["Алчуур", "towel"], ["Орны даавуу", "bed sheets"], ["Дэр", "pillow"], ["Сагс", "storage basket"], ["Цэвэрлэгээний багц", "cleaning supplies"]] },
   { category: "Цахилгаан бараа", stores: ["Tech Hub", "Digital Mall", "Phone Center", "Smart Store", "Electro Shop"], products: [["Чихэвч", "headphones"], ["Speaker", "bluetooth speaker"], ["Phone case", "phone case"], ["Цэнэглэгч", "phone charger"], ["Power bank", "power bank"], ["Keyboard", "keyboard"], ["Mouse", "computer mouse"], ["Web camera", "webcam"], ["Smart watch", "smart watch"], ["Desk lamp", "desk lamp"]] },
+  { category: "Гар утас", stores: ["Phone Center", "Mobinet Store", "iStore Mongolia", "Smart Phone Hub", "Galaxy Shop"], products: [["iPhone 15", "iphone 15"], ["Samsung Galaxy", "samsung galaxy phone"], ["Android утас", "android smartphone"], ["Дугаарын eSIM", "esim card"], ["Утасны шил", "phone screen protector"], ["Утасны гэр", "phone case"], ["Цэнэглэгч адаптер", "phone charger adapter"], ["USB-C кабель", "usb c cable"], ["Wireless charger", "wireless phone charger"], ["Power bank", "power bank"]] },
+  { category: "Таблет", stores: ["Tablet Zone", "iPad Center", "Digital Mall", "Tech Hub", "Smart Store"], products: [["iPad", "ipad tablet"], ["Samsung Tab", "samsung tablet"], ["Android таблет", "android tablet"], ["Tablet keyboard", "tablet keyboard"], ["Tablet pen", "tablet stylus"], ["Tablet case", "tablet case"], ["Дэлгэц хамгаалагч", "tablet screen protector"], ["Цэнэглэгч", "tablet charger"], ["Drawing tablet", "drawing tablet"], ["Kids tablet", "kids tablet"]] },
+  { category: "Дагалдах хэрэгсэл", stores: ["Accessory Hub", "Phone Center", "Gadget Corner", "Digital Mall", "Cable House"], products: [["Чихэвч", "earbuds"], ["Bluetooth speaker", "bluetooth speaker"], ["Утасны гэр", "phone case"], ["Дэлгэц хамгаалагч", "screen protector"], ["USB-C кабель", "usb c cable"], ["Power bank", "power bank"], ["Tripod", "phone tripod"], ["Car holder", "phone car holder"], ["Memory card", "memory card"], ["Adapter", "phone adapter"]] },
+  { category: "Хувцас", stores: ["Fashion Hub", "Urban Wear", "Kids Fashion", "Daily Outfit", "Style Market"], products: [["Футболк", "t shirt clothing"], ["Цамц", "shirt clothing"], ["Өмд", "pants clothing"], ["Куртик", "jacket clothing"], ["Даашинз", "dress clothing"], ["Пүүз", "sneakers"], ["Малгай", "cap hat"], ["Ороолт", "scarf"], ["Хүүхдийн хувцас", "kids clothes"], ["Спорт хувцас", "sportswear"]] },
   { category: "Эмийн сан", stores: ["Pharma Plus", "Monos Express", "Health Care", "Vitamin House", "Apteka 24"], products: [["Витамин C", "vitamin c"], ["Витамин D", "vitamin d"], ["Дархлаа дэмжигч", "supplements"], ["Гар ариутгагч", "hand sanitizer"], ["Маск", "medical mask"], ["Шархны наалт", "bandage"], ["Даралт хэмжигч", "blood pressure monitor"], ["Халуун хэмжигч", "thermometer"], ["Нүдний дусаалга", "eye drops"], ["Омега 3", "omega 3"]] },
   { category: "Гоо сайхан", stores: ["Beauty Box", "Glow Market", "Skin Lab", "Cosmo Shop", "Makeup Studio"], products: [["Уруулын будаг", "lipstick"], ["Mascara", "mascara"], ["Суурь крем", "foundation makeup"], ["Нүүр цэвэрлэгч", "facial cleanser"], ["Чийгшүүлэгч", "moisturizer"], ["Үнэртэй ус", "perfume"], ["Шампунь", "shampoo"], ["Нүүрний маск", "face mask skincare"], ["Хумсны будаг", "nail polish"], ["Serum", "face serum"]] },
   { category: "Ном, бичиг хэрэг", stores: ["Book Nest", "Аз Хур Ном", "Stationery Pro", "Student Shop", "Paper House"], products: [["Уран зохиолын ном", "novel books"], ["Хүүхдийн ном", "children book"], ["Дэвтэр", "notebook"], ["Бал", "pen"], ["Харандаа", "pencils"], ["Файл хавтас", "file folder"], ["A4 цаас", "printer paper"], ["Marker", "markers"], ["Зургийн дэвтэр", "sketchbook"], ["Календарь", "calendar"]] },
@@ -226,6 +254,10 @@ function keywordForProduct(product: Pick<Product, "name" | "category">) {
     "24/7 дэлгүүр": "convenience store food",
     "Гэр ахуй": "household product",
     "Цахилгаан бараа": "electronics product",
+    "Гар утас": "smartphone product",
+    "Таблет": "tablet product",
+    "Дагалдах хэрэгсэл": "phone accessories product",
+    "Хувцас": "fashion clothing product",
     "Эмийн сан": "pharmacy product",
     "Гоо сайхан": "beauty product",
     "Ном, бичиг хэрэг": "books stationery",
@@ -242,6 +274,10 @@ function productNameVariant(category: string, baseName: string, index: number) {
     "24/7 дэлгүүр": ["дан", "комбо", "том", "дунд", "2ш"],
     "Гэр ахуй": ["цагаан", "саарал", "хар", "дунд", "сет"],
     "Цахилгаан бараа": ["хар", "цагаан", "compact", "pro", "type-c"],
+    "Гар утас": ["128GB", "256GB", "хар", "цагаан", "pro"],
+    "Таблет": ["wifi", "LTE", "64GB", "128GB", "pen-тэй"],
+    "Дагалдах хэрэгсэл": ["хар", "цагаан", "type-c", "wireless", "сет"],
+    "Хувцас": ["S", "M", "L", "XL", "хар"],
     "Эмийн сан": ["30ш", "60ш", "100мл", "250мл", "багц"],
     "Гоо сайхан": ["01", "02", "03", "50мл", "100мл"],
     "Ном, бичиг хэрэг": ["A4", "A5", "хатуу хавтастай", "зөөлөн хавтастай", "12ш"],
@@ -503,6 +539,24 @@ async function apiGet<T>(path: string, token: string): Promise<T> {
   return payload as T;
 }
 
+function isJwtUsable(token: string | null) {
+  if (!token) return false;
+
+  try {
+    const [, payload] = token.split(".");
+    if (!payload) return false;
+    const decoded = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/"))) as { exp?: number };
+    return typeof decoded.exp === "number" && decoded.exp > Math.floor(Date.now() / 1000);
+  } catch {
+    return false;
+  }
+}
+
+function clearCustomerSessionStorage() {
+  localStorage.removeItem(tokenStorageKey);
+  localStorage.removeItem(customerStorageKey);
+}
+
 export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket, onNavigateContact, onNavigateCourier, onNavigatePartner }: PublicLandingProps = {}) {
   const [section, setSection] = useState<LandingSection>(page);
   const [menuHidden, setMenuHidden] = useState(false);
@@ -533,7 +587,17 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [session, setSession] = useState<CustomerSession | null>(() => {
     const token = localStorage.getItem(tokenStorageKey);
     const customer = localStorage.getItem(customerStorageKey);
-    return token && customer ? { token, customer: JSON.parse(customer) } : null;
+    if (!token || !customer || !isJwtUsable(token)) {
+      clearCustomerSessionStorage();
+      return null;
+    }
+
+    try {
+      return { token, customer: JSON.parse(customer) };
+    } catch {
+      clearCustomerSessionStorage();
+      return null;
+    }
   });
   const [cart, setCart] = useState<Record<string, number>>({});
   const [wishlist, setWishlist] = useState<string[]>(() => {
@@ -557,13 +621,17 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [addressText, setAddressText] = useState("");
   const [addressLabel, setAddressLabel] = useState("Одоогийн байршил");
   const [addressError, setAddressError] = useState("");
+  const [checkoutError, setCheckoutError] = useState("");
   const [notice, setNotice] = useState("");
   const [paymentSuccess, setPaymentSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
   const [storesLoading, setStoresLoading] = useState(false);
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
   const [trackingOpen, setTrackingOpen] = useState(false);
   const [orderHistory, setOrderHistory] = useState<OrderHistoryItem[]>([]);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderHistoryTab, setOrderHistoryTab] = useState<"active" | "completed">("active");
   const [seenOrderKey, setSeenOrderKey] = useState(() => localStorage.getItem(orderSeenStorageKey) ?? "");
 
   useEffect(() => {
@@ -728,6 +796,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     };
   }, [section, session?.token, storeSearch]);
 
+  useEffect(() => {
+    setMarketPage(1);
+  }, [storeFilter, productSearch]);
+
   const demoMarketStores = useMemo(buildDemoMarketStores, []);
   const marketStoreDirectory = useMemo(() => {
     const fallbackByName = new Map(demoMarketStores.map((store) => [storeKey(store), store]));
@@ -744,7 +816,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const filteredStores = useMemo(() => {
     const normalizedSearch = storeSearch.trim().toLowerCase();
     return marketStoreDirectory.filter((store) => (
-      (storeFilter === "Бүгд" || store.categories.includes(storeFilter))
+      storeMatchesMarketFilter(store, storeFilter)
       && (
         !normalizedSearch
         || store.name.toLowerCase().includes(normalizedSearch)
@@ -759,7 +831,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return categoryCompare || first.name.localeCompare(second.name, "mn");
     });
   }, [marketStoreDirectory, storeFilter, storeSearch]);
-  const selectedStore = filteredStores.find((store) => store.id === selectedStoreId) ?? filteredStores[0];
+  const selectedStore = filteredStores.find((store) => store.id === selectedStoreId) ?? filteredStores[0] ?? null;
   const storeProductGroups = useMemo(() => {
     const normalizedProductSearch = productSearch.trim().toLowerCase();
     const activeStores = selectedStore ? [selectedStore] : [];
@@ -847,8 +919,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     };
   }, [selectedItems, selectedStore?.name]);
   const storeCategories = useMemo(
-    () => ["Бүгд", ...new Set(marketStoreDirectory.flatMap((store) => store.categories).filter(Boolean))],
-    [marketStoreDirectory],
+    () => [...marketCategoryFilters],
+    [],
   );
 
   useEffect(() => {
@@ -966,18 +1038,22 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return;
     }
 
+    setCheckoutError("");
+
     if (!selectedItems.length) {
-      setNotice("Сагс хоосон байна. Бараагаа сонгоод захиална уу.");
+      setCheckoutError("Сагс хоосон байна. Бараагаа сонгоод захиална уу.");
       return;
     }
 
     if (!location) {
       setAddressError("Одоогийн GPS байршлаа заавал авна уу.");
+      setCheckoutError("Одоогийн GPS байршлаа заавал авна уу.");
       return;
     }
 
     if (!addressText.trim()) {
       setAddressError("Дэлгэрэнгүй хаягаа заавал бөглөнө үү.");
+      setCheckoutError("Дэлгэрэнгүй хаягаа заавал бөглөнө үү.");
       return;
     }
 
@@ -994,6 +1070,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
     try {
       setLoading(true);
+      setCheckoutSubmitting(true);
+      setNotice("Захиалга баталгаажуулж байна...");
       orderResult = await apiPost<{
         orderNo: string;
         totalMnt: number;
@@ -1014,10 +1092,26 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         qpayInvoiceId: paymentMethod === "qpay" ? qpaySandboxInvoice.id : undefined,
       }, session.token);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Захиалга үүсгэхэд алдаа гарлаа.");
+      const message = error instanceof Error ? error.message : "Захиалга үүсгэхэд алдаа гарлаа.";
+      setCheckoutError(message);
+      setNotice(message);
+      if (
+        message.includes("нэвтэр")
+        || message.includes("хугацаа")
+        || message.includes("дууссан")
+        || message.includes("Хэрэглэгч олдсонгүй")
+        || message.toLowerCase().includes("token")
+        || message.toLowerCase().includes("unauthenticated")
+      ) {
+        clearCustomerSessionStorage();
+        setSession(null);
+        setAuthMode("login");
+        setAuthOpen(true);
+      }
       return;
     } finally {
       setLoading(false);
+      setCheckoutSubmitting(false);
     }
 
     const nextTracking: TrackingResponse = {
@@ -1042,7 +1136,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         {
           state: "pending",
           title: "Хүргэлтэнд гарсан",
-          description: "Store OTP баталгаажсаны дараа courier map realtime харагдана.",
+          description: "Дэлгүүрийн баталгаажуулах код зөв болсны дараа хүргэлтийн ажилтны газрын зураг бодит хугацаанд харагдана.",
           time: "Дараагийн шат",
         },
         {
@@ -1053,11 +1147,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         },
       ],
       courier: {
-        name: "Courier assignment хүлээгдэж байна",
+        name: "Хүргэлтийн ажилтан оноогдохыг хүлээж байна",
         vehicle: orderResult.quote.deliveryTypeLabel,
         etaText: `${etaMinutes} минутын тооцоололтой`,
       },
     };
+    setCheckoutError("");
     setTracking(nextTracking);
     setOrderHistory((current) => [
       {
@@ -1088,10 +1183,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setWishlistOpen(false);
     setProfileOpen(false);
     setTrackingOpen(false);
-    setSection(cartReturnRef.current.section);
-    window.requestAnimationFrame(() => {
-      window.scrollTo({ top: cartReturnRef.current.scrollY, behavior: "smooth" });
-    });
+    setSeenOrderKey(nextTracking.orderNo);
+    localStorage.setItem(orderSeenStorageKey, nextTracking.orderNo);
+    localStorage.setItem(`${orderSeenStorageKey}:${session.customer.id}`, nextTracking.orderNo);
+    setSection("market");
+    setMenuHidden(false);
   }
 
   function useCurrentLocation() {
@@ -1240,8 +1336,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }
 
   function logout() {
-    localStorage.removeItem(tokenStorageKey);
-    localStorage.removeItem(customerStorageKey);
+    clearCustomerSessionStorage();
     setSession(null);
     setTracking(null);
     setProfileOpen(false);
@@ -1264,14 +1359,55 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     });
   }
 
-  function renderTrackingCard() {
-    const historyList = orderHistory.filter((item) => item.orderNo !== tracking?.orderNo);
-    const currentHistory = orderHistory.find((item) => item.orderNo === tracking?.orderNo);
-    const statusText = tracking?.statusLabel ?? currentHistory?.statusLabel ?? "Хүлээгдэж байна";
-    const createdText = currentHistory?.createdAt ? new Date(currentHistory.createdAt).toLocaleString("mn-MN") : "Одоо";
-    const updatedText = currentHistory?.updatedAt ? new Date(currentHistory.updatedAt).toLocaleString("mn-MN") : "Шинэчлэгдэж байна";
+  function isCompletedOrder(statusText: string) {
+    const normalized = statusText.toLowerCase();
+    return normalized.includes("дуус") || normalized.includes("хүргэгд") || normalized.includes("delivered") || normalized.includes("completed");
+  }
 
-    if (!tracking && !orderHistory.length) {
+  function orderIconFor(order: OrderHistoryItem) {
+    const text = `${order.storeName} ${order.items.map((item) => item.label).join(" ")}`.toLowerCase();
+    if (text.includes("pizza") || text.includes("пицц")) return "🍕";
+    if (text.includes("market") || text.includes("маркет") || text.includes("супер")) return "🛒";
+    if (text.includes("food") || text.includes("хоол") || text.includes("restaurant")) return "🍽";
+    return "📦";
+  }
+
+  function renderTrackingCard() {
+    const currentHistory = orderHistory.find((item) => item.orderNo === tracking?.orderNo);
+    const currentOrder: OrderHistoryItem | null = tracking
+      ? {
+        orderNo: tracking.orderNo,
+        storeName: tracking.storeName,
+        district: tracking.district,
+        statusLabel: tracking.statusLabel,
+        totalMnt: tracking.totalMnt,
+        createdAt: currentHistory?.createdAt ?? new Date().toISOString(),
+        updatedAt: currentHistory?.updatedAt ?? new Date().toISOString(),
+        statusNote: tracking.courier.etaText || "Захиалгын явц шинэчлэгдэж байна",
+        items: currentHistory?.items ?? [],
+      }
+      : null;
+    const orderMap = new Map<string, OrderHistoryItem>();
+    if (currentOrder) orderMap.set(currentOrder.orderNo, currentOrder);
+    orderHistory.forEach((order) => orderMap.set(order.orderNo, order));
+    const allOrders = Array.from(orderMap.values()).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    const query = orderSearch.trim().toLowerCase();
+    const searchedOrders = allOrders.filter((order) => {
+      if (!query) return true;
+      return [
+        order.orderNo,
+        order.storeName,
+        order.statusLabel,
+        order.statusNote,
+        order.district,
+        ...order.items.map((item) => item.label),
+      ].join(" ").toLowerCase().includes(query);
+    });
+    const activeOrders = searchedOrders.filter((order) => !isCompletedOrder(order.statusLabel));
+    const completedOrders = searchedOrders.filter((order) => isCompletedOrder(order.statusLabel));
+    const visibleOrders = orderHistoryTab === "active" ? activeOrders : completedOrders;
+
+    if (!allOrders.length) {
       return (
         <section className="landing-orders-page is-empty">
           <header>
@@ -1290,98 +1426,50 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       <section className="landing-orders-page">
         <header>
           <div>
-            <span>Миний захиалсан</span>
-            <h2>Захиалгын явц</h2>
+            <span>DeliverHub</span>
+            <h2>Захиалгын түүх</h2>
           </div>
           <button onClick={() => setTrackingOpen(false)} type="button">Хаах</button>
         </header>
-        {tracking ? (
-          <div className="landing-order-current">
-            <section>
-              <span>Төлөв</span>
-              <strong>{statusText}</strong>
-            </section>
-            <section>
-              <span>Холбоотой дэлгүүр</span>
-              <strong>{tracking.storeName}</strong>
-            </section>
-            <section>
-              <span>Үүссэн</span>
-              <strong>{createdText}</strong>
-            </section>
-            <section>
-              <span>Сүүлд шинэчлэгдсэн</span>
-              <strong>{updatedText}</strong>
-            </section>
-            <section>
-              <span>Нийт дүн</span>
-              <strong>{formatMnt(Number(tracking.totalMnt))}</strong>
-            </section>
-            <section>
-              <span>Захиалга</span>
-              <strong>#{tracking.orderNo.slice(-6)}</strong>
-            </section>
-          </div>
-        ) : null}
-        {tracking ? (
-          <div className="landing-orders-grid">
-            <article className="landing-order-progress">
-              <div>
-                <span>Төлөвтэй захиалгын явц</span>
-                <strong>{tracking.courier.etaText || "Хүлээгдэж байна"}</strong>
-              </div>
-              <ol>
-                {tracking.timeline.map((step) => (
-                  <li className={step.state} key={step.title}>
-                    <i />
-                    <div>
-                      <strong>{step.title}</strong>
-                      <span>{step.description}</span>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-            </article>
-            <article className="landing-order-store">
-              <span>Холбоотой дэлгүүр</span>
-              <strong>{tracking.storeName}</strong>
-              <p>{tracking.district}</p>
-              <b>
-                {tracking.courierLocation
-                  ? `Realtime: ${tracking.courierLocation.latitude.toFixed(5)}, ${tracking.courierLocation.longitude.toFixed(5)}`
-                  : "Байршил идэвхжихийг хүлээж байна"}
-              </b>
-              <small>{tracking.courier.name}</small>
-            </article>
-          </div>
-        ) : null}
-        {currentHistory?.items?.length ? (
-          <section className="landing-order-items">
-            <strong>Захиалсан бараа</strong>
-            {currentHistory.items.map((item) => (
-              <div key={item.label}>
-                <span>{item.label}</span>
-                <b>{formatMnt(Number(item.amountMnt))}</b>
-              </div>
-            ))}
-          </section>
-        ) : null}
-        {orderHistory.length ? (
-          <section className="landing-order-history">
-            <strong>Захиалгын түүх</strong>
-            {historyList.slice(0, 10).map((order) => (
-              <article key={order.orderNo}>
+
+        <label className="landing-order-search">
+          <span aria-hidden="true">⌕</span>
+          <input
+            value={orderSearch}
+            onChange={(event) => setOrderSearch(event.target.value)}
+            placeholder="Захиалга хайх..."
+          />
+        </label>
+
+        <nav className="landing-order-tabs" aria-label="Захиалгын төлөв">
+          <button className={orderHistoryTab === "active" ? "active" : ""} onClick={() => setOrderHistoryTab("active")} type="button">
+            Идэвхтэй <span>{activeOrders.length}</span>
+          </button>
+          <button className={orderHistoryTab === "completed" ? "active" : ""} onClick={() => setOrderHistoryTab("completed")} type="button">
+            Дууссан <span>{completedOrders.length}</span>
+          </button>
+        </nav>
+
+        <section className="landing-order-history">
+          {visibleOrders.slice(0, 12).map((order) => (
+            <article className="landing-order-history-card" key={order.orderNo}>
+              <div className="landing-order-card-head">
+                <span className="landing-order-store-icon" aria-hidden="true">{orderIconFor(order)}</span>
                 <div>
-                  <span>#{order.orderNo.slice(-6)}</span>
-                  <b>{order.statusLabel}</b>
+                  <strong>{order.storeName}</strong>
+                  <small>#{order.orderNo.slice(-6)} · {new Date(order.createdAt).toLocaleString("mn-MN")}</small>
                 </div>
-                <p>{order.storeName} · {formatMnt(Number(order.totalMnt))}</p>
-                <small>{order.statusNote} · {new Date(order.createdAt).toLocaleString("mn-MN")}</small>
-              </article>
-            ))}
-            {!historyList.length && tracking ? <small>Энэ захиалга одоогоор хамгийн сүүлийн түүх байна.</small> : null}
-          </section>
-        ) : null}
+                <b>{order.statusLabel}</b>
+              </div>
+              <p>{order.items.length ? order.items.map((item) => item.label).join(", ") : order.statusNote}</p>
+              <div className="landing-order-card-foot">
+                <strong>{formatMnt(Number(order.totalMnt))}</strong>
+                <button type="button">{isCompletedOrder(order.statusLabel) ? "Дахин захиалах" : "Дэлгэрэнгүй"}</button>
+              </div>
+            </article>
+          ))}
+          {!visibleOrders.length ? <p className="landing-order-empty">Энэ хэсэгт тохирох захиалга алга.</p> : null}
+        </section>
       </section>
     );
   }
@@ -1656,9 +1744,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     )}
 
                     <p>Энд харагдаж байгаа нь урьдчилсан тооцоо. Захиалга баталгаажих үед эцсийн төлбөр тооцогдоно.</p>
+                    {checkoutError ? <p className="landing-checkout-error" role="alert">{checkoutError}</p> : null}
                     <footer>
-                      <button onClick={checkoutOrder} type="button">
-                        Төлбөр төлөх
+                      <button onClick={checkoutOrder} type="button" disabled={checkoutSubmitting}>
+                        {checkoutSubmitting ? "Баталгаажуулж байна..." : "Төлбөр төлөх"}
                       </button>
                       <button onClick={() => setCart({})} type="button">Буцах</button>
                     </footer>
@@ -1722,29 +1811,35 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           <div>
             <h2>Маркет таны гарт</h2>
           </div>
-          <label>
-            <span>⌕</span>
-            <input value={productSearch} onChange={(event) => setProductSearch(event.target.value)} placeholder="Хэрэгтэй бараагаа хайх..." />
-          </label>
         </header>
 
         <section className="market-layout">
           <aside className="market-sidebar">
-            <section className="landing-store-browser">
-              <header>
+            <section className="landing-store-filters" aria-label="Маркетийн төрөл">
+              {storeCategories.map((category) => (
+                <button className={storeFilter === category ? "active" : ""} key={category} onClick={() => setStoreFilter(category)} type="button">
+                  {category}
+                </button>
+              ))}
+            </section>
+          </aside>
+          <section className="market-products">
+            <section className="market-filtered-store-section">
+              <header className="market-store-filter-head">
+                <div>
+                  <span>Сонгосон төрөл</span>
+                  <strong>{storeFilter}</strong>
+                </div>
+                <small>{filteredStores.length} дэлгүүр</small>
+              </header>
+              <label className="market-store-search">
+                <span>⌕</span>
                 <input
                   onChange={(event) => setStoreSearch(event.target.value)}
                   placeholder="Таарах маркет, хаяг, төрлөө хайх..."
                   value={storeSearch}
                 />
-              </header>
-              <div className="landing-store-filters">
-                {storeCategories.map((category) => (
-                  <button className={storeFilter === category ? "active" : ""} key={category} onClick={() => setStoreFilter(category)} type="button">
-                    {category}
-                  </button>
-                ))}
-              </div>
+              </label>
               <div className="landing-store-cards">
                 {filteredStores.map((store) => {
                   const brand = storeBrandFor(store.name);
@@ -1761,13 +1856,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     </button>
                   );
                 })}
+                {!filteredStores.length ? <p>Энэ төрөлд тохирох дэлгүүр олдсонгүй.</p> : null}
               </div>
             </section>
-          </aside>
-
-          <section className="market-products">
             <section className="market-store-feed">
-              {pagedStoreProductGroups.length ? pagedStoreProductGroups.map(({ store, storeIndex, products }) => {
+              {!selectedStore ? (
+                <p className="market-empty">Дээрээс төрөл сонгоод, дэлгүүрийн card дээр дарахад бараанууд нь энд гарна.</p>
+              ) : pagedStoreProductGroups.length ? pagedStoreProductGroups.map(({ store, storeIndex, products }) => {
                 const brand = storeBrandFor(store.name);
                 const displayIndex = storeIndex + 1;
                 return (
@@ -1831,11 +1926,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                   </section>
                 );
               }) : (
-                <p className="market-empty">Одоогоор тохирох дэлгүүр олдсонгүй.</p>
+                <p className="market-empty">Энэ дэлгүүрээс тохирох бараа олдсонгүй.</p>
               )}
             </section>
 
-            <nav className="market-pagination" aria-label="Маркетийн хуудас">
+            {selectedStore ? <nav className="market-pagination" aria-label="Маркетийн хуудас">
               <button onClick={() => setMarketPage((pageNumber) => Math.max(1, pageNumber - 1))} type="button" disabled={marketPage <= 1}>
                 Өмнөх
               </button>
@@ -1843,13 +1938,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               <button onClick={() => setMarketPage((pageNumber) => Math.min(totalMarketPages, pageNumber + 1))} type="button" disabled={marketPage >= totalMarketPages}>
                 Дараах
               </button>
-            </nav>
+            </nav> : null}
 
-            <section className="market-cart">
-        {tracking ? renderTrackingCard() : null}
-
-        {notice ? <p className="landing-commerce-notice">{notice}</p> : null}
-            </section>
+            {notice ? (
+              <section className="market-cart">
+                <p className="landing-commerce-notice">{notice}</p>
+              </section>
+            ) : null}
           </section>
         </section>
       </div>
@@ -2032,13 +2127,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <section className="landing-courier-portal" aria-label="Хүргэлтийн ажилтан">
           <header className="landing-courier-portal-head">
             <div>
-              <span>COURIER БОЛОХ</span>
-              <h2>Courier болж орлого ол</h2>
+              <span>ХҮРГЭЛТИЙН АЖИЛТАН</span>
+              <h2>Хүргэлтийн ажилтнаар бүртгүүлж орлого ол</h2>
               <p>Дуудлага, маршрут, төлөв нэг апп дээр.</p>
             </div>
             <div className="landing-courier-auth-links">
-              <a href={`${employeePortalUrl}/?mode=login`}>Ажилдаа орох</a>
-              <a href={`${employeePortalUrl}/?mode=register`}>Courier болох</a>
+              <a href={`${employeePortalUrl}/?mode=login`}>Нэвтрэх</a>
+              <a href={`${employeePortalUrl}/?mode=register`}>Бүртгүүлэх</a>
             </div>
           </header>
           <div className="landing-courier-portal-grid">
@@ -2049,8 +2144,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             </article>
             <article>
               <span>02</span>
-              <strong>Итгэл төрүүлэх live төлөв</strong>
-              <p>Байршил, ETA ил тод.</p>
+              <strong>Итгэл төрүүлэх бодит төлөв</strong>
+              <p>Байршил, ирэх хугацаа ил тод.</p>
             </article>
             <article>
               <span>03</span>
@@ -2060,7 +2155,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           </div>
           <section className="landing-courier-status-panel">
             <div><span>Өнөөдрийн боломж</span><strong>12</strong><em>дуудлага</em></div>
-            <div><span>Идэвхтэй ажил</span><strong>3</strong><em>онлайн</em></div>
+            <div><span>Идэвхтэй ажил</span><strong>3</strong><em>ажиллаж байна</em></div>
             <div><span>Дундаж хүргэлт</span><strong>18 мин</strong><em>хурд</em></div>
             <div><span>Амжилтын түвшин</span><strong>98%</strong><em>итгэл</em></div>
           </section>
