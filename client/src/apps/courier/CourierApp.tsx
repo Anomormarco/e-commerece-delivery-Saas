@@ -91,9 +91,13 @@ const text = {
   front: "Урд тал оруулсан",
   back: "Ар тал оруулсан",
   passportPhoto: "Паспортын хуудас оруулсан",
+  passportExtraPhoto: "Паспортын нэмэлт зураг оруулсан",
   selfie: "Бичиг баримттай өөрийн зураг оруулсан",
   liveness: "Амьд хүн шалгалт амжилттай",
   submitId: "Бичиг баримт баталгаажуулах",
+  documentReady: "Бичиг баримтын зураг шалгагдлаа",
+  documentReviewPending: "Бичиг баримтын зураг хүлээгдэж байна",
+  documentReviewButton: "Бичиг баримт шалгах",
   submitFace: "Ажилтны эрх идэвхжүүлэх",
   noAccount: "Бүртгэлгүй юу?",
   hasAccount: "Бүртгэлтэй юу?",
@@ -108,12 +112,13 @@ const text = {
   livenessAnalyzing: "Амьд хүн эсэхийг шалгаж байна",
   documentHelp: "Иргэний үнэмлэхийн хоёр тал эсвэл паспортын зурагтай хуудсыг оруулна.",
   faceHelp: "Царай болон бичиг баримтаа хүрээнд багтааж баталгаажуулна.",
+  facePendingDocument: "Эхлээд бичиг баримтын 2 зургийг оруулж шалгана.",
   loginFaceHelp: "Нэвтрэх бүрт нууц үг, утасны дугаар болон нүүр танилт заавал баталгаажна.",
   passportCompare: "Паспорттой харьцуулсан өөрийн зураг оруулсан",
   loginFaceConfirmed: "Нүүр танилт амжилттай",
   cameraStart: "Камер нээх",
   cameraCapture: "Царай шалгах",
-  cameraMatched: "Царай паспорттой таарлаа",
+  cameraMatched: "Царай бичиг баримтын зурагтай таарлаа",
   cameraDeclined: "Царай паспорттой таарахгүй байна",
   cameraUnavailable: "Камер нээгдсэнгүй. Browser camera allow хийсэн бол page refresh хийгээд дахин оролдоно уу.",
   cameraInsecure: "Камер зөвхөн HTTPS эсвэл localhost дээр ажиллана. Домайн HTTPS эсэхийг шалгана уу.",
@@ -213,12 +218,16 @@ function FaceCameraCheck({
   title,
   help,
   matched,
+  singleUse = false,
+  showMismatchAction = true,
   onResult,
 }: {
   mode: "login" | "register";
   title: string;
   help: string;
   matched: boolean;
+  singleUse?: boolean;
+  showMismatchAction?: boolean;
   onResult: (matched: boolean, audit: FaceAudit) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -344,12 +353,14 @@ function FaceCameraCheck({
         {capturedAt ? <small>Log: {new Date(capturedAt).toLocaleString("mn-MN")}</small> : null}
         {cameraError ? <small className="camera-error">{cameraError}</small> : null}
         <div className="employee-camera-actions">
-          <button disabled={!cameraReady} onClick={() => void completeCheck("MATCHED")} type="button">
+          <button disabled={!cameraReady || (singleUse && Boolean(capturedAt))} onClick={() => void completeCheck("MATCHED")} type="button">
             {text.cameraCapture}
           </button>
-          <button disabled={!cameraReady} onClick={() => void completeCheck("DECLINED")} type="button">
-            {text.simulateMismatch}
-          </button>
+          {showMismatchAction ? (
+            <button disabled={!cameraReady || (singleUse && Boolean(capturedAt))} onClick={() => void completeCheck("DECLINED")} type="button">
+              {text.simulateMismatch}
+            </button>
+          ) : null}
         </div>
       </div>
     </div>
@@ -438,6 +449,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
   const [documentType, setDocumentType] = useState<DocumentType>("ID_CARD");
   const [documentFront, setDocumentFront] = useState<File | null>(null);
   const [documentBack, setDocumentBack] = useState<File | null>(null);
+  const [documentReviewedAt, setDocumentReviewedAt] = useState<string | null>(null);
   const [selfieWithDocument, setSelfieWithDocument] = useState(false);
   const [faceLiveness, setFaceLiveness] = useState(false);
   const [documentFaceMatched, setDocumentFaceMatched] = useState(false);
@@ -450,6 +462,25 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
   const registerFullName = `${profileForm.lastName.trim()} ${profileForm.firstName.trim()}`.trim();
   const registerPhone = profileForm.phone.trim();
   const registerEmail = profileForm.email.trim();
+  const requiredDocumentFilesSelected = Boolean(documentFront && documentBack);
+
+  function resetDocumentAndFaceReview() {
+    setDocumentReviewedAt(null);
+    setSelfieWithDocument(false);
+    setFaceLiveness(false);
+    setDocumentFaceMatched(false);
+    setFaceAudit(null);
+  }
+
+  function reviewDocumentFiles() {
+    if (!requiredDocumentFilesSelected) {
+      setError(text.required);
+      return;
+    }
+
+    setError(null);
+    setDocumentReviewedAt(new Date().toISOString());
+  }
 
   function updateProfileField(field: keyof EmployeeProfileForm, value: string) {
     setProfileForm((current) => ({ ...current, [field]: value }));
@@ -524,7 +555,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
 
       if (
         mode === "register"
-        && (!documentFront || (documentType === "ID_CARD" && !documentBack) || !selfieWithDocument || !faceLiveness || !documentFaceMatched)
+        && (!documentFront || !documentBack || !documentReviewedAt || !selfieWithDocument || !faceLiveness || !documentFaceMatched)
       ) {
         throw new Error(text.required);
       }
@@ -558,10 +589,17 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
               legalName: registerFullName,
               documentType,
               documentFront: Boolean(documentFront),
-              documentBack: documentType === "PASSPORT" ? true : Boolean(documentBack),
+              documentBack: Boolean(documentBack),
               documentFiles: {
                 front: documentFileMeta(documentFront),
-                back: documentType === "PASSPORT" ? null : documentFileMeta(documentBack),
+                back: documentFileMeta(documentBack),
+              },
+              documentReviewAudit: {
+                reviewedAt: documentReviewedAt,
+                documentType,
+                front: documentFileMeta(documentFront),
+                back: documentFileMeta(documentBack),
+                source: "employee-register-document-review",
               },
               selfieWithDocument,
               livenessConfirmed: faceLiveness,
@@ -724,38 +762,65 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
 
           {mode === "register" && registerStep === 2 ? (
             <div className="employee-file-grid">
-              <FaceCameraCheck
-                help={text.faceHelp}
-                matched={documentFaceMatched}
-                mode="register"
-                onResult={(matched, audit) => {
-                  setSelfieWithDocument(true);
-                  setFaceLiveness(matched);
-                  setDocumentFaceMatched(matched);
-                  setFaceAudit(audit);
-                }}
-                title={text.faceStep}
-              />
               <div className="courier-auth-tabs employee-wide-field">
-                <button className={documentType === "ID_CARD" ? "active" : ""} onClick={() => setDocumentType("ID_CARD")} type="button">{text.idCard}</button>
-                <button className={documentType === "PASSPORT" ? "active" : ""} onClick={() => setDocumentType("PASSPORT")} type="button">Гадаад паспорт</button>
+                <button className={documentType === "ID_CARD" ? "active" : ""} onClick={() => {
+                  setDocumentType("ID_CARD");
+                  setDocumentBack(null);
+                  resetDocumentAndFaceReview();
+                }} type="button">{text.idCard}</button>
+                <button className={documentType === "PASSPORT" ? "active" : ""} onClick={() => {
+                  setDocumentType("PASSPORT");
+                  setDocumentBack(null);
+                  resetDocumentAndFaceReview();
+                }} type="button">Гадаад паспорт</button>
               </div>
               <label>
                 {documentType === "PASSPORT" ? text.passportPhoto : text.front}
-                <input accept="image/*,.pdf" onChange={(event) => setDocumentFront(event.target.files?.[0] ?? null)} required type="file" />
+                <input accept="image/*,.pdf" onChange={(event) => {
+                  setDocumentFront(event.target.files?.[0] ?? null);
+                  resetDocumentAndFaceReview();
+                }} required type="file" />
               </label>
-              {documentType === "ID_CARD" ? (
-                <label>
-                  {text.back}
-                  <input accept="image/*,.pdf" onChange={(event) => setDocumentBack(event.target.files?.[0] ?? null)} required type="file" />
-                </label>
-              ) : null}
+              <label>
+                {documentType === "PASSPORT" ? text.passportExtraPhoto : text.back}
+                <input accept="image/*,.pdf" onChange={(event) => {
+                  setDocumentBack(event.target.files?.[0] ?? null);
+                  resetDocumentAndFaceReview();
+                }} required type="file" />
+              </label>
               <div className="employee-verification-log employee-wide-field">
-                <span className={documentFaceMatched ? "matched" : faceAudit ? "declined" : ""}>
-                  {documentFaceMatched ? text.cameraMatched : faceAudit ? text.cameraDeclined : "Камерын шалгалт хүлээгдэж байна"}
+                <span className={documentReviewedAt ? "matched" : ""}>
+                  {documentReviewedAt ? text.documentReady : text.documentReviewPending}
                 </span>
-                <small>{faceAudit ? `Царай шалгалтын бүртгэл: ${new Date(faceAudit.capturedAt).toLocaleString("mn-MN")} / ${faceAudit.snapshotId}` : text.encryption}</small>
+                <small>{documentReviewedAt ? `Document log: ${new Date(documentReviewedAt).toLocaleString("mn-MN")} / ${documentFileMeta(documentFront)?.name ?? ""}${documentBack ? `, ${documentFileMeta(documentBack)?.name}` : ""}` : text.facePendingDocument}</small>
+                <button disabled={!requiredDocumentFilesSelected} onClick={reviewDocumentFiles} type="button">
+                  {text.documentReviewButton}
+                </button>
               </div>
+              {documentReviewedAt ? (
+                <>
+                  <FaceCameraCheck
+                    help={text.faceHelp}
+                    matched={documentFaceMatched}
+                    mode="register"
+                    onResult={(matched, audit) => {
+                      setSelfieWithDocument(true);
+                      setFaceLiveness(matched);
+                      setDocumentFaceMatched(matched);
+                      setFaceAudit(audit);
+                    }}
+                    showMismatchAction={false}
+                    singleUse
+                    title={text.faceStep}
+                  />
+                  <div className="employee-verification-log employee-wide-field">
+                    <span className={documentFaceMatched ? "matched" : faceAudit ? "declined" : ""}>
+                      {documentFaceMatched ? text.cameraMatched : faceAudit ? text.cameraDeclined : "Царай баталгаажуулалт хүлээгдэж байна"}
+                    </span>
+                    <small>{faceAudit ? `Face log: ${new Date(faceAudit.capturedAt).toLocaleString("mn-MN")} / ${faceAudit.snapshotId}` : "Бичиг баримтын log дээр тулгуурлан нэг удаа царай баталгаажуулна."}</small>
+                  </div>
+                </>
+              ) : null}
               <label>
                 {text.deliveryMode}
                 <span className="employee-mode-field">

@@ -12575,6 +12575,23 @@ h3 {
   font-size: 11px;
 }
 
+.employee-verification-log button {
+  width: fit-content;
+  border: 0;
+  border-radius: 10px;
+  padding: 9px 12px;
+  background: #fd761a;
+  color: white;
+  font-size: 12px;
+  font-weight: 950;
+  cursor: pointer;
+}
+
+.employee-verification-log button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 @media (max-width: 720px) {
   .employee-camera-check {
     grid-template-columns: 1fr;

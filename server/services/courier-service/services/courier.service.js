@@ -396,8 +396,12 @@ export async function registerCourier(payload = {}) {
     throw createHttpError(400, "\u0418\u0440\u0433\u044D\u043D\u0438\u0439 \u04AF\u043D\u044D\u043C\u043B\u044D\u0445 \u044D\u0441\u0432\u044D\u043B \u0433\u0430\u0434\u0430\u0430\u0434 \u043F\u0430\u0441\u043F\u043E\u0440\u0442\u044B\u043D \u0437\u0443\u0440\u0430\u0433 \u0434\u0443\u0442\u0443\u0443.");
   }
 
-  if (!documentFiles.front || (documentVerification.documentType === "ID_CARD" && !documentFiles.back)) {
+  if (!documentFiles.front || !documentFiles.back) {
     throw createHttpError(400, "\u0411\u0438\u0447\u0438\u0433 \u0431\u0430\u0440\u0438\u043C\u0442\u044B\u043D file \u043C\u044D\u0434\u044D\u044D\u043B\u044D\u043B \u0434\u0443\u0442\u0443\u0443 \u0431\u0430\u0439\u043D\u0430.");
+  }
+
+  if (!payload.documentReviewAudit?.reviewedAt) {
+    throw createHttpError(400, "\u0411\u0438\u0447\u0438\u0433 \u0431\u0430\u0440\u0438\u043C\u0442\u044B\u0433 \u044D\u0445\u043B\u044D\u044D\u0434 \u0448\u0430\u043B\u0433\u0430\u0441\u0430\u043D log \u0448\u0430\u0430\u0440\u0434\u043B\u0430\u0433\u0430\u0442\u0430\u0439.");
   }
 
   if (!faceVerification.passed) {
@@ -435,6 +439,7 @@ export async function registerCourier(payload = {}) {
       documentFront: documentVerification.hasDocumentFront,
       documentBack: documentVerification.hasDocumentBack,
       documentFiles,
+      documentReviewAudit: payload.documentReviewAudit ?? null,
       loggedAt: new Date().toISOString(),
       source: "employee-register-step-2",
     },
