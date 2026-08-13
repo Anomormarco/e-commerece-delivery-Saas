@@ -3,6 +3,7 @@ import { courierEventBus } from "../messaging.js";
 import {
   acceptCourierJob,
   arriveCourierAtStore,
+  editCourierProfile,
   getCourierDashboard,
   loginCourier,
   registerCourier,
@@ -102,6 +103,13 @@ export async function updateCourierPosition(request, response) {
     assignmentId: result.assignmentId,
     orderId: result.orderId,
   });
+  response.json(result);
+}
+
+export async function updateCourierProfile(request, response) {
+  const userId = userIdFromRequest(request);
+  const result = await editCourierProfile(userId, request.body);
+  courierEventBus.publishSoon("courier.profile.updated", { userId });
   response.json(result);
 }
 

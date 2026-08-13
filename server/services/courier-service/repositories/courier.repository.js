@@ -17,6 +17,7 @@ const defaultTenant = {
 };
 
 const offerTimeoutMs = 12_000;
+const busyAssignmentWindowMs = 2 * 60 * 60 * 1000;
 const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
 
 function createHttpError(statusCode, message) {
@@ -92,6 +93,13 @@ function canVehicleServe(employeeVehicle, requirement) {
   return (rank[employeeVehicle] ?? 1) >= (rank[requirement] ?? 1);
 }
 
+function busyAssignmentWhere() {
+  return {
+    status: { in: ["OFFERED", ...activeAssignmentStatuses] },
+    createdAt: { gte: new Date(Date.now() - busyAssignmentWindowMs) },
+  };
+}
+
 function employeeToPickupKm(order, employee) {
   const pickup = pickupLocation(order);
   return haversineKm(employeeLiveLocation(employee, pickup), pickup);
@@ -120,7 +128,7 @@ async function createNextCourierOffer(transaction, { tenantId, orderId }) {
       verificationStatus: "ACTIVE",
       ...(excludedEmployeeIds.length ? { id: { notIn: excludedEmployeeIds } } : {}),
       assignments: {
-        none: { status: { in: ["OFFERED", ...activeAssignmentStatuses] } },
+        none: busyAssignmentWhere(),
       },
     },
     include: { user: true },
@@ -132,7 +140,7 @@ async function createNextCourierOffer(transaction, { tenantId, orderId }) {
         verificationStatus: "ACTIVE",
         ...(excludedEmployeeIds.length ? { id: { notIn: excludedEmployeeIds } } : {}),
         assignments: {
-          none: { status: { in: ["OFFERED", ...activeAssignmentStatuses] } },
+          none: busyAssignmentWhere(),
         },
       },
       include: { user: true },
@@ -194,14 +202,18 @@ export async function advanceExpiredCourierOffers(tenantId) {
       });
 
       const activeAssignment = await transaction.deliveryAssignment.findFirst({
-        where: {
-          orderId: offer.orderId,
-          status: { in: ["OFFERED", ...activeAssignmentStatuses] },
-        },
+        where: { orderId: offer.orderId, ...busyAssignmentWhere() },
         select: { id: true },
       });
 
       if (activeAssignment) return { expired: true, reoffered: false };
+
+      const nextOffer = await createNextCourierOffer(transaction, {
+        tenantId: offer.tenantId,
+        orderId: offer.orderId,
+      });
+
+      if (nextOffer) return { expired: true, reoffered: true };
 
       await transaction.order.updateMany({
         where: { id: offer.orderId, status: "COURIER_ASSIGNED" },
@@ -239,7 +251,22 @@ function includeCourierDashboard() {
       },
     },
     wallet: true,
-    user: true,
+    user: {
+      include: {
+        faceVerificationSessions: {
+          take: 10,
+          orderBy: { createdAt: "desc" },
+        },
+        identityProfile: {
+          include: {
+            sessions: {
+              take: 8,
+              orderBy: { createdAt: "desc" },
+            },
+          },
+        },
+      },
+    },
   };
 }
 
@@ -595,6 +622,81 @@ export async function recordLoginFaceVerification(userId, payload) {
   });
 
   return findCourierDashboardByUserId(userId);
+}
+
+export async function recordFailedLoginFaceVerification(userId, payload) {
+  if (!userId) return null;
+
+  await prisma.faceVerificationSession.create({
+    data: {
+      userId,
+      provider: "deliverhub-login-face-check",
+      status: "ADMIN_REVIEW",
+      livenessResult: payload,
+      faceMatchScore: "0.0000",
+      verifiedAt: null,
+    },
+  });
+
+  return null;
+}
+
+export async function updateCourierProfileRecord(userId, payload = {}) {
+  const employee = await prisma.deliveryEmployee.findUnique({
+    where: { userId },
+    include: { user: { include: { identityProfile: true } } },
+  });
+
+  if (!employee) {
+    throw createHttpError(404, "\u0410\u0436\u0438\u043B\u0442\u043D\u044B \u0431\u04AF\u0440\u0442\u0433\u044D\u043B \u043E\u043B\u0434\u0441\u043E\u043D\u0433\u04AF\u0439.");
+  }
+
+  return prisma.$transaction(async (transaction) => {
+    await transaction.user.update({
+      where: { id: userId },
+      data: {
+        fullName: payload.fullName,
+        phone: payload.phone,
+        email: payload.email,
+      },
+    });
+
+    await transaction.deliveryEmployee.update({
+      where: { id: employee.id },
+      data: {
+        vehicleType: payload.vehicleType,
+        vehiclePlate: payload.vehiclePlate,
+      },
+    });
+
+    const identityProfile = await transaction.identityProfile.upsert({
+      where: { userId },
+      update: {
+        legalName: payload.fullName,
+        status: employee.verificationStatus,
+      },
+      create: {
+        userId,
+        legalName: payload.fullName,
+        status: employee.verificationStatus,
+      },
+    });
+
+    await transaction.identityVerificationSession.create({
+      data: {
+        identityProfileId: identityProfile.id,
+        provider: "deliverhub-employee-profile-edit",
+        status: "IDENTITY_VERIFIED",
+        result: payload.profile,
+        verifiedAt: new Date(),
+      },
+    });
+
+    return transaction.deliveryEmployee.findUniqueOrThrow({
+      where: { id: employee.id },
+      include: includeCourierDashboard(),
+    });
+  });
 }
 
 export async function findCourierDashboardByUserId(userId) {

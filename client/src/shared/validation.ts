@@ -10,6 +10,15 @@ export function isCourierLoginId(value: string) {
   return value.includes("@") ? isGmailAddress(value) : isPhoneNumber(value);
 }
 
+export function hasLatinLetters(value: string) {
+  return /[A-Za-z]/.test(value);
+}
+
+export function isMongolianText(value: string) {
+  const trimmed = value.trim();
+  return Boolean(trimmed) && /[А-Яа-яЁёӨөҮү]/.test(trimmed) && !hasLatinLetters(trimmed);
+}
+
 export function isStrongPassword(value: string) {
   return value.length >= 8
     && /[A-Z]/.test(value)

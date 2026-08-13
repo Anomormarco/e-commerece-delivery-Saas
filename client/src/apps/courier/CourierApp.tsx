@@ -3,7 +3,7 @@ import { BrandLogo } from "../../components/BrandLogo";
 import { CourierPage } from "../../features/courier/CourierPage";
 import { postJson } from "../../shared/api";
 import { normalizeErrorMessage } from "../../shared/errors";
-import { isCourierLoginId, isGmailAddress, isStrongPassword } from "../../shared/validation";
+import { isCourierLoginId, isGmailAddress, isMongolianText, isStrongPassword } from "../../shared/validation";
 
 type VehicleType = "WALK" | "MOPED" | "CAR";
 type AuthMode = "login" | "register";
@@ -12,6 +12,14 @@ type RegisterStep = 1 | 2;
 
 type FaceAudit = {
   capturedAt: string;
+  cameraStartedAt: string;
+  challengeNonce: string;
+  frameHash: string;
+  livenessSignals: {
+    cameraReady: boolean;
+    videoHeight: number;
+    videoWidth: number;
+  };
   snapshotId: string;
   mode: "login" | "register";
   status: "MATCHED" | "DECLINED";
@@ -74,6 +82,7 @@ const text = {
   wait: "Түр хүлээнэ үү...",
   required: "Шаардлагатай талбаруудыг бөглөнө үү.",
   gmailRequired: "Баталгаажуулах код авах Gmail хаягаа зөв оруулна уу. Жишээ: name@gmail.com",
+  mongolianRequired: "Email, утас, нас, нууц үгээс бусад мэдээллийг Монгол кириллээр оруулна уу.",
   idStep: "Бичиг баримт",
   faceStep: "Царай баталгаажуулалт",
   legalName: "Бичиг баримт дээрх нэр",
@@ -117,6 +126,25 @@ const text = {
   invalidLoginId: "Нэвтрэх мэдээлэл утасны дугаар эсвэл Gmail хаяг байх ёстой.",
   strongPassword: "Нууц үг 8+ тэмдэгттэй, том үсэг, жижиг үсэг, тоо, тусгай тэмдэгт агуулсан байх ёстой.",
 };
+
+type SelectedDocumentFile = {
+  name: string;
+  size: number;
+  type: string;
+  lastModified: number;
+};
+
+const mongolianTextPattern = "[А-Яа-яЁёӨөҮү0-9\\s,./#\\-()]+";
+
+function documentFileMeta(file: File | null): SelectedDocumentFile | null {
+  if (!file) return null;
+  return {
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    lastModified: file.lastModified,
+  };
+}
 function FaceCameraCheck({
   mode,
   title,
@@ -134,6 +162,7 @@ function FaceCameraCheck({
   const streamRef = useRef<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const [cameraStartedAt, setCameraStartedAt] = useState<string | null>(null);
   const [capturedAt, setCapturedAt] = useState<string | null>(null);
 
   useEffect(() => {
@@ -160,17 +189,42 @@ function FaceCameraCheck({
       }
 
       setCameraReady(true);
+      setCameraStartedAt(new Date().toISOString());
     } catch {
       setCameraError(text.cameraUnavailable);
     }
   }
 
-  function completeCheck(status: FaceAudit["status"]) {
+  async function hashCurrentFrame() {
+    const video = videoRef.current;
+    if (!video || !cameraReady) return "";
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 96;
+    canvas.height = 96;
+    const context = canvas.getContext("2d");
+    context?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const bytes = new TextEncoder().encode(canvas.toDataURL("image/jpeg", 0.45));
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, "0")).join("");
+  }
+
+  async function completeCheck(status: FaceAudit["status"]) {
     const now = new Date().toISOString();
+    const video = videoRef.current;
+    const challengeNonce = crypto.randomUUID();
     setCapturedAt(now);
     onResult(status === "MATCHED", {
       capturedAt: now,
-      snapshotId: `${mode}-${Date.now()}`,
+      cameraStartedAt: cameraStartedAt ?? now,
+      challengeNonce,
+      frameHash: await hashCurrentFrame(),
+      livenessSignals: {
+        cameraReady,
+        videoHeight: video?.videoHeight ?? 0,
+        videoWidth: video?.videoWidth ?? 0,
+      },
+      snapshotId: `${mode}-${Date.now()}-${challengeNonce.slice(0, 8)}`,
       mode,
       status,
     });
@@ -195,10 +249,10 @@ function FaceCameraCheck({
         {capturedAt ? <small>Log: {new Date(capturedAt).toLocaleString("mn-MN")}</small> : null}
         {cameraError ? <small className="camera-error">{cameraError}</small> : null}
         <div className="employee-camera-actions">
-          <button disabled={!cameraReady} onClick={() => completeCheck("MATCHED")} type="button">
+          <button disabled={!cameraReady} onClick={() => void completeCheck("MATCHED")} type="button">
             {text.cameraCapture}
           </button>
-          <button disabled={!cameraReady} onClick={() => completeCheck("DECLINED")} type="button">
+          <button disabled={!cameraReady} onClick={() => void completeCheck("DECLINED")} type="button">
             {text.simulateMismatch}
           </button>
         </div>
@@ -287,8 +341,8 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
   const [vehicleType, setVehicleType] = useState<VehicleType>("MOPED");
   const [vehiclePlate, setVehiclePlate] = useState("");
   const [documentType, setDocumentType] = useState<DocumentType>("ID_CARD");
-  const [documentFront, setDocumentFront] = useState(false);
-  const [documentBack, setDocumentBack] = useState(false);
+  const [documentFront, setDocumentFront] = useState<File | null>(null);
+  const [documentBack, setDocumentBack] = useState<File | null>(null);
   const [selfieWithDocument, setSelfieWithDocument] = useState(false);
   const [faceLiveness, setFaceLiveness] = useState(false);
   const [documentFaceMatched, setDocumentFaceMatched] = useState(false);
@@ -343,6 +397,16 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
         return;
       }
 
+      if (
+        !isMongolianText(profileForm.firstName)
+        || !isMongolianText(profileForm.lastName)
+        || !isMongolianText(profileForm.homeAddress)
+        || !isMongolianText(profileForm.emergencyPhones)
+      ) {
+        setError(text.mongolianRequired);
+        return;
+      }
+
       if (!isStrongPassword(password)) {
         setError(text.strongPassword);
         return;
@@ -370,6 +434,10 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
         throw new Error(text.required);
       }
 
+      if (mode === "register" && vehiclePlate.trim() && !isMongolianText(vehiclePlate)) {
+        throw new Error(text.mongolianRequired);
+      }
+
       if (mode === "register" && !isStrongPassword(password)) {
         throw new Error(text.strongPassword);
       }
@@ -394,8 +462,12 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
               vehiclePlate,
               legalName: registerFullName,
               documentType,
-              documentFront,
-              documentBack: documentType === "PASSPORT" ? true : documentBack,
+              documentFront: Boolean(documentFront),
+              documentBack: documentType === "PASSPORT" ? true : Boolean(documentBack),
+              documentFiles: {
+                front: documentFileMeta(documentFront),
+                back: documentType === "PASSPORT" ? null : documentFileMeta(documentBack),
+              },
               selfieWithDocument,
               livenessConfirmed: faceLiveness,
               documentFaceMatched,
@@ -455,14 +527,14 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
                 {text.lastName}
                 <span className="auth-input-wrap">
                   <AuthIcon type="user" />
-                  <input autoComplete="family-name" onChange={(event) => updateProfileField("lastName", event.target.value)} placeholder="Овог" required value={profileForm.lastName} />
+                  <input autoComplete="family-name" onChange={(event) => updateProfileField("lastName", event.target.value)} pattern={mongolianTextPattern} placeholder="Овог" required title={text.mongolianRequired} value={profileForm.lastName} />
                 </span>
               </label>
               <label>
                 {text.firstName}
                 <span className="auth-input-wrap">
                   <AuthIcon type="user" />
-                  <input autoComplete="given-name" onChange={(event) => updateProfileField("firstName", event.target.value)} placeholder="Нэр" required value={profileForm.firstName} />
+                  <input autoComplete="given-name" onChange={(event) => updateProfileField("firstName", event.target.value)} pattern={mongolianTextPattern} placeholder="Нэр" required title={text.mongolianRequired} value={profileForm.firstName} />
                 </span>
               </label>
               <label>
@@ -502,14 +574,14 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
                 {text.homeAddress}
                 <span className="auth-input-wrap">
                   <AuthIcon type="plate" />
-                  <input onChange={(event) => updateProfileField("homeAddress", event.target.value)} placeholder="Дүүрэг, хороо, байр, тоот" required value={profileForm.homeAddress} />
+                  <input onChange={(event) => updateProfileField("homeAddress", event.target.value)} pattern={mongolianTextPattern} placeholder="Дүүрэг, хороо, байр, тоот" required title={text.mongolianRequired} value={profileForm.homeAddress} />
                 </span>
               </label>
               <label className="employee-wide-field">
                 {text.emergencyPhones}
                 <span className="auth-input-wrap">
                   <AuthIcon type="phone" />
-                  <input onChange={(event) => updateProfileField("emergencyPhones", event.target.value)} placeholder="Ээж 99..., Ах 88..." required value={profileForm.emergencyPhones} />
+                  <input onChange={(event) => updateProfileField("emergencyPhones", event.target.value)} pattern={mongolianTextPattern} placeholder="Ээж 99112233, Ах 88112233" required title={text.mongolianRequired} value={profileForm.emergencyPhones} />
                 </span>
               </label>
               <label className="employee-wide-field">
@@ -575,12 +647,12 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
               </div>
               <label>
                 {documentType === "PASSPORT" ? text.passportPhoto : text.front}
-                <input accept="image/*" onChange={(event) => setDocumentFront(Boolean(event.target.files?.length))} required type="file" />
+                <input accept="image/*,.pdf" onChange={(event) => setDocumentFront(event.target.files?.[0] ?? null)} required type="file" />
               </label>
               {documentType === "ID_CARD" ? (
                 <label>
                   {text.back}
-                  <input accept="image/*" onChange={(event) => setDocumentBack(Boolean(event.target.files?.length))} required type="file" />
+                  <input accept="image/*,.pdf" onChange={(event) => setDocumentBack(event.target.files?.[0] ?? null)} required type="file" />
                 </label>
               ) : null}
               <div className="employee-verification-log employee-wide-field">
@@ -612,7 +684,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
                 {vehicleType === "WALK" ? text.plateOptional : text.plate}
                 <span className="auth-input-wrap">
                   <AuthIcon type="plate" />
-                  <input onChange={(event) => setVehiclePlate(event.target.value)} placeholder="UBX 0000" value={vehiclePlate} />
+                  <input onChange={(event) => setVehiclePlate(event.target.value)} pattern={mongolianTextPattern} placeholder="УБА 0000" title={text.mongolianRequired} value={vehiclePlate} />
                 </span>
               </label>
             </div>

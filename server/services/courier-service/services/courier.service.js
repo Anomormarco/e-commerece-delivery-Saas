@@ -18,10 +18,12 @@ import {
   findCourierByLoginId,
   markCourierArrivedAtStore,
   recordFaceVerification,
+  recordFailedLoginFaceVerification,
   recordIdentityVerification,
   recordLoginFaceVerification,
   recordCourierLocation,
   rejectDeliveryAssignment,
+  updateCourierProfileRecord,
   updateCourierOnlineState,
   verifyCourierDropoffOtp,
   verifyCourierPickupOtp,
@@ -35,6 +37,7 @@ const vehicleLabels = {
 
 const courierAccessTokenMaxAgeSeconds = 60 * 60 * 24 * 30;
 const courierOfferTimeoutMs = 12_000;
+const faceAuditFreshMs = 2 * 60 * 1000;
 
 function createCourierAccessToken(employee) {
   return signJwt({
@@ -52,6 +55,11 @@ function createHttpError(statusCode, message) {
 
 function isPrismaUniqueError(error) {
   return error?.code === "P2002";
+}
+
+function isMongolianText(value) {
+  const trimmed = String(value ?? "").trim();
+  return Boolean(trimmed) && /[А-Яа-яЁёӨөҮү]/.test(trimmed) && !/[A-Za-z]/.test(trimmed);
 }
 
 function assignmentWeightKg(assignment) {
@@ -153,6 +161,23 @@ function verifiedDocumentFromPayload(payload) {
   };
 }
 
+function sanitizeDocumentFile(file) {
+  if (!file || typeof file !== "object") return null;
+  return {
+    name: String(file.name ?? "").slice(0, 180),
+    size: Number(file.size ?? 0),
+    type: String(file.type ?? "application/octet-stream").slice(0, 80),
+    lastModified: Number(file.lastModified ?? 0),
+  };
+}
+
+function sanitizeDocumentFiles(files = {}) {
+  return {
+    front: sanitizeDocumentFile(files.front),
+    back: sanitizeDocumentFile(files.back),
+  };
+}
+
 function verifiedFaceFromPayload(payload) {
   const selfieWithDocument = Boolean(payload.selfieWithDocument ?? payload.passportSelfie ?? payload.faceLoginConfirmed);
   const livenessConfirmed = Boolean(payload.livenessConfirmed ?? payload.faceLoginConfirmed);
@@ -166,8 +191,75 @@ function verifiedFaceFromPayload(payload) {
   };
 }
 
+function faceAuditPassed(faceAudit, expectedMode) {
+  if (!faceAudit || typeof faceAudit !== "object") return false;
+  const capturedAtMs = Date.parse(faceAudit.capturedAt);
+  const cameraStartedAtMs = Date.parse(faceAudit.cameraStartedAt);
+  const now = Date.now();
+
+  return faceAudit.mode === expectedMode
+    && faceAudit.status === "MATCHED"
+    && typeof faceAudit.snapshotId === "string"
+    && faceAudit.snapshotId.startsWith(`${expectedMode}-`)
+    && typeof faceAudit.challengeNonce === "string"
+    && faceAudit.challengeNonce.length >= 16
+    && typeof faceAudit.frameHash === "string"
+    && /^[a-f0-9]{64}$/i.test(faceAudit.frameHash)
+    && Number.isFinite(capturedAtMs)
+    && Number.isFinite(cameraStartedAtMs)
+    && capturedAtMs >= cameraStartedAtMs
+    && now - capturedAtMs <= faceAuditFreshMs
+    && Boolean(faceAudit.livenessSignals?.cameraReady)
+    && Number(faceAudit.livenessSignals?.videoWidth) > 0
+    && Number(faceAudit.livenessSignals?.videoHeight) > 0;
+}
+
+function hasRegisteredDocumentSession(employee) {
+  const sessions = employee.user?.identityProfile?.sessions ?? [];
+  return sessions.some((session) => (
+    session.provider === "deliverhub-demo-document-match"
+    && session.status === "IDENTITY_VERIFIED"
+    && session.result?.documentFiles?.front
+  ));
+}
+
+function latestProfileResult(employee) {
+  const sessions = employee.user?.identityProfile?.sessions ?? [];
+  return sessions.find((session) => (
+    session.provider === "deliverhub-employee-profile-edit"
+    || session.provider === "deliverhub-employee-register-step-1"
+  ))?.result ?? {};
+}
+
+function formatVerificationLogs(employee) {
+  const identityLogs = (employee.user?.identityProfile?.sessions ?? []).map((session) => ({
+    id: session.id,
+    type: "identity",
+    provider: session.provider,
+    status: session.status,
+    createdAt: session.createdAt,
+    verifiedAt: session.verifiedAt,
+    result: session.result,
+  }));
+  const faceLogs = (employee.user?.faceVerificationSessions ?? []).map((session) => ({
+    id: session.id,
+    type: "face",
+    provider: session.provider,
+    status: session.status,
+    createdAt: session.createdAt,
+    verifiedAt: session.verifiedAt,
+    result: session.livenessResult,
+    score: session.faceMatchScore?.toString?.() ?? session.faceMatchScore,
+  }));
+
+  return [...identityLogs, ...faceLogs]
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+    .slice(0, 12);
+}
+
 function formatCourierDashboard(employee) {
   const vehicleType = employee.vehicleType ?? "WALK";
+  const profile = latestProfileResult(employee);
   const assignments = Array.isArray(employee.assignments) ? employee.assignments : [];
   const jobs = assignments
     .filter((assignment) => assignment?.order)
@@ -203,9 +295,23 @@ function formatCourierDashboard(employee) {
     online: Boolean(employee.online),
     expectedEarningMnt: employee.wallet?.balanceMnt?.toString() ?? "0",
     employeeName: employee.user?.fullName ?? "\u0410\u0436\u0438\u043B\u0442\u0430\u043D",
+    profile: {
+      firstName: profile.firstName ?? "",
+      lastName: profile.lastName ?? "",
+      phone: employee.user?.phone ?? "",
+      email: employee.user?.email ?? "",
+      age: profile.age ?? "",
+      gender: profile.gender ?? "",
+      homeAddress: profile.homeAddress ?? "",
+      emergencyPhones: profile.emergencyPhones ?? "",
+      avatarDataUrl: profile.avatarDataUrl ?? "",
+      vehicleType,
+      vehiclePlate: employee.vehiclePlate ?? "",
+    },
     vehicleType,
     vehicleLabel: vehicleLabels[vehicleType] ?? vehicleLabels.WALK,
     jobs,
+    verificationLogs: formatVerificationLogs(employee),
     verificationText: `\u0411\u0430\u0442\u0430\u043B\u0433\u0430\u0430\u0436\u0443\u0443\u043B\u0430\u043B\u0442\u044B\u043D \u0442\u04E9\u043B\u04E9\u0432: ${employee.verificationStatus}`,
     verificationStatus: employee.verificationStatus,
   };
@@ -249,6 +355,7 @@ export async function registerCourier(payload = {}) {
   const legalName = String(payload.legalName ?? fullName).trim();
   const documentVerification = verifiedDocumentFromPayload(payload);
   const faceVerification = verifiedFaceFromPayload(payload);
+  const documentFiles = sanitizeDocumentFiles(payload.documentFiles);
   const applicationProfile = {
     firstName: String(payload.firstName ?? "").trim(),
     lastName: String(payload.lastName ?? "").trim(),
@@ -271,6 +378,16 @@ export async function registerCourier(payload = {}) {
     throw createHttpError(400, "\u0410\u0436\u0438\u043B\u0442\u043D\u044B \u0445\u0443\u0432\u0438\u0439\u043D \u043C\u044D\u0434\u044D\u044D\u043B\u044D\u043B \u0434\u0443\u0442\u0443\u0443 \u0431\u0430\u0439\u043D\u0430.");
   }
 
+  if (
+    !isMongolianText(applicationProfile.firstName)
+    || !isMongolianText(applicationProfile.lastName)
+    || !isMongolianText(applicationProfile.homeAddress)
+    || !isMongolianText(applicationProfile.emergencyPhones)
+    || (vehiclePlate && !isMongolianText(vehiclePlate))
+  ) {
+    throw createHttpError(400, "Email, \u0443\u0442\u0430\u0441, \u043D\u0430\u0441, \u043D\u0443\u0443\u0446 \u04AF\u0433\u044D\u044D\u0441 \u0431\u0443\u0441\u0430\u0434 \u043C\u044D\u0434\u044D\u044D\u043B\u043B\u0438\u0439\u0433 \u041C\u043E\u043D\u0433\u043E\u043B \u043A\u0438\u0440\u0438\u043B\u043B\u044D\u044D\u0440 \u043E\u0440\u0443\u0443\u043B\u043D\u0430 \u0443\u0443.");
+  }
+
   if (!applicationProfile.phoneVerified) {
     throw createHttpError(400, "\u0423\u0442\u0430\u0441\u043D\u044B \u0434\u0443\u0433\u0430\u0430\u0440 \u044D\u0445\u043B\u044D\u044D\u0434 \u0431\u0430\u0442\u0430\u043B\u0433\u0430\u0430\u0436\u0441\u0430\u043D \u0431\u0430\u0439\u0445 \u0451\u0441\u0442\u043E\u0439.");
   }
@@ -279,8 +396,16 @@ export async function registerCourier(payload = {}) {
     throw createHttpError(400, "\u0418\u0440\u0433\u044D\u043D\u0438\u0439 \u04AF\u043D\u044D\u043C\u043B\u044D\u0445 \u044D\u0441\u0432\u044D\u043B \u0433\u0430\u0434\u0430\u0430\u0434 \u043F\u0430\u0441\u043F\u043E\u0440\u0442\u044B\u043D \u0437\u0443\u0440\u0430\u0433 \u0434\u0443\u0442\u0443\u0443.");
   }
 
+  if (!documentFiles.front || (documentVerification.documentType === "ID_CARD" && !documentFiles.back)) {
+    throw createHttpError(400, "\u0411\u0438\u0447\u0438\u0433 \u0431\u0430\u0440\u0438\u043C\u0442\u044B\u043D file \u043C\u044D\u0434\u044D\u044D\u043B\u044D\u043B \u0434\u0443\u0442\u0443\u0443 \u0431\u0430\u0439\u043D\u0430.");
+  }
+
   if (!faceVerification.passed) {
     throw createHttpError(400, "\u0426\u0430\u0440\u0430\u0439 \u0442\u0430\u043D\u0438\u043B\u0442, \u0430\u043C\u044C\u0434 \u0445\u04AF\u043D \u0448\u0430\u043B\u0433\u0430\u043B\u0442, \u0431\u0438\u0447\u0438\u0433 \u0431\u0430\u0440\u0438\u043C\u0442\u0442\u0430\u0439 \u0442\u0430\u0430\u0440\u0441\u0430\u043D \u0448\u0430\u043B\u0433\u0430\u043B\u0442 \u0437\u0430\u0430\u0432\u0430\u043B \u0430\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439 \u0431\u0430\u0439\u0445 \u0451\u0441\u0442\u043E\u0439.");
+  }
+
+  if (!faceAuditPassed(payload.faceAudit, "register")) {
+    throw createHttpError(400, "\u0411\u04AF\u0440\u0442\u0433\u044D\u043B\u0438\u0439\u043D real-time \u0446\u0430\u0440\u0430\u0439 \u0448\u0430\u043B\u0433\u0430\u043B\u0442 \u0445\u04AF\u0447\u0438\u043D\u0433\u04AF\u0439 \u0431\u0430\u0439\u043D\u0430.");
   }
 
   const loginId = normalizeCourierLoginId(rawLoginId);
@@ -309,6 +434,8 @@ export async function registerCourier(payload = {}) {
       documentType: documentVerification.documentType,
       documentFront: documentVerification.hasDocumentFront,
       documentBack: documentVerification.hasDocumentBack,
+      documentFiles,
+      loggedAt: new Date().toISOString(),
       source: "employee-register-step-2",
     },
     faceVerification: {
@@ -316,6 +443,8 @@ export async function registerCourier(payload = {}) {
       livenessConfirmed: faceVerification.livenessConfirmed,
       documentFaceMatched: faceVerification.documentFaceMatched,
       faceAudit: payload.faceAudit ?? null,
+      auditPassed: faceAuditPassed(payload.faceAudit, "register"),
+      loggedAt: new Date().toISOString(),
       source: "employee-register-step-2",
     },
   };
@@ -339,6 +468,58 @@ export async function registerCourier(payload = {}) {
   return { userId: employee.userId, accessToken: createCourierAccessToken(employee), dashboard: formatCourierDashboard(employee) };
 }
 
+export async function editCourierProfile(userId, payload = {}) {
+  const firstName = String(payload.firstName ?? "").trim();
+  const lastName = String(payload.lastName ?? "").trim();
+  const phone = payload.phone ? normalizePhone(payload.phone) : null;
+  const email = payload.email ? validateGmailAddress(payload.email) : null;
+  const age = payload.age ? Number(payload.age) : null;
+  const gender = String(payload.gender ?? "").trim();
+  const homeAddress = String(payload.homeAddress ?? "").trim();
+  const emergencyPhones = String(payload.emergencyPhones ?? "").trim();
+  const vehicleType = String(payload.vehicleType ?? "WALK").toUpperCase();
+  const vehiclePlate = String(payload.vehiclePlate ?? "").trim() || null;
+  const avatarDataUrl = String(payload.avatarDataUrl ?? "").trim();
+
+  if (!firstName || !lastName || !phone || !email || !age || !gender || !homeAddress || !emergencyPhones) {
+    throw createHttpError(400, "\u041F\u0440\u043E\u0444\u0430\u0439\u043B\u044B\u043D \u043C\u044D\u0434\u044D\u044D\u043B\u044D\u043B \u0434\u0443\u0442\u0443\u0443 \u0431\u0430\u0439\u043D\u0430.");
+  }
+
+  if (
+    !isMongolianText(firstName)
+    || !isMongolianText(lastName)
+    || !isMongolianText(homeAddress)
+    || !isMongolianText(emergencyPhones)
+    || (vehiclePlate && !isMongolianText(vehiclePlate))
+  ) {
+    throw createHttpError(400, "Email, \u0443\u0442\u0430\u0441, \u043D\u0430\u0441, \u043D\u0443\u0443\u0446 \u04AF\u0433\u044D\u044D\u0441 \u0431\u0443\u0441\u0430\u0434 \u043C\u044D\u0434\u044D\u044D\u043B\u043B\u0438\u0439\u0433 \u041C\u043E\u043D\u0433\u043E\u043B \u043A\u0438\u0440\u0438\u043B\u043B\u044D\u044D\u0440 \u043E\u0440\u0443\u0443\u043B\u043D\u0430 \u0443\u0443.");
+  }
+
+  const fullName = `${lastName} ${firstName}`.trim();
+  const employee = await updateCourierProfileRecord(userId, {
+    fullName,
+    phone,
+    email,
+    vehicleType,
+    vehiclePlate,
+    profile: {
+      firstName,
+      lastName,
+      age,
+      gender,
+      homeAddress,
+      emergencyPhones,
+      avatarDataUrl,
+      vehicleType,
+      vehiclePlate,
+      updatedAt: new Date().toISOString(),
+    },
+  });
+  appCache.clearByPrefix(`courier:dashboard:${userId || "default"}`);
+  appCache.del("admin:dashboard");
+  return formatCourierDashboard(employee);
+}
+
 export async function updateCourierLocation(userId, payload = {}) {
   return recordCourierLocation(userId, payload);
 }
@@ -357,9 +538,36 @@ export async function loginCourier(payload = {}) {
     throw createHttpError(403, "\u0410\u0436\u0438\u043B\u0442\u043D\u044B \u0431\u04AF\u0440\u0442\u0433\u044D\u043B \u0438\u0434\u044D\u0432\u0445\u0436\u044D\u044D\u0433\u04AF\u0439 \u0431\u0430\u0439\u043D\u0430.");
   }
 
+  const loginAuditPassed = faceAuditPassed(payload.faceAudit, "login");
+  if (!loginAuditPassed) {
+    await recordFailedLoginFaceVerification(employee.userId, {
+      faceAudit: payload.faceAudit ?? null,
+      reason: "LOGIN_FACE_AUDIT_INVALID",
+      source: "employee-login",
+      loggedAt: new Date().toISOString(),
+    });
+    throw createHttpError(401, "\u041D\u044D\u0432\u0442\u0440\u044D\u0445 \u04AF\u0435\u0438\u0439\u043D real-time \u0446\u0430\u0440\u0430\u0439 \u0448\u0430\u043B\u0433\u0430\u043B\u0442 \u0445\u04AF\u0447\u0438\u043D\u0433\u04AF\u0439 \u0431\u0430\u0439\u043D\u0430.");
+  }
+
+  if (!hasRegisteredDocumentSession(employee)) {
+    await recordFailedLoginFaceVerification(employee.userId, {
+      faceAudit: payload.faceAudit ?? null,
+      reason: "REGISTERED_DOCUMENT_LOG_MISSING",
+      source: "employee-login",
+      loggedAt: new Date().toISOString(),
+    });
+    throw createHttpError(403, "\u0411\u04AF\u0440\u0442\u0433\u044D\u043B\u0438\u0439\u043D \u0431\u0438\u0447\u0438\u0433 \u0431\u0430\u0440\u0438\u043C\u0442\u044B\u043D log \u043E\u043B\u0434\u0441\u043E\u043D\u0433\u04AF\u0439.");
+  }
+
   const loginFace = verifiedFaceFromPayload({ ...payload, documentFaceMatched: true });
 
   if (!loginFace.passed) {
+    await recordFailedLoginFaceVerification(employee.userId, {
+      faceAudit: payload.faceAudit ?? null,
+      reason: "LOGIN_FACE_MATCH_DECLINED",
+      source: "employee-login",
+      loggedAt: new Date().toISOString(),
+    });
     throw createHttpError(401, "\u041D\u044D\u0432\u0442\u0440\u044D\u0445\u0434\u044D\u044D \u0446\u0430\u0440\u0430\u0439 \u0442\u0430\u043D\u0438\u043B\u0442 \u0437\u0430\u0430\u0432\u0430\u043B \u0430\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439 \u0431\u0430\u0439\u0445 \u0451\u0441\u0442\u043E\u0439.");
   }
 
@@ -367,6 +575,9 @@ export async function loginCourier(payload = {}) {
     selfieWithDocument: loginFace.selfieWithDocument,
     livenessConfirmed: loginFace.livenessConfirmed,
     faceAudit: payload.faceAudit ?? null,
+    comparedWith: "registered-document-session",
+    auditPassed: loginAuditPassed,
+    loggedAt: new Date().toISOString(),
     source: "employee-login",
   });
 

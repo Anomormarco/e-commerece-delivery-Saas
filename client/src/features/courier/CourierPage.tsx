@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useRef, useState } from "react";
+import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 import { NotificationBell } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
@@ -9,10 +9,34 @@ import type { QueueItem } from "../../shared/types";
 type CourierDashboard = {
   online: boolean;
   employeeName: string;
+  profile?: EmployeeProfile;
+  verificationLogs?: Array<{
+    id: string;
+    provider: string;
+    status: string;
+    type: "face" | "identity";
+    createdAt: string;
+    verifiedAt?: string | null;
+  }>;
+  vehicleType?: string;
   vehicleLabel: string;
   jobs: QueueItem[];
   verificationText: string;
   verificationStatus: string;
+};
+
+type EmployeeProfile = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  age: string | number;
+  gender: string;
+  homeAddress: string;
+  emergencyPhones: string;
+  avatarDataUrl?: string;
+  vehicleType?: string;
+  vehiclePlate?: string;
 };
 
 type MapMode = "dark" | "white" | "satellite";
@@ -29,6 +53,12 @@ const courierOfferTimeoutMs = 12_000;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
 const serverConfirmedRouteStates = ["ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
 const employeeUiDeployMarker = "employee-work-mode-offer-card-v11";
+const employeeProfileImageMaxBytes = 600_000;
+const vehicleOptions = [
+  { value: "WALK", label: "Явган" },
+  { value: "MOPED", label: "Мопед" },
+  { value: "CAR", label: "Машин" },
+];
 
 function isAuthSessionError(message?: string | null) {
   const normalized = String(message ?? "").toLowerCase();
@@ -95,6 +125,20 @@ const text = {
   history: "\u0422\u04AF\u04AF\u0445",
   control: "\u0425\u044F\u043D\u0430\u043B\u0442",
   profile: "\u041F\u0440\u043E\u0444\u0430\u0439\u043B",
+  editProfile: "Профайл засах",
+  saveProfile: "Хадгалах",
+  cancel: "Болих",
+  profileSaved: "Профайл хадгалагдлаа.",
+  choosePhoto: "Зураг сонгох",
+  firstName: "Нэр",
+  lastName: "Овог",
+  phoneNumber: "Утас",
+  email: "Gmail",
+  age: "Нас",
+  gender: "Хүйс",
+  homeAddress: "Гэрийн хаяг",
+  emergencyPhones: "Яаралтай холбогдох",
+  vehiclePlate: "Улсын дугаар",
   logout: "\u0413\u0430\u0440\u0430\u0445",
 };
 
@@ -220,6 +264,23 @@ function offerRemainingSeconds(job: QueueItem, now: number) {
   return typeof job.offerExpiresInSec === "number" ? Math.max(0, job.offerExpiresInSec) : 12;
 }
 
+function profileFromDashboard(data?: CourierDashboard | null): EmployeeProfile {
+  const [lastName = "", firstName = ""] = (data?.employeeName ?? "").split(" ");
+  return {
+    firstName: String(data?.profile?.firstName ?? firstName),
+    lastName: String(data?.profile?.lastName ?? lastName),
+    phone: String(data?.profile?.phone ?? ""),
+    email: String(data?.profile?.email ?? ""),
+    age: String(data?.profile?.age ?? ""),
+    gender: String(data?.profile?.gender ?? ""),
+    homeAddress: String(data?.profile?.homeAddress ?? ""),
+    emergencyPhones: String(data?.profile?.emergencyPhones ?? ""),
+    avatarDataUrl: data?.profile?.avatarDataUrl ?? "",
+    vehicleType: data?.profile?.vehicleType ?? data?.vehicleType ?? "MOPED",
+    vehiclePlate: data?.profile?.vehiclePlate ?? "",
+  };
+}
+
 export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const dashboard = useRealtimeResource<CourierDashboard>("/dashboard", ["courier.dashboard.refresh", "courier.job.updated"]);
   const refreshDashboard = dashboard.refetch;
@@ -227,6 +288,10 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [localOnline, setLocalOnline] = useState<boolean | null>(true);
   const [jobs, setJobs] = useState<QueueItem[] | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [profileMessage, setProfileMessage] = useState<string | null>(null);
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileForm, setProfileForm] = useState<EmployeeProfile>(() => profileFromDashboard(null));
   const [orderSearch, setOrderSearch] = useState("");
   const [orderFilter, setOrderFilter] = useState<"active" | "completed">("active");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -297,6 +362,11 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     if (!dashboard.error || !isAuthSessionError(dashboard.error)) return;
     onLogout?.();
   }, [dashboard.error, onLogout]);
+
+  useEffect(() => {
+    if (!dashboard.data || profileEditing) return;
+    setProfileForm(profileFromDashboard(dashboard.data));
+  }, [dashboard.data, profileEditing]);
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
@@ -445,6 +515,43 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
       setJobs(nextDashboard.jobs);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : text.actionError);
+    }
+  }
+
+  function updateProfileField(field: keyof EmployeeProfile, value: string) {
+    setProfileForm((current) => ({ ...current, [field]: value }));
+  }
+
+  function changeProfilePhoto(file: File | null) {
+    if (!file) return;
+    if (file.size > employeeProfileImageMaxBytes) {
+      setProfileMessage("Зураг 600KB-аас бага байх хэрэгтэй.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setProfileForm((current) => ({ ...current, avatarDataUrl: String(reader.result ?? "") }));
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setProfileSaving(true);
+    setProfileMessage(null);
+    setActionError(null);
+
+    try {
+      const nextDashboard = await postJson<CourierDashboard>("/profile", profileForm);
+      setProfileForm(profileFromDashboard(nextDashboard));
+      setProfileEditing(false);
+      setProfileMessage(text.profileSaved);
+      await refreshDashboard({ silent: true });
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : text.actionError);
+    } finally {
+      setProfileSaving(false);
     }
   }
 
@@ -893,7 +1000,9 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                 <section className="employee-profile-page" aria-label={text.profileTab}>
                   <header className="employee-profile-top">
                     <div className="employee-profile-avatar-wrap">
-                      <span className="employee-profile-avatar">{(dashboard.data.employeeName ?? text.title).slice(0, 1)}</span>
+                      <span className="employee-profile-avatar">
+                        {profileForm.avatarDataUrl ? <img alt="" src={profileForm.avatarDataUrl} /> : (dashboard.data.employeeName ?? text.title).slice(0, 1)}
+                      </span>
                       <b>4.9 ★</b>
                     </div>
                     <div>
@@ -901,7 +1010,72 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                       <h2>{dashboard.data.employeeName}</h2>
                       <p>{dashboard.data.vehicleLabel}</p>
                     </div>
+                    <button className="employee-profile-edit-toggle" onClick={() => setProfileEditing((current) => !current)} type="button">
+                      {profileEditing ? text.cancel : text.editProfile}
+                    </button>
                   </header>
+
+                  {profileEditing && (
+                    <form className="employee-profile-edit-form" onSubmit={saveProfile}>
+                      <label className="employee-profile-photo-field">
+                        <span>{text.choosePhoto}</span>
+                        <input accept="image/*" onChange={(event) => changeProfilePhoto(event.target.files?.[0] ?? null)} type="file" />
+                      </label>
+                      <div>
+                        <label>
+                          {text.lastName}
+                          <input onChange={(event) => updateProfileField("lastName", event.target.value)} required value={profileForm.lastName} />
+                        </label>
+                        <label>
+                          {text.firstName}
+                          <input onChange={(event) => updateProfileField("firstName", event.target.value)} required value={profileForm.firstName} />
+                        </label>
+                        <label>
+                          {text.phoneNumber}
+                          <input inputMode="tel" onChange={(event) => updateProfileField("phone", event.target.value)} required value={profileForm.phone} />
+                        </label>
+                        <label>
+                          {text.email}
+                          <input onChange={(event) => updateProfileField("email", event.target.value)} required type="email" value={profileForm.email} />
+                        </label>
+                        <label>
+                          {text.age}
+                          <input min={18} onChange={(event) => updateProfileField("age", event.target.value)} required type="number" value={profileForm.age} />
+                        </label>
+                        <label>
+                          {text.gender}
+                          <select onChange={(event) => updateProfileField("gender", event.target.value)} required value={profileForm.gender}>
+                            <option value="">Сонгох</option>
+                            <option value="male">Эрэгтэй</option>
+                            <option value="female">Эмэгтэй</option>
+                            <option value="other">Бусад</option>
+                          </select>
+                        </label>
+                        <label className="employee-profile-wide-field">
+                          {text.homeAddress}
+                          <input onChange={(event) => updateProfileField("homeAddress", event.target.value)} required value={profileForm.homeAddress} />
+                        </label>
+                        <label className="employee-profile-wide-field">
+                          {text.emergencyPhones}
+                          <input onChange={(event) => updateProfileField("emergencyPhones", event.target.value)} required value={profileForm.emergencyPhones} />
+                        </label>
+                        <label>
+                          {text.vehicle}
+                          <select onChange={(event) => updateProfileField("vehicleType", event.target.value)} value={profileForm.vehicleType ?? "MOPED"}>
+                            {vehicleOptions.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+                          </select>
+                        </label>
+                        <label>
+                          {text.vehiclePlate}
+                          <input onChange={(event) => updateProfileField("vehiclePlate", event.target.value)} placeholder="УБА 0000" value={profileForm.vehiclePlate ?? ""} />
+                        </label>
+                      </div>
+                      {profileMessage && <p className="employee-profile-edit-message">{profileMessage}</p>}
+                      <button className="employee-full-action" disabled={profileSaving} type="submit">
+                        {profileSaving ? "Түр хүлээнэ үү..." : text.saveProfile}
+                      </button>
+                    </form>
+                  )}
 
                   <section className="employee-profile-rating-card" aria-label="Үнэлгээ">
                     <div>
@@ -937,6 +1111,17 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                       <strong>{isOnline ? text.working : text.offWork}</strong>
                     </div>
                     <p>{dashboard.data.verificationText}</p>
+                  </section>
+
+                  <section className="employee-profile-info employee-verification-audit" aria-label="Verification log">
+                    {(dashboard.data.verificationLogs ?? []).slice(0, 5).map((log) => (
+                      <div key={log.id}>
+                        <span>{log.type === "face" ? "Царай" : "Бичиг баримт"}</span>
+                        <strong>{log.status}</strong>
+                        <small>{log.provider} · {new Date(log.createdAt).toLocaleString("mn-MN")}</small>
+                      </div>
+                    ))}
+                    {!(dashboard.data.verificationLogs ?? []).length && <p>Verification log хоосон байна.</p>}
                   </section>
 
                   <section className="employee-profile-reviews" aria-label="Сүүлийн үнэлгээ">
