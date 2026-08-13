@@ -1,5 +1,6 @@
 import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
+import { InteractiveRouteMap, type RouteMapLine, type RouteMapMarker } from "../../components/InteractiveRouteMap";
 import { NotificationBell } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
 import { postJson } from "../../shared/api";
@@ -340,11 +341,15 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     { key: "profile", label: text.profileTab, icon: "\u25CB" },
   ];
   const mapCenter = midpoint(mapPoints);
-  const projectMapPoint = createMapProjector(mapCenter, zoom);
-  const courierMapPoint = position ? projectMapPoint(position) : null;
-  const pickupMapPoint = pickupPoint ? projectMapPoint(pickupPoint) : null;
-  const dropoffMapPoint = dropoffPoint ? projectMapPoint(dropoffPoint) : null;
-  const mapTiles = getVisibleTiles(mapCenter, zoom);
+  const courierMapMarkers: RouteMapMarker[] = [
+    ...(position ? [{ id: "courier", point: position, label: "Миний GPS", kind: "courier" as const }] : []),
+    ...(pickupPoint ? [{ id: "pickup", point: pickupPoint, label: text.pickup, kind: "store" as const }] : []),
+    ...(dropoffPoint ? [{ id: "dropoff", point: dropoffPoint, label: text.dropoff, kind: "customer" as const }] : []),
+  ];
+  const courierMapRoutes: RouteMapLine[] = [
+    ...(position && pickupPoint ? [{ id: "to-pickup", from: position, to: pickupPoint, kind: "pickup" as const }] : []),
+    ...(pickupPoint && dropoffPoint ? [{ id: "to-dropoff", from: pickupPoint, to: dropoffPoint, kind: "dropoff" as const }] : []),
+  ];
 
   useEffect(() => {
     if (!dashboard.error || !isAuthSessionError(dashboard.error)) return;
@@ -588,53 +593,13 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
             <>
               <div className="employee-app-scroll">
               {activeTab === "map" && (
-                <section className="employee-live-map" style={{ "--employee-map-zoom": zoom } as CSSProperties}>
-                <div className="employee-map-tiles" aria-label={text.mapTab}>
-                  {mapTiles.map((tile) => (
-                    <img
-                      alt=""
-                      draggable={false}
-                      key={tile.key}
-                      src={getTileUrl(tile.urlX, tile.urlY, zoom)}
-                      style={tile.style}
-                    />
-                  ))}
-                </div>
-                <div className="employee-map-zoom">
-                  <button onClick={() => setZoom((current) => Math.min(current + 1, 18))} type="button" aria-label="Zoom in">+</button>
-                  <button onClick={() => setZoom((current) => Math.max(current - 1, 10))} type="button" aria-label="Zoom out">-</button>
-                </div>
-                {routeMapJob && pickupMapPoint && courierMapPoint && walkingRouteSegments(courierMapPoint, pickupMapPoint).map((segment) => (
-                  <span className="employee-direct-route employee-route-pickup" key={`pickup-${segment.key}`} style={segment.style} />
-                ))}
-                {routeMapJob && pickupMapPoint && dropoffMapPoint && walkingRouteSegments(pickupMapPoint, dropoffMapPoint).map((segment) => (
-                  <span className="employee-direct-route employee-route-dropoff" key={`dropoff-${segment.key}`} style={segment.style} />
-                ))}
-                {routeMapJob && pickupMapPoint && (
-                  <span
-                    className="employee-store-pin"
-                    style={pinStyle(pickupMapPoint)}
-                    aria-label={text.pickup}
-                  />
-                )}
-                {routeMapJob && dropoffMapPoint && (
-                  <span
-                    className="employee-drop-pin"
-                    style={pinStyle(dropoffMapPoint)}
-                    aria-label={text.dropoff}
-                  />
-                )}
-                {courierMapPoint && (
-                  <span
-                    className="employee-location-dot is-live"
-                    style={pinStyle(courierMapPoint)}
-                  />
-                )}
-                {(locationError || !position) && (
-                  <div className="employee-map-status">
-                    <strong>{locationError ?? text.locating}</strong>
-                  </div>
-                )}
+                <InteractiveRouteMap
+                  className="employee-live-map"
+                  initialZoom={14}
+                  markers={courierMapMarkers}
+                  routes={courierMapRoutes}
+                  statusLabel={locationError || !position ? (locationError ?? text.locating) : undefined}
+                >
                 {offerJob && (
                   <article className="courier-map-request-card">
                     <div className="courier-map-request-head">
@@ -692,7 +657,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     )}
                   </article>
                 )}
-                </section>
+                </InteractiveRouteMap>
               )}
 
               {activeTab === "map" && routeMapJob && activePickupStates.includes(routeMapJob.state) && (

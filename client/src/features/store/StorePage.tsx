@@ -1,4 +1,5 @@
 import { type CSSProperties, type FormEvent, useEffect, useState } from "react";
+import { InteractiveRouteMap, type RouteMapLine, type RouteMapMarker } from "../../components/InteractiveRouteMap";
 import { NotificationBell, type NotificationItem } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
 import { postJson } from "../../shared/api";
@@ -795,7 +796,6 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     className?: string;
   } = {}) {
     const route = options.tracking?.routePlan;
-    const nearbyCouriers = options.tracking?.nearbyCouriers ?? [];
     const isOfferOnly = options.tracking?.status === "OFFERED";
     const offerCourier = currentOfferCourier(options.tracking);
     const offerRemaining = offerRemainingSec(options.tracking);
@@ -804,79 +804,43 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const offerCourierPoint = offerCourier?.location;
     const courierPoint = hasAcceptedRoute ? route?.courier : undefined;
     const dropoffPoint = hasAcceptedRoute ? route?.dropoff : undefined;
-    const center = hasAcceptedRoute ? mapCenterFor([storePoint, courierPoint, dropoffPoint]) : mapCenterFor([storePoint, offerCourierPoint]);
-    const tiles = getStoreMapTiles(center, storeMapZoom);
-    const offerProgressDeg = `${Math.max(0, Math.min(360, ((offerRemaining ?? 12) / 12) * 360))}deg`;
     const courierName = options.tracking?.courier?.name ?? "Ойрын хүргэлтийн ажилтан";
+    const markers: RouteMapMarker[] = [
+      { id: "store", point: storePoint, label: "Дэлгүүр", kind: "store" },
+      ...(dropoffPoint ? [{ id: "dropoff", point: dropoffPoint, label: "Хүргэх хаяг", kind: "customer" as const }] : []),
+      ...(courierPoint ? [{ id: "courier", point: courierPoint, label: courierName, kind: "courier" as const }] : []),
+      ...(isOfferOnly && offerCourierPoint && offerCourier ? [{ id: "offer", point: offerCourierPoint, label: offerCourier.name, kind: "offer" as const }] : []),
+    ];
+    const routes: RouteMapLine[] = [
+      ...(courierPoint ? [{ id: "courier-store", from: courierPoint, to: storePoint, kind: "pickup" as const }] : []),
+      ...(dropoffPoint ? [{ id: "store-customer", from: storePoint, to: dropoffPoint, kind: "dropoff" as const }] : []),
+    ];
 
     return (
-      <div className={`store-live-map ${options.className ?? ""}`} aria-label="Дэлгүүрийн газрын зураг">
-        <div className="store-live-map-tiles" aria-hidden="true">
-          {tiles.map((tile) => (
-            <img
-              alt=""
-              draggable={false}
-              key={tile.key}
-              src={getMapTileUrl(tile.urlX, tile.urlY, storeMapZoom)}
-              style={tile.style}
-            />
-          ))}
-        </div>
-        {courierPoint && !isOfferOnly && mapWalkingRouteSegments(courierPoint, storePoint, center, storeMapZoom).map((segment) => (
-          <span
-            className="store-live-route route-to-courier"
-            key={`courier-${segment.key}`}
-            style={segment.style}
-            aria-hidden="true"
-          />
-        ))}
-        {dropoffPoint && !isOfferOnly && mapWalkingRouteSegments(storePoint, dropoffPoint, center, storeMapZoom).map((segment) => (
-          <span
-            className="store-live-route route-to-customer"
-            key={`customer-${segment.key}`}
-            style={segment.style}
-            aria-hidden="true"
-          />
-        ))}
-        <i className="store-live-pin store-pin" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-label="Дэлгүүр" />
-        {dropoffPoint && <i className="store-live-pin customer-pin" style={mapPointStyle(dropoffPoint, center, storeMapZoom)} aria-label="Хүргэх хаяг" />}
-        {courierPoint && <i className="store-live-pin courier-pin" style={mapPointStyle(courierPoint, center, storeMapZoom)} aria-label={courierName} />}
+      <InteractiveRouteMap
+        className={`store-live-map ${options.className ?? ""}`}
+        initialZoom={storeMapZoom}
+        markers={markers}
+        routes={routes}
+        statusLabel={options.statusLabel || trackingStatusLabel(options.tracking) || "Дэлгүүрийн байршил"}
+        statusDetail={`${options.orderId ? `#${options.orderId} · ` : ""}${isOfferOnly ? "Ойрын хүргэлтийн ажилтнууд - зайгаар эрэмбэлсэн" : "Nomin тогтмол авах цэг - Бөхийн Өргөө"}`}
+      >
         {isOfferOnly && offerCourierPoint && offerCourier && (
           <i
             className="store-live-offer-courier"
-            style={{ ...mapPointStyle(offerCourierPoint, center, storeMapZoom), "--offer-progress": offerProgressDeg } as CSSProperties}
+            style={{
+              "--offer-progress": `${Math.max(0, Math.min(360, ((offerRemaining ?? 12) / 12) * 360))}deg`,
+              top: 18,
+              right: 18,
+              transform: "none",
+            } as CSSProperties}
             title={`${offerCourier.name} · ${offerCourier.toPickupKm.toFixed(1)} км`}
           >
             <b>{offerRemaining ?? 12}</b>
             <span>{offerCourier.name}</span>
           </i>
         )}
-        {false && nearbyCouriers.slice(0, 8).map((courier, index) => {
-          const point = courier.location ?? {
-            lat: storePoint.lat + (index % 2 === 0 ? 0.004 : -0.003) * (index + 1),
-            lng: storePoint.lng + (index % 3 === 0 ? -0.004 : 0.003) * (index + 1),
-          };
-          return (
-            <i
-              aria-label={courier.name}
-              className={`store-live-courier ${options.tracking?.courier?.id === courier.employeeId ? "matched" : ""}`}
-              key={courier.employeeId}
-              style={mapPointStyle(point, center, storeMapZoom)}
-              title={`${courier.name} · ${courier.toPickupKm.toFixed(1)} км`}
-            >
-              {index + 1}
-            </i>
-          );
-        })}
-        {false && options.tracking?.status === "OFFERED" && <b className="store-live-scan" style={mapPointStyle(storePoint, center, storeMapZoom)} aria-hidden="true" />}
-        <div className="store-live-map-status">
-          <strong>{options.statusLabel || trackingStatusLabel(options.tracking) || "Дэлгүүрийн байршил"}</strong>
-          <span>
-            {options.orderId ? `#${options.orderId} · ` : ""}
-            {isOfferOnly ? "Ойрын хүргэлтийн ажилтнууд - зайгаар эрэмбэлсэн" : "Nomin тогтмол авах цэг - Бөхийн Өргөө"}
-          </span>
-        </div>
-      </div>
+      </InteractiveRouteMap>
     );
   }
 

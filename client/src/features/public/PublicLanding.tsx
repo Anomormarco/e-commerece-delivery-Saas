@@ -2,6 +2,7 @@
 import type { FormEvent } from "react";
 import { useRef } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
+import { InteractiveRouteMap, type RouteMapLine, type RouteMapMarker } from "../../components/InteractiveRouteMap";
 import { nominCatalogProducts, nominStoreProfile } from "../../shared/nominCatalog";
 import heroAppleeImage from "../../assets/geed-hero/applee.avif";
 import heroIphoneImage from "../../assets/geed-hero/iphone15.avif";
@@ -1430,6 +1431,20 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     const activeOrders = searchedOrders.filter((order) => !isCompletedOrder(order.statusLabel));
     const completedOrders = searchedOrders.filter((order) => isCompletedOrder(order.statusLabel));
     const visibleOrders = orderHistoryTab === "active" ? activeOrders : completedOrders;
+    const trackingStorePoint = { lat: storeLocation.latitude, lng: storeLocation.longitude };
+    const trackingCustomerPoint = { lat: customerLocation.latitude, lng: customerLocation.longitude };
+    const trackingCourierPoint = tracking?.courierLocation
+      ? { lat: tracking.courierLocation.latitude, lng: tracking.courierLocation.longitude }
+      : null;
+    const trackingMarkers: RouteMapMarker[] = [
+      { id: "store", point: trackingStorePoint, label: tracking?.storeName ?? "Дэлгүүр", kind: "store" },
+      { id: "customer", point: trackingCustomerPoint, label: "Хүргэх хаяг", kind: "customer" },
+      ...(trackingCourierPoint ? [{ id: "courier", point: trackingCourierPoint, label: tracking?.courier.name ?? "Хүргэлтийн ажилтан", kind: "courier" as const }] : []),
+    ];
+    const trackingRoutes: RouteMapLine[] = [
+      ...(trackingCourierPoint ? [{ id: "courier-store", from: trackingCourierPoint, to: trackingStorePoint, kind: "pickup" as const }] : []),
+      { id: "store-customer", from: trackingStorePoint, to: trackingCustomerPoint, kind: "dropoff" as const },
+    ];
 
     if (!allOrders.length) {
       return (
@@ -1473,6 +1488,15 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             Дууссан <span>{completedOrders.length}</span>
           </button>
         </nav>
+
+        <InteractiveRouteMap
+          className="customer-track-map"
+          initialZoom={14}
+          markers={trackingMarkers}
+          routes={trackingRoutes}
+          statusLabel={tracking?.statusLabel ?? "Захиалгын байршил"}
+          statusDetail={tracking?.courier.etaText ?? "Дэлгүүр, хүргэлтийн ажилтан, хүргэх хаяг"}
+        />
 
         <section className="landing-order-history">
           {visibleOrders.slice(0, 12).map((order) => (
