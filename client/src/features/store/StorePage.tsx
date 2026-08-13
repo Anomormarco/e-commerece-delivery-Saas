@@ -73,7 +73,7 @@ const fixedNominStorePosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const fallbackStorePosition: GeoPoint = fixedNominStorePosition;
 const mapTileSize = 256;
 const storeMapZoom = 14;
-const storeOfferTimeoutMs = 30_000;
+const storeOfferTimeoutMs = 10_000;
 const storePreparedLocalBuildMarker = "prepared-local-v2";
 const terminalDispatchStatuses = ["REJECTED", "FAILED", "CANCELLED"] as const;
 const activeDispatchStatuses = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION", "PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF", "DELIVERED"];
@@ -761,7 +761,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   function offerRemainingSec(tracking?: StoreDeliveryTracking | null) {
     if (tracking?.status !== "OFFERED" || !tracking.createdAt) return null;
     const createdAtMs = new Date(tracking.createdAt).getTime();
-    if (!Number.isFinite(createdAtMs)) return 12;
+    if (!Number.isFinite(createdAtMs)) return 10;
     return Math.max(0, Math.ceil((createdAtMs + storeOfferTimeoutMs - dispatchClock) / 1000));
   }
 
@@ -769,6 +769,15 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     if (!tracking) return false;
     if (terminalDispatchStatuses.includes(String(tracking.status) as typeof terminalDispatchStatuses[number])) return true;
     return tracking.status === "OFFERED" && offerRemainingSec(tracking) === 0;
+  }
+
+  function preferredTracking(
+    liveTracking?: StoreDeliveryTracking | null,
+    localTracking?: StoreDeliveryTracking | null,
+  ) {
+    if (isActiveDispatchStatus(liveTracking?.status)) return liveTracking;
+    if (liveTracking?.status === "OFFERED") return liveTracking;
+    return isDispatchExpired(localTracking) ? localTracking : liveTracking ?? localTracking ?? null;
   }
 
   function currentOfferCourier(tracking?: StoreDeliveryTracking | null) {
@@ -829,14 +838,14 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           <i
             className="store-live-offer-courier"
             style={{
-              "--offer-progress": `${Math.max(0, Math.min(360, ((offerRemaining ?? 12) / 12) * 360))}deg`,
+              "--offer-progress": `${Math.max(0, Math.min(360, ((offerRemaining ?? 10) / 10) * 360))}deg`,
               top: 18,
               right: 18,
               transform: "none",
             } as CSSProperties}
             title={`${offerCourier.name} · ${offerCourier.toPickupKm.toFixed(1)} км`}
           >
-            <b>{offerRemaining ?? 12}</b>
+            <b>{offerRemaining ?? 10}</b>
             <span>{offerCourier.name}</span>
           </i>
         )}
@@ -868,7 +877,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         {renderLiveStoreMap({ tracking, orderId: order.id, className: "store-dispatch-map" })}
         <div className="store-dispatch-detail">
           <span>{dispatchStageText}</span>
-          {offerCourier && <span>{offerCourier.name} дээр {offerRemaining ?? 12} сек хүлээж байна</span>}
+          {offerCourier && <span>{offerCourier.name} дээр {offerRemaining ?? 10} сек хүлээж байна</span>}
           <h3>{courierName}</h3>
           <p>{trackingStatusLabel(tracking)}</p>
           <div>
@@ -876,11 +885,11 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             <b>{eta} мин</b>
             <b>{vehicleLabel(tracking.courier?.vehicleType)}</b>
           </div>
-          {false && nearbyCouriers.length ? (
+          {tracking.status === "OFFERED" && nearbyCouriers.length ? (
             <div className="store-nearby-couriers">
-              {nearbyCouriers.slice(0, 4).map((courier, index) => (
+              {nearbyCouriers.slice(0, 5).map((courier, index) => (
                 <span className={(offerCourier?.employeeId ?? tracking?.courier?.id) === courier.employeeId ? "matched" : ""} key={courier.employeeId}>
-                  <i>{index + 1}</i>
+                  <i>{courier.queueIndex ?? index + 1}</i>
                   <strong>{courier.name}</strong>
                   <b>{courier.toPickupKm.toFixed(1)} км · {courier.etaMinutes} мин</b>
                 </span>
@@ -1024,13 +1033,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const liveSelectedOrder = selectedOrder ? dashboard.data?.orders.find((order) => order.id === selectedOrder.id) : null;
     const localSelectedTracking = selectedOrder ? dispatchTrackings[selectedOrder.id] : null;
     const liveSelectedTracking = liveSelectedOrder?.deliveryTracking ?? selectedOrder?.deliveryTracking ?? null;
-    const selectedTracking = selectedOrder
-      ? (isActiveDispatchStatus(liveSelectedTracking?.status)
-          ? liveSelectedTracking
-          : isDispatchExpired(localSelectedTracking)
-            ? localSelectedTracking
-            : liveSelectedTracking ?? localSelectedTracking)
-      : null;
+    const selectedTracking = selectedOrder ? preferredTracking(liveSelectedTracking, localSelectedTracking) : null;
     const selectedStatus = liveSelectedOrder?.status ?? selectedOrder?.status;
     const selectedDispatchExpired = isDispatchExpired(selectedTracking);
     const canCallCourier = selectedStatus === storeOrderStatuses.prepared
@@ -1057,8 +1060,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const trackingForOrder = (order: StoreOrderView) => {
       const localTracking = dispatchTrackings[order.id];
       const liveTracking = dashboard.data?.orders.find((item) => item.id === order.id)?.deliveryTracking ?? order.deliveryTracking ?? null;
-      if (isActiveDispatchStatus(liveTracking?.status)) return liveTracking;
-      return isDispatchExpired(localTracking) ? localTracking : liveTracking ?? localTracking;
+      return preferredTracking(liveTracking, localTracking);
     };
     const canCallCourierForOrder = (order: StoreOrderView) => {
       const status = liveStatusForOrder(order);

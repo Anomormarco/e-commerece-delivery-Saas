@@ -53,6 +53,7 @@ export type StoreOrder = {
       employeeId: string;
       name: string;
       vehicleType: string;
+      queueIndex?: number;
       toPickupKm: number;
       etaMinutes: number;
       location?: { lat: number; lng: number };

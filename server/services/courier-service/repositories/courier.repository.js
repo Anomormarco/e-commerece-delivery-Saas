@@ -17,7 +17,8 @@ const defaultTenant = {
   slug: "deliverhub-public",
 };
 
-const offerTimeoutMs = 30_000;
+const offerTimeoutMs = 10_000;
+const maxCourierOfferAttempts = 5;
 const busyAssignmentWindowMs = 2 * 60 * 60 * 1000;
 const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
 
@@ -119,6 +120,7 @@ async function createNextCourierOffer(transaction, { tenantId, orderId }) {
     select: { employeeId: true },
   });
   const excludedEmployeeIds = previousOffers.map((offer) => offer.employeeId).filter(Boolean);
+  if (excludedEmployeeIds.length >= maxCourierOfferAttempts) return null;
   const weightKg = assignmentOrderWeightKg(order);
   const distanceKm = assignmentOrderDistanceKm(order);
   const requirement = requiredVehicle(weightKg, distanceKm);
@@ -198,7 +200,7 @@ export async function advanceExpiredCourierOffers(tenantId) {
         data: {
           assignmentId: offer.id,
           reason: "OFFER_TIMEOUT",
-          note: "Employee did not answer within 30 seconds; offer moved to the next nearest courier.",
+          note: "Employee did not answer within 10 seconds; offer moved to the next nearest courier.",
         },
       });
 

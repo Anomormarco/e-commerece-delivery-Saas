@@ -19,7 +19,7 @@ const vehicleLabels = {
 };
 
 const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
-const offerTimeoutMs = 30_000;
+const offerTimeoutMs = 10_000;
 const maxStoreOfferAttempts = 5;
 const busyAssignmentWindowMs = 2 * 60 * 60 * 1000;
 const activeAssignmentStatuses = [
@@ -267,7 +267,7 @@ async function createNextStoreCourierOffer(transaction, { tenantId, orderId }) {
   const weightKg = orderWeightKg(order);
   const distanceKm = orderDistanceKm(order);
   const rule = dispatchRule(weightKg, distanceKm);
-  const candidates = await findAvailableEmployeesAllowingRetry(transaction, {
+  const candidates = await findAvailableEmployeesForOffer(transaction, {
     tenantId,
     vehicleTypes: rule.eligibleVehicles,
     excludedEmployeeIds,
@@ -316,7 +316,7 @@ async function advanceExpiredStoreOffers(tenantId) {
         data: {
           assignmentId: offer.id,
           reason: "OFFER_TIMEOUT",
-          note: "Store dashboard advanced the offer to the next online courier after 30 seconds.",
+          note: "Store dashboard advanced the offer to the next online courier after 10 seconds.",
         },
       });
 
@@ -498,18 +498,20 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
     distanceKm,
     requiredVehicle: rule.requiredVehicle,
     requiredVehicleLabel: vehicleLabels[rule.requiredVehicle],
-    eligibleEmployeeCount: eligibleEmployees.length,
-    dispatchQueue: rankedEmployees.map(({ employee, routePlan: candidateRoute }) => ({
+    eligibleEmployeeCount: Math.min(rankedEmployees.length, maxStoreOfferAttempts),
+    dispatchQueue: rankedEmployees.slice(0, maxStoreOfferAttempts).map(({ employee, routePlan: candidateRoute }, index) => ({
       employeeId: employee.id,
       name: employee.user?.fullName ?? "Хүргэлтийн ажилтан",
+      queueIndex: index + 1,
       toPickupKm: candidateRoute?.toPickupKm ?? null,
       etaMinutes: candidateRoute?.etaMinutes ?? null,
       location: candidateRoute?.courier,
     })),
-    nearbyCouriers: rankedEmployees.slice(0, 8).map(({ employee, routePlan: candidateRoute }) => ({
+    nearbyCouriers: rankedEmployees.slice(0, maxStoreOfferAttempts).map(({ employee, routePlan: candidateRoute }, index) => ({
       employeeId: employee.id,
       name: employee.user?.fullName ?? "Хүргэлтийн ажилтан",
       vehicleType: employee.vehicleType,
+      queueIndex: index + 1,
       toPickupKm: candidateRoute?.toPickupKm ?? null,
       etaMinutes: candidateRoute?.etaMinutes ?? null,
       location: candidateRoute?.courier,
