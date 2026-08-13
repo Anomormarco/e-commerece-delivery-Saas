@@ -2124,40 +2124,71 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       ) : null}
 
       {section === "courier" ? (
-        <section className="landing-courier-portal" aria-label="Хүргэлтийн ажилтан">
-          <header className="landing-courier-portal-head">
+        <section className="landing-courier-portal landing-courier-intro" aria-label="Хүргэлтийн ажилтан">
+          <section className="landing-courier-hero">
+            <div className="landing-courier-copy">
+              <span>DELIVERHUB EMPLOYEE</span>
+              <h2>Чөлөөт хүргэлтийн <b>нэгдсэн платформ</b></h2>
+              <p>Дэлгүүрүүдээс ирэх дуудлагыг ойр байршлаар хүлээн авч, өөрийн цагтаа ажиллан тогтмол орлого олох боломж.</p>
+              <div className="landing-courier-auth-links">
+                <a href={`${employeePortalUrl}/?mode=login`}>Нэвтрэх</a>
+                <a href={`${employeePortalUrl}/?mode=register`}>Бүртгүүлэх</a>
+              </div>
+            </div>
+            <figure className="landing-courier-visual">
+              <img
+                alt="Мэргэжлийн хүргэлтийн ажилтан"
+                src="https://lh3.googleusercontent.com/aida/AP1WRLtQ86oz2ChSOpdKFlao4LIojwBqcs6bCWDITTBxvZ5-nPTuZ4EJ-vASSUXTHIg53N7Y-HGvGMteuNcJurQKFndgbgOSQK2BYKhjC54XTHQqWbExMlsVKxBGLkpusJmqHBqgrv25vij5jmGezInrR3FMaktUauhfVb7TcoMfJDO8WuZBAKag9cpYpZsUNZ7A6I8IUKjctMMyPCZXxbjxKjtRCaTbrRZTtcahHmkGaSkLVUCkZ1Mb37S-KLM"
+              />
+            </figure>
+          </section>
+
+          <section className="landing-courier-feature-block" aria-label="Давуу тал">
+            <header>
+              <span>ЯАГААД DELIVERHUB ГЭЖ?</span>
+              <h3>Хүргэлтийн ажлаа нэг апп дотор удирд</h3>
+              <p>Байршил, санал, баталгаажуулалт, орлого бүгд нэг урсгалаар ажиллана.</p>
+            </header>
+            <div className="landing-courier-portal-grid">
+              <article>
+                <span>01</span>
+                <strong>Баталгаажсан ажилтан</strong>
+                <p>Бүртгэл, email, OTP баталгаажуулалттай найдвартай профайл.</p>
+              </article>
+              <article>
+                <span>02</span>
+                <strong>Бодит хяналт</strong>
+                <p>Дуудлага авсны дараа дэлгүүр хүртэлх чиглэл realtime харагдана.</p>
+              </article>
+              <article>
+                <span>03</span>
+                <strong>Хялбар тооцоо</strong>
+                <p>Хийсэн хүргэлтийн орлого, хүлээгдэж буй дүн түрийвчинд цэгцтэй харагдана.</p>
+              </article>
+              <article>
+                <span>04</span>
+                <strong>Уян хатан тариф</strong>
+                <p>Зай, төрөл, захиалгын нөхцлөөс хамаарсан шударга үнэлгээ.</p>
+              </article>
+            </div>
+          </section>
+
+          <section className="landing-courier-benefit">
+            <figure>
+              <img
+                alt="Хүргэлтийн ажилтан"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuJPn7sNDlDQ73xuuppuazlThVfnB9-HvhkUHiSdKGUp980PZa1Yhva3DO8QLuAIf92Z2wWM0LrPlftAyg7je7yhhmLXIXMsannM_ueAO3FMEHJy9mNIcyC48TLS0dtOzcBPjmoSUNKltekvHCS8a4Zr88fyiyEg38F1ggnvKm-TCXjz_q6082J9Do71v0vaaYf6sh8ETYLd18c1fQseXjEeER0fxf-QNXhu1QMhTEvy5V-9FjHfh2IxI5UJ6QLNnsfBV00UdMxiw"
+              />
+            </figure>
             <div>
-              <span>ХҮРГЭЛТИЙН АЖИЛТАН</span>
-              <h2>Хүргэлтийн ажилтнаар бүртгүүлж орлого ол</h2>
-              <p>Дуудлага, маршрут, төлөв нэг апп дээр.</p>
+              <span>ЧӨЛӨӨТ ЦАГААРАА ОРЛОГО ОЛ</span>
+              <h3>Мэргэжлийн хүргэлт, өөрийн хуваариар</h3>
+              <ul>
+                <li><b>Хүссэн үедээ ажилла</b><small>Ажлаа эхлүүлэх үед л ойрын дуудлагууд ирнэ.</small></li>
+                <li><b>Шууд дэмжлэг</b><small>Захиалга, OTP, pickup үеийн асуудлыг нэг урсгалаар шийднэ.</small></li>
+                <li><b>Тогтмол орлого</b><small>Дууссан хүргэлтийн дүн түрийвчинд тодорхой харагдана.</small></li>
+              </ul>
             </div>
-            <div className="landing-courier-auth-links">
-              <a href={`${employeePortalUrl}/?mode=login`}>Нэвтрэх</a>
-              <a href={`${employeePortalUrl}/?mode=register`}>Бүртгүүлэх</a>
-            </div>
-          </header>
-          <div className="landing-courier-portal-grid">
-            <article>
-              <span>01</span>
-              <strong>Илүү олон дуудлага</strong>
-              <p>Ойрын захиалгаа сонгоод ажилла.</p>
-            </article>
-            <article>
-              <span>02</span>
-              <strong>Итгэл төрүүлэх бодит төлөв</strong>
-              <p>Байршил, ирэх хугацаа ил тод.</p>
-            </article>
-            <article>
-              <span>03</span>
-              <strong>Аюулгүй баталгаажуулалт</strong>
-              <p>Кодоор баталгаажуулж хүргэнэ.</p>
-            </article>
-          </div>
-          <section className="landing-courier-status-panel">
-            <div><span>Өнөөдрийн боломж</span><strong>12</strong><em>дуудлага</em></div>
-            <div><span>Идэвхтэй ажил</span><strong>3</strong><em>ажиллаж байна</em></div>
-            <div><span>Дундаж хүргэлт</span><strong>18 мин</strong><em>хурд</em></div>
-            <div><span>Амжилтын түвшин</span><strong>98%</strong><em>итгэл</em></div>
           </section>
         </section>
       ) : null}
