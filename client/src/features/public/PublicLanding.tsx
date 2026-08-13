@@ -1499,7 +1499,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }
 
   return (
-    <main className={`nomad-scroll-page ${section === "market" ? "is-market-route" : ""} ${section === "contact" ? "is-contact-route" : ""} ${section === "courier" ? "is-courier-route" : ""} ${cartOpen ? "is-cart-open" : ""}`} id="hero">
+    <main className={`nomad-scroll-page ${section === "market" ? "is-market-route" : ""} ${section === "contact" ? "is-contact-route" : ""} ${section === "courier" ? "is-courier-route" : ""} ${section === "partner" ? "is-partner-route" : ""} ${cartOpen ? "is-cart-open" : ""}`} id="hero">
       {paymentSuccess ? <div className="landing-payment-success" role="status">{paymentSuccess}</div> : null}
       <nav className={`landing-commerce-nav ${menuHidden && !cartOpen ? "is-hidden" : ""}`} aria-label="Landing navigation">
         <a className="landing-commerce-brand" href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>
@@ -1976,53 +1976,145 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
       {section === "partner" ? (
         <section className="landing-partner-page" aria-label="БИЗНЕСИЙН ТҮНШЛЭЛ">
-          <div className="landing-partner-copy">
-            <div>
+          <section className="landing-partner-hero">
+            <div className="landing-partner-copy">
               <span>БИЗНЕСИЙН ТҮНШЛЭЛ</span>
-              <h2>Дэлгүүрээ онлайн болго</h2>
-              <p>Захиалга, хүргэлт, орлого нэг дор.</p>
+              <h2>Хамтдаа өсөж, хамтдаа хөгжие</h2>
+              <p>Бидэнтэй хамтран ажилласнаар бизнесээ онлайн зах зээлтэй холбож, маркетинг, захиалга, хүргэлтээ нэг системээр удирдаарай.</p>
             </div>
-            <div className="landing-partner-metrics">
-              <article><strong>01</strong><small>Хайлтад илүү хурдан гарна.</small></article>
-              <article><strong>02</strong><small>Захиалга автоматаар цэгцэрнэ.</small></article>
-              <article><strong>03</strong><small>Бүгд нэг dashboard-д.</small></article>
-            </div>
-          </div>
+            <figure className="landing-partner-hero-media">
+              <img
+                alt="DeliverHub бизнесийн түншлэл"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeMl8v56Q7tiTZfWvoddNJIHDAdhGwpfxnLDxt8hPY51Qulv8xUnK94UlogvX0LQuUXZa3FU4xFBgFfu-FLtArPNGlwJh388E_iLRPwVf_y6jirUQ15_S7gAyhtYlbcBw3FpmOgbNa_KbKPbAjFLxMs_fKY7i_YK-S4TFwr1Zn1JEK8EwnTv--7crgrPLFR8Txzl3fDRmfvSWtHdkb9C44ypVUgfajYhStasK2zBAnZixndjekogRK"
+              />
+            </figure>
+          </section>
 
-          <aside className="landing-partner-auth">
+          <section className="landing-partner-feature-section" aria-label="Түншлэлийн давуу тал">
             <header>
-              <div>
-                <span>Түншийн эрх</span>
-                <strong>{partnerAuthMode === "login" ? "Борлуулалтаа үргэлжлүүлэх" : "Дэлгүүрээ эхлүүлэх"}</strong>
-              </div>
-              <div>
-                <button className={partnerAuthMode === "login" ? "active" : ""} onClick={() => setPartnerAuthMode("login")} type="button">Нэвтрэх</button>
-                <button className={partnerAuthMode === "register" ? "active" : ""} onClick={() => setPartnerAuthMode("register")} type="button">Бүртгүүлэх</button>
-              </div>
+              <h3>Яагаад бидэнтэй нэгдэх вэ?</h3>
+              <p>Өсөлт, маркетинг, найдвартай логистикийг нэг платформоос.</p>
             </header>
-            <form className="landing-partner-form" onSubmit={submitPartnerAuth}>
-              {partnerAuthMode === "register" ? (
-                <div className="landing-partner-form-grid">
-                  <input value={partnerForm.storeName} onChange={(event) => setPartnerForm({ ...partnerForm, storeName: event.target.value })} placeholder="Дэлгүүрийн нэр" />
-                  <input value={partnerForm.logoUrl} onChange={(event) => setPartnerForm({ ...partnerForm, logoUrl: event.target.value })} placeholder="Logo URL" />
-                  <input value={partnerForm.address} onChange={(event) => setPartnerForm({ ...partnerForm, address: event.target.value })} placeholder="Хаяг" />
-                  <input value={partnerForm.phone} onChange={(event) => setPartnerForm({ ...partnerForm, phone: event.target.value })} placeholder="Утасны дугаар" />
-                  <input value={partnerForm.storeType} onChange={(event) => setPartnerForm({ ...partnerForm, storeType: event.target.value })} placeholder="Дэлгүүрийн төрөл" />
-                  <input value={partnerForm.searchableFeature} onChange={(event) => setPartnerForm({ ...partnerForm, searchableFeature: event.target.value })} placeholder="Хайгдах онцлог" />
-                  <input value={partnerForm.ownerName} onChange={(event) => setPartnerForm({ ...partnerForm, ownerName: event.target.value })} placeholder="Хариуцсан хүний нэр" />
+            <div className="landing-partner-feature-grid">
+              <article>
+                <span className="landing-partner-feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" role="img">
+                    <path d="M4.8 10.7h14.4" />
+                    <path d="M6.8 20.2h10.4a2 2 0 0 0 2-2V9.4a2 2 0 0 0-2-2H6.8a2 2 0 0 0-2 2v8.8a2 2 0 0 0 2 2Z" />
+                    <path d="M8.4 7.4V5.8a2 2 0 0 1 2-2h3.2a2 2 0 0 1 2 2v1.6" />
+                    <path d="M12 13.1v2.8" />
+                    <path d="M10.6 14.5h2.8" />
+                  </svg>
+                </span>
+                <strong>Бизнесээ өргөжүүл</strong>
+                <p>Өдөр бүр шинэ хэрэглэгчидтэй холбогдож, борлуулалтын сувгаа нэмэгдүүл.</p>
+              </article>
+              <article>
+                <span className="landing-partner-feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" role="img">
+                    <path d="M4.6 18.6 9.2 14l3 3 6.9-7" />
+                    <path d="M15.3 10.1h3.8v3.8" />
+                    <path d="M5 5.4h14" />
+                    <path d="M5 9h6.4" />
+                    <path d="M5 12.6h3" />
+                  </svg>
+                </span>
+                <strong>Маркетингаа сайжруул</strong>
+                <p>Ангилал, хайлт, урамшуулал, хэрэглэгчийн өгөгдөл дээр суурилсан өсөлт.</p>
+              </article>
+              <article>
+                <span className="landing-partner-feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" role="img">
+                    <path d="M5 17.7 19 5" />
+                    <path d="M12.5 5H19v6.5" />
+                    <path d="M6.5 19.5h10.9a2.1 2.1 0 0 0 2.1-2.1V15" />
+                    <path d="M4.5 7.2v10.2a2.1 2.1 0 0 0 2.1 2.1" />
+                  </svg>
+                </span>
+                <strong>Найдвартай логистик</strong>
+                <p>Realtime хяналттай хүргэлтээр бүтээгдэхүүнээ хурдан, ил тод хүргэнэ.</p>
+              </article>
+            </div>
+          </section>
+
+          <section className="landing-partner-bento" aria-label="Бизнесийн төрөл">
+            <header>
+              <h3>Бүх төрлийн бизнест зориулав</h3>
+            </header>
+            <div className="landing-partner-bento-grid">
+              <article className="is-wide">
+                <div>
+                  <strong>Ресторан &amp; кофе шоп</strong>
+                  <p>Хоолны салбарын онцлогт тохирсон хурдан, найдвартай хүргэлт. Дулаан барих тусгай цүнх, шуурхай үйлчилгээ.</p>
+                  <ul>
+                    <li>15-30 минутын хүргэлт</li>
+                    <li>Чанарын хяналт</li>
+                  </ul>
                 </div>
-              ) : null}
-              <input value={partnerForm.username} onChange={(event) => setPartnerForm({ ...partnerForm, username: event.target.value })} placeholder="Нэвтрэх ID эсвэл Gmail" />
-              <input value={partnerForm.password} onChange={(event) => setPartnerForm({ ...partnerForm, password: event.target.value })} placeholder="Нууц үг" type="password" />
-              {partnerAuthMode === "register" ? (
-                <input value={partnerForm.confirmPassword} onChange={(event) => setPartnerForm({ ...partnerForm, confirmPassword: event.target.value })} placeholder="Нууц үг давтах" type="password" />
-              ) : null}
-              <button className="landing-auth-submit" type="submit">
-                {partnerAuthMode === "login" ? "Портал руу орох" : "Бизнесээ нэмэх"}
-              </button>
-              {notice ? <p>{notice}</p> : null}
-            </form>
-          </aside>
+                <img
+                  alt="Ресторан түншлэл"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDeOugPoZ703w1WUKA_OvSzg9TTaFtbj56foic_yhb0HO0ar2xQO3BWhn7ZIYiBJFZr-IIuU9rM3bSvIo75Jkat3inFCAHXmSdPNCZ2V-0Ibb9Np_AGeDyIeOpVuEcCRuLJ8vsYNQN_ws3R_XdkJcUU1QnAS27rAfJNsaMonVzFGBBvvAKkUeE7mwW2ox2cOZOe4cpWPzsV2eWR2gfEbJL0Q9Smgl9HOVy0si2avNpk4K92r5NEeIh_"
+                />
+              </article>
+              <article>
+                <strong>Жижиглэн худалдаа</strong>
+                <p>Дэлгүүрийн бараагаа онлайнаар борлуулж, өдөрт нь хүргэх боломж.</p>
+                <img
+                  alt="Жижиглэн худалдаа"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzSzkMmwrKneN-EbUsCTdqbwJAfEH2OoPqOjC7u3hCS7oujoKV7n1--5BfHKgvXunTZrjz_a66pAdeph_sQdPFusDpvrzuja_mOnAhy-GC8yEN5syP5hc8h5jWdVrss084NJbxDvyQCYyyP1NJ6_AXUBCstUF-vW8zKPmFF_VzHTWFfQ1cUQTlikA1l4k5Vese8q1xkFVJUT8vZGKd1t3LPUnBcBvUC33MehYC2bbRJFeUXM1anij_"
+                />
+              </article>
+            </div>
+          </section>
+
+          <section className="landing-partner-contact" id="partner-contact" aria-label="Түнш болох">
+            <div>
+              <h3>Хамтын ажиллагаагаа эхлүүлье</h3>
+              <p>Дэлгүүрээ бүртгүүлээд захиалга, хүргэлт, орлогоо нэг dashboard дээр удирдаарай.</p>
+            </div>
+            <aside className="landing-partner-auth">
+              <header>
+                <div>
+                  <span>Түншийн эрх</span>
+                  <strong>{partnerAuthMode === "login" ? "Борлуулалтаа үргэлжлүүлэх" : "Дэлгүүрээ эхлүүлэх"}</strong>
+                </div>
+                <div>
+                  <button className={partnerAuthMode === "login" ? "active" : ""} onClick={() => setPartnerAuthMode("login")} type="button">Нэвтрэх</button>
+                  <button className={partnerAuthMode === "register" ? "active" : ""} onClick={() => setPartnerAuthMode("register")} type="button">Бүртгүүлэх</button>
+                </div>
+              </header>
+              <form className="landing-partner-form" onSubmit={submitPartnerAuth}>
+                {partnerAuthMode === "register" ? (
+                  <div className="landing-partner-form-grid">
+                    <input value={partnerForm.storeName} onChange={(event) => setPartnerForm({ ...partnerForm, storeName: event.target.value })} placeholder="Дэлгүүрийн нэр" />
+                    <input value={partnerForm.logoUrl} onChange={(event) => setPartnerForm({ ...partnerForm, logoUrl: event.target.value })} placeholder="Logo URL" />
+                    <input value={partnerForm.address} onChange={(event) => setPartnerForm({ ...partnerForm, address: event.target.value })} placeholder="Хаяг" />
+                    <input value={partnerForm.phone} onChange={(event) => setPartnerForm({ ...partnerForm, phone: event.target.value })} placeholder="Утасны дугаар" />
+                    <input value={partnerForm.storeType} onChange={(event) => setPartnerForm({ ...partnerForm, storeType: event.target.value })} placeholder="Дэлгүүрийн төрөл" />
+                    <input value={partnerForm.searchableFeature} onChange={(event) => setPartnerForm({ ...partnerForm, searchableFeature: event.target.value })} placeholder="Хайгдах онцлог" />
+                    <input value={partnerForm.ownerName} onChange={(event) => setPartnerForm({ ...partnerForm, ownerName: event.target.value })} placeholder="Хариуцсан хүний нэр" />
+                  </div>
+                ) : null}
+                <input value={partnerForm.username} onChange={(event) => setPartnerForm({ ...partnerForm, username: event.target.value })} placeholder="Нэвтрэх ID эсвэл Gmail" />
+                <input value={partnerForm.password} onChange={(event) => setPartnerForm({ ...partnerForm, password: event.target.value })} placeholder="Нууц үг" type="password" />
+                {partnerAuthMode === "register" ? (
+                  <input value={partnerForm.confirmPassword} onChange={(event) => setPartnerForm({ ...partnerForm, confirmPassword: event.target.value })} placeholder="Нууц үг давтах" type="password" />
+                ) : null}
+                <button className="landing-auth-submit" type="submit">
+                  {partnerAuthMode === "login" ? "Портал руу орох" : "Бизнесээ нэмэх"}
+                </button>
+                {notice ? <p>{notice}</p> : null}
+              </form>
+            </aside>
+          </section>
+
+          <footer className="landing-partner-footer">
+            <span>Бизнесийн түншлэлийн нэгдсэн баг</span>
+            <nav>
+              <a href="#partner-contact">Түншийн дэмжлэг</a>
+              <a href="#partner-contact">Холбоо барих</a>
+            </nav>
+          </footer>
         </section>
       ) : null}
 
@@ -2120,12 +2212,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <div className="landing-contact-grid">
           <article>
             <span>Имэйл</span>
-            <strong>support@deliverhub.mn</strong>
+            <strong>deliverhub2025@gmail.com</strong>
             <p>Бизнесээ холбох зөвлөгөө аваарай.</p>
           </article>
           <article>
             <span>Утас</span>
-            <strong>+976 7700 1122</strong>
+            <strong>+976 85356114</strong>
             <p>Бүртгэл, хүргэлт, marketplace-ийн дэмжлэг.</p>
           </article>
           <form>
@@ -2219,8 +2311,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           </footer>
 
           <footer className="landing-courier-site-footer">
-            <strong>DeliverHub</strong>
-            <span>© 2026 DeliverHub Logistics Inc. Бүх эрх хуулиар хамгаалагдсан.</span>
+            <span>© 2026. Бүх эрх хуулиар хамгаалагдсан.</span>
             <nav aria-label="DeliverHub холбоосууд">
               <a href="#stores">Нууцлалын бодлого</a>
               <a href="#stores">Үйлчилгээний нөхцөл</a>

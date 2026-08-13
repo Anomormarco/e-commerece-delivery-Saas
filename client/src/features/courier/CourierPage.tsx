@@ -27,6 +27,7 @@ const fallbackPosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const tileSize = 256;
 const courierOfferTimeoutMs = 12_000;
 const activePickupStates = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
+const serverConfirmedRouteStates = ["ARRIVING_PICKUP", "PICKUP_VERIFICATION"];
 const employeeUiDeployMarker = "employee-work-mode-offer-card-v11";
 
 function isAuthSessionError(message?: string | null) {
@@ -61,7 +62,7 @@ const text = {
   menu: "\u0426\u044D\u0441",
   mapTab: "\u0413\u0430\u0437\u0440\u044B\u043D \u0437\u0443\u0440\u0430\u0433",
   deliveriesTab: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442",
-  walletTab: "\u041E\u0440\u043B\u043E\u0433\u043E",
+  walletTab: "Хэтэвч",
   profileTab: "\u041F\u0440\u043E\u0444\u0430\u0439\u043B",
   pickup: "\u0410\u0432\u0430\u0445 \u0433\u0430\u0437\u0430\u0440",
   dropoff: "\u0425\u04AF\u0440\u0433\u044D\u0445 \u0433\u0430\u0437\u0430\u0440",
@@ -81,12 +82,12 @@ const text = {
   locating: "\u0411\u0430\u0439\u0440\u0448\u0438\u043B \u0442\u043E\u0433\u0442\u043E\u043E\u0436 \u0431\u0430\u0439\u043D\u0430",
   eta: "~12 \u043C\u0438\u043D",
   arrivedStore: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442 \u0430\u0432\u0430\u0445\u0430\u0434 \u0431\u044D\u043B\u044D\u043D",
-  storeOtp: "Store owner-д өгөх OTP",
-  customerOtp: "\u0425\u04AF\u043B\u044D\u044D\u043D \u0430\u0432\u0430\u0433\u0447\u0438\u0439\u043D OTP",
+  storeOtp: "Дэлгүүрт өгөх баталгаажуулах код",
+  customerOtp: "Хүлээн авагчийн баталгаажуулах код",
   verifyPickup: "\u0410\u0447\u0430\u0430 \u0430\u0432\u0430\u0445",
   verifyDropoff: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442 \u0434\u0443\u0443\u0441\u0433\u0430\u0445",
   delivered: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442 \u0430\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439",
-  otpHint: "Туршилтын OTP: store owner 123456, хэрэглэгч 654321",
+  otpHint: "Туршилтын код: дэлгүүр 123456, хэрэглэгч 654321",
   darkMode: "\u0425\u0430\u0440\u0430\u043D\u0445\u0443\u0439",
   whiteMode: "\u0426\u0430\u0439\u0432\u0430\u0440",
   satelliteMode: "\u0425\u0438\u0439\u043C\u044D\u043B \u0434\u0430\u0433\u0443\u0443\u043B",
@@ -227,7 +228,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [jobs, setJobs] = useState<QueueItem[] | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [orderSearch, setOrderSearch] = useState("");
-  const [orderFilter, setOrderFilter] = useState<"all" | "new" | "delivering" | "delivered">("all");
+  const [orderFilter, setOrderFilter] = useState<"active" | "completed">("active");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [position, setPosition] = useState<GeoPoint | null>(null);
   const lastLocationPostRef = useRef<{ point: GeoPoint; sentAt: number } | null>(null);
@@ -248,10 +249,8 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     const normalizedSearch = orderSearch.trim().toLowerCase();
     const matchesSearch = !normalizedSearch || `${job.id} ${job.name} ${job.distance}`.toLowerCase().includes(normalizedSearch);
     const matchesFilter =
-      orderFilter === "all"
-      || (orderFilter === "new" && job.state === "OFFERED")
-      || (orderFilter === "delivering" && !["OFFERED", "DELIVERED"].includes(job.state))
-      || (orderFilter === "delivered" && job.state === "DELIVERED");
+      (orderFilter === "active" && job.state !== "DELIVERED")
+      || (orderFilter === "completed" && job.state === "DELIVERED");
 
     return matchesSearch && matchesFilter;
   });
@@ -260,7 +259,13 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const deliveredJobs = visibleJobs.filter((job) => job.state === "DELIVERED");
   const offerJob = newJobs[0] ?? null;
   const activeMapJob = deliveringJobs[0] ?? null;
-  const routeMapJob = activeMapJob && (acceptedRouteJobIds.has(activeMapJob.id) || activePickupStates.includes(activeMapJob.state)) ? activeMapJob : null;
+  const routeMapJob = activeMapJob
+    && (
+      acceptedRouteJobIds.has(activeMapJob.id)
+      || serverConfirmedRouteStates.includes(activeMapJob.state)
+    )
+    ? activeMapJob
+    : null;
   const pickupPoint = routeMapJob?.routePlan?.pickup;
   const dropoffPoint = routeMapJob?.routePlan?.dropoff;
   const courierPoint = position ?? fallbackPosition;
@@ -274,6 +279,10 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const totalPayoutMnt = visibleJobs.reduce((sum, job) => sum + Number(job.payoutMnt ?? 0), 0);
   const deliveredPayoutMnt = deliveredJobs.reduce((sum, job) => sum + Number(job.payoutMnt ?? 0), 0);
   const averagePayoutMnt = visibleJobs.length ? Math.round(totalPayoutMnt / visibleJobs.length) : 0;
+  const pendingPayoutMnt = Math.max(0, totalPayoutMnt - deliveredPayoutMnt);
+  const walletHistoryJobs = (deliveredJobs.length ? deliveredJobs : visibleJobs).slice(0, 4);
+  const walletWeeklyBars = [42, 62, 36, 78, 56, 94, 24];
+  const formatWalletMoney = (value: number) => `₮${value.toLocaleString("mn-MN")}`;
   const tabItems: Array<{ key: CourierTab; label: string; icon: string }> = [
     { key: "map", label: text.mapTab, icon: "\u25A1" },
     { key: "deliveries", label: text.deliveriesTab, icon: "\u25F7" },
@@ -561,7 +570,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     {offerJob.routePlan && (
                       <div className="employee-route-preview">
                         <strong>{offerJob.routePlan?.label}</strong>
-                        <span>{offerJob.routePlan?.totalKm} км · ETA {offerJob.routePlan?.etaMinutes} мин</span>
+                        <span>{offerJob.routePlan?.totalKm} км · Ирэх хугацаа {offerJob.routePlan?.etaMinutes} мин</span>
                         <small>Явган {offerJob.routePlan?.walkingMinutes} мин / Авто зам {offerJob.routePlan?.drivingMinutes} мин</small>
                       </div>
                     )}
@@ -581,13 +590,13 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                       <b>{storeDistanceKm == null ? routeMapJob.distance : `${storeDistanceKm.toFixed(2)} км`}</b>
                     </div>
                     <div className="courier-map-request-meta">
-                      <span>Store хүртэл шууд зай</span>
-                      <span>ETA {storeEtaMinutes ?? routeMapJob.routePlan?.etaMinutes ?? 1} мин</span>
-                      <span>{position ? "Live GPS" : text.locating}</span>
+                      <span>Дэлгүүр хүртэл шууд зай</span>
+                      <span>Ирэх хугацаа {storeEtaMinutes ?? routeMapJob.routePlan?.etaMinutes ?? 1} мин</span>
+                      <span>{position ? "Бодит GPS" : text.locating}</span>
                     </div>
                     <div className="employee-route-preview">
-                      <strong>Employee → Store route realtime</strong>
-                      <span>{routeMapJob.routePlan?.label ?? "Store руу хамгийн ойр зам"}</span>
+                      <strong>Ажилтан → Дэлгүүр чиглэл</strong>
+                      <span>{routeMapJob.routePlan?.label ?? "Дэлгүүр рүү хамгийн ойр зам"}</span>
                     </div>
                     {routeMapJob.state === "ACCEPTED" && (
                       <button className="employee-full-action" onClick={() => postJobAction(routeMapJob.id, "arrive-store")} type="button">
@@ -618,13 +627,13 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     {routeMapJob.customerPhone && <a href={`tel:${routeMapJob.customerPhone}`}>{routeMapJob.customerPhone}</a>}
                   </div>
                   <div className="courier-map-request-meta">
-                    <span>Store хүртэл шууд зай</span>
-                    <span>ETA {storeEtaMinutes ?? routeMapJob.routePlan?.etaMinutes ?? 1} мин</span>
-                    <span>{position ? "Live GPS" : text.locating}</span>
+                    <span>Дэлгүүр хүртэл шууд зай</span>
+                    <span>Ирэх хугацаа {storeEtaMinutes ?? routeMapJob.routePlan?.etaMinutes ?? 1} мин</span>
+                    <span>{position ? "Бодит GPS" : text.locating}</span>
                   </div>
                   <div className="employee-route-preview">
-                    <strong>Employee → Store route realtime</strong>
-                    <span>{routeMapJob.routePlan?.label ?? "Store руу хамгийн ойр зам"}</span>
+                    <strong>Ажилтан → Дэлгүүр чиглэл</strong>
+                    <span>{routeMapJob.routePlan?.label ?? "Дэлгүүр рүү хамгийн ойр зам"}</span>
                   </div>
                   {routeMapJob.state === "ACCEPTED" && (
                     <button className="employee-full-action" onClick={() => postJobAction(routeMapJob.id, "arrive-store")} type="button">
@@ -677,10 +686,8 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                 </div>
                 <div className="courier-order-filters">
                   {[
-                    { key: "all", label: text.allOrders, count: visibleJobs.length },
-                    { key: "new", label: text.newOrders, count: newJobs.length },
-                    { key: "delivering", label: text.deliveringOrders, count: deliveringJobs.length },
-                    { key: "delivered", label: text.deliveredOrders, count: deliveredJobs.length },
+                    { key: "active", label: "ИДЭВХТЭЙ", count: newJobs.length + deliveringJobs.length },
+                    { key: "completed", label: "ДУУССАН", count: deliveredJobs.length },
                   ].map((filter) => (
                     <button
                       className={orderFilter === filter.key ? "active" : ""}
@@ -724,7 +731,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   {job.routePlan && (
                     <div className="employee-route-preview">
                       <strong>{job.routePlan.label}</strong>
-                      <span>{job.routePlan.totalKm} км · ETA {job.routePlan.etaMinutes} мин</span>
+                      <span>{job.routePlan.totalKm} км · Ирэх хугацаа {job.routePlan.etaMinutes} мин</span>
                       <small>Явган {job.routePlan.walkingMinutes} мин / Авто зам {job.routePlan.drivingMinutes} мин</small>
                     </div>
                   )}
@@ -785,6 +792,78 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
               )}
 
               {activeTab === "wallet" && (
+                <section className="employee-wallet-page" aria-label="Миний түрийвч">
+                  <header className="employee-wallet-header">
+                    <h2>Миний түрийвч</h2>
+                    <button aria-label="Тусламж" type="button">?</button>
+                  </header>
+
+                  <section className="employee-wallet-balance-card" aria-label="Нийт үлдэгдэл">
+                    <div>
+                      <span>Нийт үлдэгдэл</span>
+                      <strong>{formatWalletMoney(totalPayoutMnt)}</strong>
+                    </div>
+                    <i aria-hidden="true">$</i>
+                  </section>
+
+                  <section className="employee-wallet-breakdown" aria-label="Орлогын задаргаа">
+                    <article>
+                      <span>Татахад бэлэн</span>
+                      <strong>{formatWalletMoney(deliveredPayoutMnt)}</strong>
+                      <em style={{ width: `${totalPayoutMnt ? Math.min(100, Math.round((deliveredPayoutMnt / totalPayoutMnt) * 100)) : 0}%` }} />
+                    </article>
+                    <article>
+                      <span>Хүлээгдэж буй</span>
+                      <strong>{formatWalletMoney(pendingPayoutMnt)}</strong>
+                      <em style={{ width: `${totalPayoutMnt ? Math.min(100, Math.round((pendingPayoutMnt / totalPayoutMnt) * 100)) : 0}%` }} />
+                    </article>
+                  </section>
+
+                  <button className="employee-wallet-withdraw" type="button">
+                    <span aria-hidden="true">$</span>
+                    Данс руу татах
+                  </button>
+
+                  <section className="employee-wallet-history" aria-label="Орлогын түүх">
+                    <div className="employee-wallet-section-title">
+                      <h3>Орлогын түүх</h3>
+                      <button type="button">Бүгдийг харах</button>
+                    </div>
+                    <div className="employee-wallet-transactions">
+                      {walletHistoryJobs.map((job, index) => (
+                        <article key={job.id}>
+                          <span aria-hidden="true">▣</span>
+                          <div>
+                            <strong>#{job.id.slice(-6).toUpperCase()}</strong>
+                            <small>{index === 0 ? "Өнөөдөр, 14:20" : "Өнөөдөр, 12:45"}</small>
+                          </div>
+                          <p>
+                            <b>+ {formatWalletMoney(Number(job.payoutMnt ?? averagePayoutMnt))}</b>
+                            <small>{job.state === "DELIVERED" ? "Амжилттай" : "Хүлээгдэж буй"}</small>
+                          </p>
+                        </article>
+                      ))}
+                      {!walletHistoryJobs.length && <div className="employee-wallet-empty">{text.noJobs}</div>}
+                    </div>
+                  </section>
+
+                  <section className="employee-wallet-weekly" aria-label="Долоо хоногийн гүйцэтгэл">
+                    <h3>Долоо хоногийн гүйцэтгэл</h3>
+                    <div className="employee-wallet-bars">
+                      {walletWeeklyBars.map((height, index) => (
+                        <span key={index} style={{ height: `${height}%` }} />
+                      ))}
+                    </div>
+                    <div className="employee-wallet-days">
+                      {["Да", "Мя", "Лх", "Пү", "Ба", "Бя", "Ня"].map((day) => (
+                        <span key={day}>{day}</span>
+                      ))}
+                    </div>
+                  </section>
+                </section>
+              )}
+
+              {false && activeTab === "wallet" && (
                 <section className="employee-dynamic-panel" aria-label={text.walletTab}>
                   <div className="employee-panel-title">
                     <span>{text.walletTab}</span>
@@ -822,18 +901,92 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
               )}
 
               {activeTab === "profile" && (
+                <section className="employee-profile-page" aria-label={text.profileTab}>
+                  <header className="employee-profile-top">
+                    <div className="employee-profile-avatar-wrap">
+                      <span className="employee-profile-avatar">{(dashboard.data.employeeName ?? text.title).slice(0, 1)}</span>
+                      <b>4.9 ★</b>
+                    </div>
+                    <div>
+                      <span>Хүргэлтийн ажилтан</span>
+                      <h2>{dashboard.data.employeeName}</h2>
+                      <p>{dashboard.data.vehicleLabel}</p>
+                    </div>
+                  </header>
+
+                  <section className="employee-profile-rating-card" aria-label="Үнэлгээ">
+                    <div>
+                      <span>Дундаж үнэлгээ</span>
+                      <strong>4.9</strong>
+                      <small>128 үнэлгээ</small>
+                    </div>
+                    <div className="employee-profile-stars" aria-label="4.9 од">★★★★★</div>
+                  </section>
+
+                  <section className="employee-profile-metrics" aria-label="Гүйцэтгэл">
+                    <article>
+                      <span>Дууссан</span>
+                      <strong>{deliveredJobs.length}</strong>
+                    </article>
+                    <article>
+                      <span>Идэвхтэй</span>
+                      <strong>{newJobs.length + deliveringJobs.length}</strong>
+                    </article>
+                    <article>
+                      <span>Орлого</span>
+                      <strong>{formatWalletMoney(totalPayoutMnt)}</strong>
+                    </article>
+                  </section>
+
+                  <section className="employee-profile-info" aria-label="Бүртгэлийн мэдээлэл">
+                    <div>
+                      <span>{text.identity}</span>
+                      <strong>{dashboard.data.verificationStatus}</strong>
+                    </div>
+                    <div>
+                      <span>Ажлын төлөв</span>
+                      <strong>{isOnline ? text.working : text.offWork}</strong>
+                    </div>
+                    <p>{dashboard.data.verificationText}</p>
+                  </section>
+
+                  <section className="employee-profile-reviews" aria-label="Сүүлийн үнэлгээ">
+                    <div className="employee-profile-section-title">
+                      <h3>Сүүлийн үнэлгээ</h3>
+                      <button type="button">Бүгд</button>
+                    </div>
+                    {[
+                      { name: "Номин Маркет", note: "Түргэн, найдвартай хүргэлт.", score: "5.0" },
+                      { name: "Хэрэглэгч", note: "Цагтаа ирсэн.", score: "4.8" },
+                    ].map((review) => (
+                      <article key={review.name}>
+                        <span>{review.name.slice(0, 1)}</span>
+                        <div>
+                          <strong>{review.name}</strong>
+                          <small>{review.note}</small>
+                        </div>
+                        <b>{review.score} ★</b>
+                      </article>
+                    ))}
+                  </section>
+
+                  {onLogout && <button className="employee-profile-logout" onClick={onLogout} type="button">{text.logout}</button>}
+                </section>
+              )}
+
+              {false && activeTab === "profile" && (
                 <section className="employee-dynamic-panel" aria-label={text.profileTab}>
                   <div className="employee-profile-summary">
-                    <span>{(dashboard.data.employeeName ?? text.title).slice(0, 1)}</span>
+                    <span>{(dashboard.data!.employeeName ?? text.title).slice(0, 1)}</span>
                     <div>
-                      <strong>{dashboard.data.employeeName}</strong>
-                      <small>{dashboard.data.vehicleLabel}</small>
+                      <strong>{dashboard.data!.employeeName}</strong>
+                      <small>{dashboard.data!.vehicleLabel}</small>
                     </div>
                   </div>
                   <div className="employee-stat-grid">
                     <div>
                       <span>{text.identity}</span>
-                      <strong>{dashboard.data.verificationStatus}</strong>
+                      <strong>{dashboard.data!.verificationStatus}</strong>
                     </div>
                     <div>
                       <span>Ажлын төлөв</span>
@@ -848,7 +1001,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                       <strong>{deliveredJobs.length}</strong>
                     </div>
                   </div>
-                  <p className="employee-profile-note">{dashboard.data.verificationText}</p>
+                  <p className="employee-profile-note">{dashboard.data!.verificationText}</p>
                   {onLogout && <button className="employee-full-action" onClick={onLogout} type="button">{text.logout}</button>}
                 </section>
               )}

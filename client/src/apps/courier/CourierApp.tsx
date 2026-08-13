@@ -50,19 +50,19 @@ const text = {
   heroKicker: "DELIVERHUB",
   heroTitle: "Хүргэлтийн ажилтны самбар",
   heroCopy: "Баталгаажуулалт, ажлын төлөв, тээврийн хэрэгслийн тохиргоо болон хүргэлтийн дуудлагыг нэг дор удирдана.",
-  loginTitle: "DeliverHub ажилтан",
-  registerTitle: "Ажилтны бүртгэл",
+  loginTitle: "Хүргэлтийн ажилтан нэвтрэх",
+  registerTitle: "Хүргэлтийн ажилтнаар бүртгүүлэх",
   loginLead: "Утас болон нууц үгээрээ нэвтэрч хүргэлтийн дуудлагаа удирдана.",
   registerLead: "Ажилтны бүртгэл үүсгээд хүргэлтийн төрлөө сонгон баталгаажуулалтаа дуусгана.",
   login: "Нэвтрэх",
   register: "Бүртгүүлэх",
   fullName: "Бүтэн нэр",
-  phone: "Утас эсвэл Gmail ID",
+  phone: "Утас эсвэл Gmail",
   phoneNumber: "Утасны дугаар",
   phoneVerified: "Утасны дугаар баталгаажсан",
   firstName: "Нэр",
   lastName: "Овог",
-  email: "Gmail (OTP авах)",
+  email: "Gmail (баталгаажуулах код авах)",
   age: "Нас",
   gender: "Хүйс",
   homeAddress: "Гэрийн хаяг",
@@ -73,7 +73,7 @@ const text = {
   start: "Үргэлжлүүлэх",
   wait: "Түр хүлээнэ үү...",
   required: "Шаардлагатай талбаруудыг бөглөнө үү.",
-  gmailRequired: "OTP авах Gmail хаягаа зөв оруулна уу. Жишээ: name@gmail.com",
+  gmailRequired: "Баталгаажуулах код авах Gmail хаягаа зөв оруулна уу. Жишээ: name@gmail.com",
   idStep: "Бичиг баримт",
   faceStep: "Царай баталгаажуулалт",
   legalName: "Бичиг баримт дээрх нэр",
@@ -82,7 +82,7 @@ const text = {
   front: "Урд тал оруулсан",
   back: "Ар тал оруулсан",
   passportPhoto: "Паспортын хуудас оруулсан",
-  selfie: "Бичиг баримттай selfie оруулсан",
+  selfie: "Бичиг баримттай өөрийн зураг оруулсан",
   liveness: "Амьд хүн шалгалт амжилттай",
   submitId: "Бичиг баримт баталгаажуулах",
   submitFace: "Ажилтны эрх идэвхжүүлэх",
@@ -99,8 +99,8 @@ const text = {
   livenessAnalyzing: "Амьд хүн эсэхийг шалгаж байна",
   documentHelp: "Иргэний үнэмлэхийн хоёр тал эсвэл паспортын зурагтай хуудсыг оруулна.",
   faceHelp: "Царай болон бичиг баримтаа хүрээнд багтааж баталгаажуулна.",
-  loginFaceHelp: "Нэвтрэх бүрт password, утасны дугаар болон нүүр танилт заавал баталгаажна.",
-  passportCompare: "Паспорттой харьцуулсан selfie зураг оруулсан",
+  loginFaceHelp: "Нэвтрэх бүрт нууц үг, утасны дугаар болон нүүр танилт заавал баталгаажна.",
+  passportCompare: "Паспорттой харьцуулсан өөрийн зураг оруулсан",
   loginFaceConfirmed: "Нүүр танилт амжилттай",
   cameraStart: "Камер нээх",
   cameraCapture: "Царай шалгах",
@@ -109,12 +109,12 @@ const text = {
   cameraUnavailable: "Камерын зөвшөөрөл хаалттай байна. Browser дээр camera permission зөвшөөрнө үү.",
   simulateMismatch: "Зөрсөн гэж шалгах",
   registerStepOne: "1. Хувийн мэдээлэл",
-  registerStepTwo: "2. Verification",
+  registerStepTwo: "2. Баталгаажуулалт",
   identityProvider: "Таних үйлчилгээ",
   faceDetected: "Царай илэрсэн",
   proximityOk: "Зай тохирсон",
   encryption: "Шифрлэлт: AES-256 олон tenant vault",
-  invalidLoginId: "Курьерийн ID утасны дугаар эсвэл Gmail хаяг байх ёстой.",
+  invalidLoginId: "Нэвтрэх мэдээлэл утасны дугаар эсвэл Gmail хаяг байх ёстой.",
   strongPassword: "Нууц үг 8+ тэмдэгттэй, том үсэг, жижиг үсэг, тоо, тусгай тэмдэгт агуулсан байх ёстой.",
 };
 function FaceCameraCheck({
@@ -587,7 +587,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
                 <span className={documentFaceMatched ? "matched" : faceAudit ? "declined" : ""}>
                   {documentFaceMatched ? text.cameraMatched : faceAudit ? text.cameraDeclined : "Камерын шалгалт хүлээгдэж байна"}
                 </span>
-                <small>{faceAudit ? `Face log: ${new Date(faceAudit.capturedAt).toLocaleString("mn-MN")} / ${faceAudit.snapshotId}` : text.encryption}</small>
+                <small>{faceAudit ? `Царай шалгалтын бүртгэл: ${new Date(faceAudit.capturedAt).toLocaleString("mn-MN")} / ${faceAudit.snapshotId}` : text.encryption}</small>
               </div>
               <label>
                 {text.deliveryMode}
@@ -627,7 +627,13 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
           )}
           {error && <div className="auth-error">{error}</div>}
           <button className="auth-submit" disabled={submitting} type="submit">
-            {submitting ? text.wait : mode === "register" && registerStep === 1 ? "Verification шат руу" : text.start}
+            {submitting
+              ? text.wait
+              : mode === "login"
+                ? text.login
+                : registerStep === 1
+                  ? "Баталгаажуулах шат руу"
+                  : "Бүртгэл үүсгэх"}
           </button>
           <button className="auth-secondary-action" onClick={() => switchMode(mode === "login" ? "register" : "login")} type="button">
             {mode === "login" ? `${text.noAccount} ${text.register}` : `${text.hasAccount} ${text.login}`}

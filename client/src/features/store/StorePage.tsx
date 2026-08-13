@@ -1,4 +1,4 @@
-import { type CSSProperties, useEffect, useState } from "react";
+import { type CSSProperties, type FormEvent, useEffect, useState } from "react";
 import { NotificationBell, type NotificationItem } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
 import { postJson } from "../../shared/api";
@@ -79,6 +79,14 @@ const terminalDispatchStatuses = ["REJECTED", "FAILED", "CANCELLED"] as const;
 type StoreIdentity = {
   id: string;
   storeName: string;
+};
+
+type ManualOrderForm = {
+  customerName: string;
+  customerPhone: string;
+  addressText: string;
+  productSku: string;
+  feePayer: "store" | "customer";
 };
 
 function isForStore(order: StoreOrder, store?: StoreIdentity) {
@@ -424,6 +432,15 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   const [stockDraft, setStockDraft] = useState("0");
   const [localOrders, setLocalOrders] = useState<StoreOrder[]>(() => readLocalOrders(store));
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [manualOrderOpen, setManualOrderOpen] = useState(false);
+  const [manualOrderForm, setManualOrderForm] = useState<ManualOrderForm>({
+    customerName: "",
+    customerPhone: "",
+    addressText: "",
+    productSku: "",
+    feePayer: "store",
+  });
+  const [manualOrderError, setManualOrderError] = useState("");
   const [dispatchTrackings, setDispatchTrackings] = useState<Record<string, StoreDeliveryTracking>>({});
   const [pickupOtpByAssignment, setPickupOtpByAssignment] = useState<Record<string, string>>({});
   const [dispatchClock, setDispatchClock] = useState(Date.now());
@@ -494,6 +511,80 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     )));
     setNotice(`${stockEditor.name} үлдэгдэл ${nextStock} ш болж хадгалагдлаа.`);
     setStockEditor(null);
+  }
+
+  function parseProductPrice(price: string) {
+    const numeric = Number(price.replace(/[^\d]/g, ""));
+    return Number.isFinite(numeric) ? numeric : 0;
+  }
+
+  function openManualOrderForm() {
+    setActiveTab("orders");
+    setManualOrderOpen(true);
+    setManualOrderError("");
+    setManualOrderForm((current) => ({
+      ...current,
+      productSku: current.productSku || products[0]?.sku || "",
+    }));
+  }
+
+  function createManualOrder(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const selectedProduct = products.find((product) => product.sku === manualOrderForm.productSku);
+
+    if (!manualOrderForm.customerName.trim()) {
+      setManualOrderError("Хэрэглэгчийн нэрээ оруулна уу.");
+      return;
+    }
+
+    if (!manualOrderForm.customerPhone.trim()) {
+      setManualOrderError("Хэрэглэгчийн утсаа оруулна уу.");
+      return;
+    }
+
+    if (!manualOrderForm.addressText.trim()) {
+      setManualOrderError("Дэлгэрэнгүй хаягаа оруулна уу.");
+      return;
+    }
+
+    if (!selectedProduct) {
+      setManualOrderError("Бараа сонгоно уу.");
+      return;
+    }
+
+    const deliveryFee = manualOrderForm.feePayer === "store" ? 0 : 5000;
+    const amount = parseProductPrice(selectedProduct.price) + deliveryFee;
+    const id = `manual-${Date.now().toString(36)}`;
+    const nextOrder: StoreOrderView = {
+      id,
+      status: storeOrderStatuses.paid,
+      amountMnt: String(amount),
+      district: manualOrderForm.addressText.trim(),
+      storeId: store?.id,
+      storeName: store?.storeName ?? text.storeName,
+      addressText: manualOrderForm.addressText.trim(),
+      items: [{ name: selectedProduct.name, quantity: "1", amountMnt: String(parseProductPrice(selectedProduct.price)) }],
+      orderTime: new Date().toISOString(),
+      sourceBody: `${manualOrderForm.customerName.trim()} · +976 ${manualOrderForm.customerPhone.trim()} · Төлбөр: ${manualOrderForm.feePayer === "store" ? "Дэлгүүр" : "Хэрэглэгч"}`,
+    };
+
+    setLocalOrders((current) => {
+      const nextOrders = [nextOrder, ...current];
+      localStorage.setItem(localStoreOrdersKey, JSON.stringify(nextOrders));
+      return nextOrders;
+    });
+    setSelectedOrderId(id);
+    setManualOrderOpen(false);
+    setManualOrderError("");
+    setManualOrderForm({
+      customerName: "",
+      customerPhone: "",
+      addressText: "",
+      productSku: products[0]?.sku || "",
+      feePayer: "store",
+    });
+    setNotice("Гар захиалга үүслээ. Самбар дээр нэмэгдсэн.");
+    window.setTimeout(() => setNotice(null), 2200);
   }
 
   function trackingFromDispatch(result: StoreDispatchResponse): StoreDeliveryTracking {
@@ -811,6 +902,114 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     );
   }
 
+  function renderManualOrderForm() {
+    return (
+      <section className="store-manual-order-frame" aria-label="Гар захиалга оруулах">
+        <header>
+          <button onClick={() => setManualOrderOpen(false)} type="button" aria-label="Буцах">‹</button>
+          <h2>Гар захиалга оруулах</h2>
+          <span aria-hidden="true">
+            <img alt="" src={nominLogoUrl} />
+          </span>
+        </header>
+        <form onSubmit={createManualOrder}>
+          <section className="store-manual-section">
+            <div className="store-manual-section-title">
+              <span aria-hidden="true">◎</span>
+              <strong>Хэрэглэгчийн мэдээлэл</strong>
+            </div>
+            <label>
+              <span>Хэрэглэгчийн нэр</span>
+              <input
+                value={manualOrderForm.customerName}
+                onChange={(event) => setManualOrderForm({ ...manualOrderForm, customerName: event.target.value })}
+                placeholder="Нэр оруулна уу"
+              />
+            </label>
+            <label>
+              <span>Хэрэглэгчийн утас</span>
+              <div className="store-manual-phone">
+                <b>+976</b>
+                <input
+                  inputMode="tel"
+                  value={manualOrderForm.customerPhone}
+                  onChange={(event) => setManualOrderForm({ ...manualOrderForm, customerPhone: event.target.value })}
+                  placeholder="88******"
+                />
+              </div>
+            </label>
+          </section>
+
+          <section className="store-manual-section">
+            <div className="store-manual-section-title">
+              <span aria-hidden="true">⌖</span>
+              <strong>Хүргэлтийн хаяг</strong>
+            </div>
+            <div className="store-manual-map">
+              {renderLiveStoreMap({ statusLabel: "Хаяг сонгох", className: "store-manual-mini-map" })}
+              <button type="button">Хаяг сонгох</button>
+            </div>
+            <label>
+              <textarea
+                value={manualOrderForm.addressText}
+                onChange={(event) => setManualOrderForm({ ...manualOrderForm, addressText: event.target.value })}
+                placeholder="Дэлгэрэнгүй хаяг (байр, тоот...)"
+                rows={2}
+              />
+            </label>
+          </section>
+
+          <section className="store-manual-section">
+            <div className="store-manual-section-title">
+              <span aria-hidden="true">▣</span>
+              <strong>Бараа ба төлбөр</strong>
+            </div>
+            <label>
+              <span>Бараа сонгох</span>
+              <select
+                value={manualOrderForm.productSku}
+                onChange={(event) => setManualOrderForm({ ...manualOrderForm, productSku: event.target.value })}
+              >
+                <option value="">Сонгох...</option>
+                {products.map((product) => (
+                  <option key={product.sku} value={product.sku}>{product.name} · {product.price}</option>
+                ))}
+              </select>
+            </label>
+            <div className="store-manual-fee">
+              <div>
+                <strong>Хүргэлтийн төлбөр</strong>
+                <span>Төлбөрийг хэн хариуцах вэ?</span>
+              </div>
+              <div>
+                <button
+                  className={manualOrderForm.feePayer === "store" ? "active" : ""}
+                  onClick={() => setManualOrderForm({ ...manualOrderForm, feePayer: "store" })}
+                  type="button"
+                >
+                  Дэлгүүр
+                </button>
+                <button
+                  className={manualOrderForm.feePayer === "customer" ? "active" : ""}
+                  onClick={() => setManualOrderForm({ ...manualOrderForm, feePayer: "customer" })}
+                  type="button"
+                >
+                  Хэрэглэгч
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {manualOrderError ? <p className="store-manual-error" role="alert">{manualOrderError}</p> : null}
+          <button className="store-manual-submit" type="submit">
+            <span aria-hidden="true">+</span>
+            Захиалга үүсгэх
+          </button>
+        </form>
+      </section>
+    );
+  }
+
   function renderOrders(orders: StoreOrderView[]) {
     const selectedOrder = orders.find((order) => order.id === selectedOrderId) ?? orders[0];
     const preparedLabel = "Бэлтгэж дууссан";
@@ -856,7 +1055,8 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     };
 
     return (
-      <article className="store-dash-card store-dash-wide">
+      <article className={`store-dash-card store-dash-wide ${manualOrderOpen ? "store-manual-order-shell" : ""}`}>
+        {manualOrderOpen ? renderManualOrderForm() : null}
         <div className="store-dash-card-head">
           <h2>{text.orderBoard}</h2>
           <span>{orders.length}</span>
@@ -1166,7 +1366,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             <span>{text.open}</span>
           </div>
         </div>
-        <button className="store-dash-primary" onClick={() => setActiveTab("orders")} type="button">{text.newDelivery}</button>
+        <button className="store-dash-primary" onClick={openManualOrderForm} type="button">{text.newDelivery}</button>
         <nav aria-label={store?.storeName ?? text.storeName}>
           {tabs.map((tab) => (
             <button className={activeTab === tab.key ? "active" : ""} key={tab.key} onClick={() => setActiveTab(tab.key)} type="button">
@@ -1254,7 +1454,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           </div>
         </section>
       ) : null}
-      <button className="store-mobile-fab" onClick={() => setActiveTab("orders")} type="button" aria-label={text.newDelivery}>
+      <button className="store-mobile-fab" onClick={openManualOrderForm} type="button" aria-label={text.newDelivery}>
         +
       </button>
       <nav className="store-mobile-nav" aria-label={store?.storeName ?? text.storeName}>
