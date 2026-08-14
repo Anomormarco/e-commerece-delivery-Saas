@@ -40,7 +40,7 @@ type EmployeeProfile = {
   vehiclePlate?: string;
 };
 
-type CourierTab = "map" | "deliveries" | "wallet" | "profile";
+type CourierTab = "home" | "map" | "deliveries" | "wallet" | "profile";
 
 type GeoPoint = {
   lat: number;
@@ -275,7 +275,7 @@ function profileFromDashboard(data?: CourierDashboard | null): EmployeeProfile {
 export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const dashboard = useRealtimeResource<CourierDashboard>("/dashboard", ["courier.dashboard.refresh", "courier.job.updated"]);
   const refreshDashboard = dashboard.refetch;
-  const [activeTab, setActiveTab] = useState<CourierTab>("deliveries");
+  const [activeTab, setActiveTab] = useState<CourierTab>("home");
   const [localOnline, setLocalOnline] = useState<boolean | null>(null);
   const [jobs, setJobs] = useState<QueueItem[] | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -335,6 +335,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const walletWeeklyBars = [42, 62, 36, 78, 56, 94, 24];
   const formatWalletMoney = (value: number) => `₮${value.toLocaleString("mn-MN")}`;
   const tabItems: Array<{ key: CourierTab; label: string; icon: string }> = [
+    { key: "home", label: text.home, icon: "\u2302" },
     { key: "deliveries", label: text.deliveriesTab, icon: "\u25F7" },
     { key: "wallet", label: text.walletTab, icon: "$" },
     { key: "profile", label: text.profileTab, icon: "\u25CB" },
@@ -431,7 +432,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
       setLocalOnline(nextDashboard.online);
       setJobs(nextOnline ? nextDashboard.jobs : nextDashboard.jobs.filter((job) => job.state === "DELIVERED"));
       if (!nextOnline) {
-        setActiveTab("deliveries");
+        setActiveTab("home");
         setAcceptedRouteJobIds(new Set());
       }
     } catch (error) {
@@ -712,7 +713,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
               )}
               {actionError && <p className="courier-rule-note danger">{actionError}</p>}
 
-              {activeTab === "deliveries" && (
+              {(activeTab === "home" || activeTab === "deliveries") && (
                 <>
               <section className="courier-order-experience" aria-label={text.myOrders}>
                 <div className="courier-order-search">
