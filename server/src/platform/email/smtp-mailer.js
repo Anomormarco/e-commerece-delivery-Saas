@@ -121,15 +121,7 @@ async function sendViaResend({ to, subject, text }) {
   }
 }
 
-// Resend (HTTP API) is preferred when configured: it's sent from Render's own
-// servers with proper DKIM/SPF on a dedicated domain, so it lands in the inbox
-// far more reliably than raw Gmail SMTP. Falls back to Gmail SMTP if
-// RESEND_API_KEY isn't set, so existing deployments keep working unchanged.
-export async function sendMail({ to, subject, text }) {
-  if (isResendConfigured()) {
-    return sendViaResend({ to, subject, text });
-  }
-
+async function sendViaSmtp({ to, subject, text }) {
   if (!isSmtpConfigured()) {
     logger.warn("smtp_not_configured", { to: envelopeAddress(to) });
     return false;
@@ -179,4 +171,20 @@ export async function sendMail({ to, subject, text }) {
   } finally {
     socket?.end();
   }
+}
+
+// Resend (HTTP API) is preferred when configured: it's sent from Render's own
+// servers with proper DKIM/SPF on a dedicated domain, so it lands in the inbox
+// far more reliably than raw Gmail SMTP. If Resend fails (e.g. sandbox mode
+// rejecting an unverified recipient before a domain is verified), fall back
+// to Gmail SMTP so mail still goes out instead of silently disappearing.
+export async function sendMail({ to, subject, text }) {
+  if (isResendConfigured()) {
+    const sent = await sendViaResend({ to, subject, text });
+    if (sent) return true;
+    if (!isSmtpConfigured()) return false;
+    logger.warn("resend_fallback_to_smtp", { to: envelopeAddress(to) });
+  }
+
+  return sendViaSmtp({ to, subject, text });
 }
