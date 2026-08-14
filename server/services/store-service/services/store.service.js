@@ -898,8 +898,32 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
   };
 }
 
+// Once a courier has been dispatched and moved past ACCEPTED (arrived at
+// store, picked up, etc.), the order's own "confirm"/"prepared" actions must
+// no longer be able to run - the courier/assignment side already owns the
+// order status from here on. Without this guard, a stale button still
+// visible in an old browser tab (or a store owner clicking "Бэлтгэж дуссан"
+// again) silently rewrites order.status backwards while the assignment is
+// already ahead, leaving the two out of sync and the store OTP screen stuck.
+async function assertOrderNotBeyondDispatch(tenantId, orderId) {
+  const activeAssignment = await prisma.deliveryAssignment.findFirst({
+    where: {
+      orderId,
+      tenantId,
+      status: { in: ["PICKUP_VERIFICATION", "PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF", "DELIVERED"] },
+    },
+  });
+
+  if (activeAssignment) {
+    const error = new Error("Хүргэлтийн ажилтан аль хэдийн ажлаа эхэлсэн тул захиалгын энэ төлөвийг өөрчлөх боломжгүй.");
+    error.statusCode = 409;
+    throw error;
+  }
+}
+
 export async function acceptStoreOrder(tenantId, orderId) {
   await assertStoreSubscriptionActive(tenantId);
+  await assertOrderNotBeyondDispatch(tenantId, orderId);
 
   const order = await updateOrderStatus(tenantId, orderId, "PREPARING", "Дэлгүүр захиалгыг хүлээж аваад бэлтгэж эхэллээ.");
   appCache.clearByPrefix(`store:dashboard:${tenantId}`);
@@ -914,6 +938,7 @@ export async function acceptStoreOrder(tenantId, orderId) {
 
 export async function markStoreOrderPrepared(tenantId, orderId) {
   await assertStoreSubscriptionActive(tenantId);
+  await assertOrderNotBeyondDispatch(tenantId, orderId);
 
   const order = await updateOrderStatus(tenantId, orderId, "READY_FOR_PICKUP", "Бараа бэлтгэж дууслаа.");
   appCache.clearByPrefix(`store:dashboard:${tenantId}`);

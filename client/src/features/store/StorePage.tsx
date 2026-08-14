@@ -122,6 +122,7 @@ const qpayBankOptions: Array<{ id: QpayBankId; label: string; mark: string; alia
 ];
 const terminalDispatchStatuses = ["REJECTED", "FAILED", "CANCELLED"] as const;
 const activeDispatchStatuses = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION", "PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF", "DELIVERED"];
+const dispatchStatusesBeyondAccepted = ["PICKUP_VERIFICATION", "PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF", "DELIVERED"];
 
 type StoreIdentity = {
   id: string;
@@ -145,6 +146,10 @@ function vehicleLabel(vehicleType?: string | null) {
 
 function isActiveDispatchStatus(status?: string | null) {
   return activeDispatchStatuses.includes(String(status));
+}
+
+function isDispatchStatusBeyondAccepted(status?: string | null) {
+  return dispatchStatusesBeyondAccepted.includes(String(status));
 }
 
 function formatMnt(value: number | string) {
@@ -1233,6 +1238,13 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
       const expired = isDispatchExpired(tracking);
       return status === storeOrderStatuses.prepared || (status === storeOrderStatuses.courierCalled && expired);
     };
+    // Once the assignment is past ACCEPTED (courier arrived at store, picked
+    // up, ...), the courier/OTP flow owns the order from here on - the
+    // confirm/prepared buttons must never reappear, even if a stale raw
+    // order.status briefly says otherwise, or they'd rewrite it backwards.
+    const isOrderBeyondDispatch = (order: StoreOrderView) =>
+      isDispatchStatusBeyondAccepted(trackingForOrder(order)?.status);
+    const selectedBeyondDispatch = isDispatchStatusBeyondAccepted(selectedTracking?.status);
 
     return (
       <article className={`store-dash-card store-dash-wide ${manualOrderOpen ? "store-manual-order-shell" : ""}`}>
@@ -1296,7 +1308,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             ) : null}
             {renderDeliveryTracking(selectedOrder, selectedTracking)}
             <div className="store-order-focus-actions">
-              {canCallCourier ? (
+              {canCallCourier || selectedBeyondDispatch ? (
                 null
               ) : selectedStatus === storeOrderStatuses.courierCalled ? (
                 <button disabled type="button">Хүргэлт дуудсан</button>
@@ -1328,7 +1340,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               <p>{storeOrderStatusLabel(liveStatusForOrder(order))}</p>
               <b>{order.amountMnt} MNT</b>
               <div>
-                {liveStatusForOrder(order) === storeOrderStatuses.preparing ? (
+                {isOrderBeyondDispatch(order) ? null : liveStatusForOrder(order) === storeOrderStatuses.preparing ? (
                   <button onClick={() => runAction(preparedLabel, order.id)} type="button">{preparedLabel}</button>
                 ) : [storeOrderStatuses.paid, storeOrderStatuses.confirmed].includes(liveStatusForOrder(order)) ? (
                   <button onClick={() => runAction(preparedLabel, order.id)} type="button">{preparedLabel}</button>
