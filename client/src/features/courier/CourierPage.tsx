@@ -120,11 +120,11 @@ const text = {
   storeOtp: "Дэлгүүрт өгөх баталгаажуулах код",
   storeOtpSent: "6 оронтой баталгаажуулах код таны и-мэйл рүү илгээгдлээ.",
   storeOtpWaiting: "Кодыг дэлгүүрийн ажилтанд амаар хэлж өгнө үү. Тэд системд оруулмагц ачаа авсан гэж автоматаар баталгаажина.",
-  customerOtp: "Хүлээн авагчийн баталгаажуулах код",
+  arrivedDropoff: "Хэрэглэгч дээр ирлээ",
+  customerOtp: "Хэрэглэгчийн өгсөн баталгаажуулах код",
   verifyPickup: "\u0410\u0447\u0430\u0430 \u0430\u0432\u0430\u0445",
   verifyDropoff: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442 \u0434\u0443\u0443\u0441\u0433\u0430\u0445",
   delivered: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442 \u0430\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439",
-  otpHint: "Туршилтын код: хэрэглэгч 654321",
   home: "\u041D\u04AF\u04AF\u0440",
   history: "\u0422\u04AF\u04AF\u0445",
   control: "\u0425\u044F\u043D\u0430\u043B\u0442",
@@ -713,7 +713,12 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                       <strong>{text.storeOtpWaiting}</strong>
                     </div>
                   )}
-                  {["PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF"].includes(job.state) && (
+                  {["PICKED_UP", "IN_TRANSIT"].includes(job.state) && (
+                    <button className="employee-full-action" onClick={() => postJobAction(job.id, "arrive-dropoff")} type="button">
+                      {text.arrivedDropoff}
+                    </button>
+                  )}
+                  {job.state === "ARRIVING_DROPOFF" && (
                     <div className="employee-otp-panel">
                       <label>
                         {text.customerOtp}
@@ -721,14 +726,13 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                           inputMode="numeric"
                           maxLength={6}
                           onChange={(event) => setOtpByJob((current) => ({ ...current, [job.id]: event.target.value.replace(/\D/g, "") }))}
-                          placeholder="654321"
+                          placeholder="123456"
                           value={otpByJob[job.id] ?? ""}
                         />
                       </label>
                       <button onClick={() => postJobAction(job.id, "verify-dropoff", { otp: otpByJob[job.id] })} type="button">
                         {text.verifyDropoff}
                       </button>
-                      <small className="employee-otp-hint">{text.otpHint}</small>
                     </div>
                   )}
                   {job.state === "DELIVERED" && <div className="employee-delivered-note">{text.delivered}</div>}

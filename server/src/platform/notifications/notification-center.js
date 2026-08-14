@@ -9,6 +9,7 @@ const labelsByEvent = {
   "delivery.job.accepted": ["Хүргэлт хүлээн авлаа", "Employee хүргэлтийн ажлыг хүлээн авлаа."],
   "delivery.job.rejected": ["Хүргэлт татгалзлаа", "Employee хүргэлтийн хүсэлтээс татгалзлаа."],
   "delivery.job.arrived_store": ["Employee дэлгүүр дээр ирлээ", "Pickup verification эхлэхэд бэлэн боллоо."],
+  "delivery.job.arrived_dropoff": ["Хүргэлтийн ажилтан ирлээ", "Баталгаажуулах код и-мэйлээр илгээгдлээ."],
   "delivery.job.pickup_verified": ["Pickup баталгаажлаа", "Store OTP баталгаажиж ачаа авлаа."],
   "delivery.job.dropoff_verified": ["Хүргэлт дууслаа", "Customer OTP баталгаажиж хүргэлт амжилттай дууслаа."],
 };

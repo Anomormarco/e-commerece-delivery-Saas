@@ -1100,6 +1100,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [storesLoading, setStoresLoading] = useState(false);
   const [tracking, setTracking] = useState<TrackingResponse | null>(null);
   const [trackingOpen, setTrackingOpen] = useState(false);
+  // Ratchet: once a delivery step is marked done it must never appear to
+  // un-check on screen, even if a stale/in-flight fetch briefly reports an
+  // earlier status. Tracks the highest "done" step count seen per order.
+  const maxTimelineDoneRef = useRef<Record<string, number>>({});
   const [orderHistory, setOrderHistory] = useState<OrderHistoryItem[]>([]);
   const [orderSearch, setOrderSearch] = useState("");
   const [orderHistoryTab, setOrderHistoryTab] = useState<"active" | "completed">("active");
@@ -2259,6 +2263,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       ...(trackingCourierPoint ? [{ id: "courier-store", from: trackingCourierPoint, to: trackingStorePoint, kind: "pickup" as const }] : []),
       { id: "store-customer", from: trackingStorePoint, to: trackingCustomerPoint, kind: "dropoff" as const },
     ];
+    const trackingTimeline = tracking?.timeline ?? [];
+    const computedDoneCount = trackingTimeline.filter((step) => step.state === "done").length;
+    const previousDoneCount = tracking ? maxTimelineDoneRef.current[tracking.orderNo] ?? 0 : 0;
+    const ratchetedDoneCount = Math.max(computedDoneCount, previousDoneCount);
+    if (tracking && ratchetedDoneCount > previousDoneCount) {
+      maxTimelineDoneRef.current[tracking.orderNo] = ratchetedDoneCount;
+    }
 
     if (!allOrders.length) {
       return (
@@ -2311,6 +2322,20 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           statusLabel={tracking?.statusLabel ?? "Захиалгын байршил"}
           statusDetail={tracking?.courier.etaText ?? "Дэлгүүр, хүргэлтийн ажилтан, хүргэх хаяг"}
         />
+
+        {tracking && trackingTimeline.length ? (
+          <div className="landing-order-workflow" aria-label="Хүргэлтийн явц">
+            {trackingTimeline.map((step, index) => (
+              <span
+                className={index < ratchetedDoneCount ? "done" : index === ratchetedDoneCount ? "active" : ""}
+                key={`${tracking.orderNo}-${step.title}`}
+              >
+                <i>{index + 1}</i>
+                {step.title}
+              </span>
+            ))}
+          </div>
+        ) : null}
 
         <section className="landing-order-history">
           {visibleOrders.slice(0, 12).map((order) => (

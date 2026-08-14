@@ -2,6 +2,7 @@ import { userIdFromRequest } from "@deliverhub/server-platform/http/request-cont
 import { courierEventBus } from "../messaging.js";
 import {
   acceptCourierJob,
+  arriveCourierAtDropoff,
   arriveCourierAtStore,
   editCourierProfile,
   getCourierDashboard,
@@ -133,6 +134,12 @@ export async function rejectCourierAssignment(request, response) {
 export async function arriveCourierStore(request, response) {
   const result = await arriveCourierAtStore(userIdFromRequest(request), request.params.assignmentId);
   courierEventBus.publishSoon("delivery.job.arrived_store", { assignmentId: result.id, state: result.state });
+  response.json(result);
+}
+
+export async function arriveCourierDropoff(request, response) {
+  const result = await arriveCourierAtDropoff(userIdFromRequest(request), request.params.assignmentId);
+  courierEventBus.publishSoon("delivery.job.arrived_dropoff", { assignmentId: result.id, state: result.state });
   response.json(result);
 }
 

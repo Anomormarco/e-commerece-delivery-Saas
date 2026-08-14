@@ -1067,34 +1067,92 @@ export async function verifyCourierPickupOtp(userId, assignmentId, otp) {
   });
 }
 
-export async function verifyCourierDropoffOtp(userId, assignmentId, otp) {
-  if (String(otp) !== "654321") {
-    throw createHttpError(422, "Customer OTP \u0431\u0443\u0440\u0443\u0443 \u0431\u0430\u0439\u043D\u0430.");
+export async function markCourierArrivedAtDropoff(userId, assignmentId) {
+  const dropoffOtp = createSixDigitOtp();
+  const assignment = await prisma.$transaction(async (transaction) => {
+    const employee = await findEmployeeForAssignment(transaction, userId);
+    const assignment = await transaction.deliveryAssignment.findFirst({
+      where: { id: assignmentId, employeeId: employee.id, status: { in: ["PICKED_UP", "IN_TRANSIT"] } },
+      include: { order: { include: { customer: true } } },
+    });
+
+    if (!assignment) {
+      throw createHttpError(409, "Зөвхөн хүлээн авсан хүргэлтэд хэрэглэгч дээр ирсэн төлөв оруулна.");
+    }
+
+    await transaction.order.update({
+      where: { id: assignment.orderId },
+      // OrderStatus enum uses "ARRIVING" (not "ARRIVING_DROPOFF" - that value
+      // only exists on AssignmentStatus, set below on the assignment record).
+      data: { status: "ARRIVING", deliveryOtpHash: hashOtp(dropoffOtp) },
+    });
+    await transaction.orderStatusHistory.create({
+      data: {
+        orderId: assignment.orderId,
+        status: "ARRIVING",
+        note: "Хүргэлтийн ажилтан хэрэглэгч дээр ирж хүлээн авах OTP хүлээж байна.",
+      },
+    });
+
+    return transaction.deliveryAssignment.update({
+      where: { id: assignmentId },
+      data: { status: "ARRIVING_DROPOFF" },
+      include: {
+        order: { include: { store: true, branch: true, customerAddress: true, customer: true, items: { include: { variant: true } } } },
+      },
+    });
+  });
+
+  const customerEmail = assignment.order?.customer?.email;
+  if (customerEmail) {
+    await sendMail({
+      to: customerEmail,
+      subject: "DeliverHub хүргэлтийн баталгаажуулах код",
+      text: [
+        `Таны баталгаажуулах код: ${dropoffOtp}`,
+        "",
+        "Хүргэлтийн ажилтан ирсэн үед энэ 6 оронтой кодыг ажилтанд амаар хэлж өгсөнөөр захиалга хүргэгдсэн гэж баталгаажина.",
+        "Кодоо зөвхөн өөрийн хүргэлтийн ажилтандаа өгнө үү.",
+      ].join("\n"),
+    });
   }
 
+  return assignment;
+}
+
+export async function verifyCourierDropoffOtp(userId, assignmentId, otp) {
   return prisma.$transaction(async (transaction) => {
     const employee = await findEmployeeForAssignment(transaction, userId);
     const assignment = await transaction.deliveryAssignment.findFirst({
       where: { id: assignmentId, employeeId: employee.id, status: { in: ["PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF"] } },
+      include: { order: true },
     });
 
     if (!assignment) {
-      throw createHttpError(409, "Dropoff OTP \u0431\u0430\u0442\u0430\u043B\u0433\u0430\u0430\u0436\u0443\u0443\u043B\u0430\u0445 \u0442\u04E9\u043B\u04E9\u0432 \u0431\u0438\u0448 \u0431\u0430\u0439\u043D\u0430.");
+      throw createHttpError(409, "Dropoff OTP баталгаажуулах төлөв биш байна.");
+    }
+
+    if (!assignment.order?.deliveryOtpHash) {
+      throw createHttpError(409, "Эхлээд 'Хэрэглэгч дээр ирлээ' товчийг дарж, код илгээнэ үү.");
+    }
+
+    if (!otpMatches(otp, assignment.order.deliveryOtpHash)) {
+      throw createHttpError(422, "Хэрэглэгчийн OTP буруу байна.");
     }
 
     await transaction.handoverEvidence.upsert({
       where: { assignmentId },
-      update: { otpHash: "demo-customer-otp-654321", confirmedAt: new Date() },
+      update: { otpHash: assignment.order.deliveryOtpHash, confirmedAt: new Date() },
       create: {
         assignmentId,
-        otpHash: "demo-customer-otp-654321",
+        otpHash: assignment.order.deliveryOtpHash,
         confirmedAt: new Date(),
       },
     });
 
     await transaction.order.update({
       where: { id: assignment.orderId },
-      data: { status: "DELIVERED" },
+      data: { status: "DELIVERED", deliveryOtpHash: null },
     });
     await transaction.orderStatusHistory.create({
       data: {

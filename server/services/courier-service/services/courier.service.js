@@ -16,6 +16,7 @@ import {
   findCourierDashboardByUserId,
   findCourierByContact,
   findCourierByLoginId,
+  markCourierArrivedAtDropoff,
   markCourierArrivedAtStore,
   recordFaceVerification,
   recordFailedLoginFaceVerification,
@@ -784,6 +785,14 @@ export async function arriveCourierAtStore(userId, assignmentId) {
   return formatCourierAssignment(await markCourierArrivedAtStore(userId, assignmentId));
 }
 
+export async function arriveCourierAtDropoff(userId, assignmentId) {
+  appCache.clearByPrefix("courier:dashboard:");
+  appCache.clearByPrefix("store:dashboard:");
+  appCache.clearByPrefix("customer:tracking:");
+  appCache.del("admin:dashboard");
+  return formatCourierAssignment(await markCourierArrivedAtDropoff(userId, assignmentId));
+}
+
 export async function verifyCourierStoreOtp(userId, assignmentId, payload = {}) {
   appCache.clearByPrefix("courier:dashboard:");
   appCache.clearByPrefix("customer:tracking:");
@@ -793,6 +802,7 @@ export async function verifyCourierStoreOtp(userId, assignmentId, payload = {}) 
 
 export async function verifyCourierCustomerOtp(userId, assignmentId, payload = {}) {
   appCache.clearByPrefix("courier:dashboard:");
+  appCache.clearByPrefix("store:dashboard:");
   appCache.clearByPrefix("customer:tracking:");
   appCache.del("admin:dashboard");
   return formatCourierAssignment(await verifyCourierDropoffOtp(userId, assignmentId, payload.otp));

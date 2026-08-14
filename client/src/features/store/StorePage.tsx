@@ -1,4 +1,4 @@
-import { type CSSProperties, type FormEvent, useEffect, useState } from "react";
+import { type CSSProperties, type FormEvent, useEffect, useRef, useState } from "react";
 import { InteractiveRouteMap, type RouteMapLine, type RouteMapMarker } from "../../components/InteractiveRouteMap";
 import { NotificationBell, type NotificationItem } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
@@ -563,6 +563,10 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   const [dispatchTrackings, setDispatchTrackings] = useState<Record<string, StoreDeliveryTracking>>({});
   const [pickupOtpByAssignment, setPickupOtpByAssignment] = useState<Record<string, string>>({});
   const [dispatchClock, setDispatchClock] = useState(Date.now());
+  // Ratchet: once an order's workflow step is reached it must never appear to
+  // regress on screen, even if a stale/in-flight fetch briefly reports an
+  // earlier status. Tracks the highest step index seen per order.
+  const maxWorkflowStepRef = useRef<Record<string, number>>({});
   const [selectedSubscriptionBank, setSelectedSubscriptionBank] = useState<QpayBankId>("khanbank");
   const [subscriptionPayment, setSubscriptionPayment] = useState<StoreSubscriptionPayment | null>(null);
   const [subscriptionPaymentOpen, setSubscriptionPaymentOpen] = useState(false);
@@ -1204,12 +1208,17 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const workflowSteps = selectedOrder ? [
       { key: storeOrderStatuses.paid, aliases: [storeOrderStatuses.confirmed], label: "Захиалга баталгаажсан" },
       { key: storeOrderStatuses.prepared, aliases: [storeOrderStatuses.courierCalled, "COURIER_ARRIVING", "PICKUP_VERIFICATION"], label: preparedLabel },
-      { key: "PICKED_UP", aliases: ["IN_TRANSIT", "ARRIVING_DROPOFF"], label: "Хүргэлтэнд гарсан" },
+      { key: "PICKED_UP", aliases: ["IN_TRANSIT", "ARRIVING_DROPOFF", "ARRIVING"], label: "Хүргэлтэнд гарсан" },
       { key: "DELIVERED", aliases: ["COMPLETED"], label: "Захиалга дууссан" },
     ] : [];
-    const activeStepIndex = selectedOrder
+    const computedStepIndex = selectedOrder
       ? Math.max(0, workflowSteps.findIndex((step) => step.key === workflowStatus || step.aliases?.includes(String(workflowStatus))))
       : 0;
+    const previousMaxStepIndex = selectedOrder ? maxWorkflowStepRef.current[selectedOrder.id] ?? 0 : 0;
+    const activeStepIndex = Math.max(computedStepIndex, previousMaxStepIndex);
+    if (selectedOrder && activeStepIndex > previousMaxStepIndex) {
+      maxWorkflowStepRef.current[selectedOrder.id] = activeStepIndex;
+    }
     const selectedItems = selectedOrder?.items ?? [];
     const selectedAddress = selectedOrder?.addressText || selectedOrder?.district || "Хаяг бүртгэгдээгүй байна";
     const liveStatusForOrder = (order: StoreOrderView) => dashboard.data?.orders.find((item) => item.id === order.id)?.status ?? order.status;

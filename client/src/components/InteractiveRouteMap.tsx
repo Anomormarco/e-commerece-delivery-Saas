@@ -45,18 +45,29 @@ function mapTileUrl(x: number, y: number, zoomLevel: number) {
   return `https://tile.openstreetmap.org/${zoomLevel}/${x}/${y}.png`;
 }
 
+// Coordinates can arrive missing/malformed from a stale or in-flight backend
+// response (e.g. right after a status transition, before a fresh route plan
+// lands). Without this guard, a single bad lat/lng throws inside render and
+// blanks the whole page (no error boundary) - so every point is validated
+// and non-finite values are dropped instead of crashing.
+function isValidPoint(point: RouteMapPoint | null | undefined): point is RouteMapPoint {
+  if (!point) return false;
+  return Number.isFinite(Number(point.lat)) && Number.isFinite(Number(point.lng));
+}
+
 function centerFor(points: RouteMapPoint[]) {
-  if (!points.length) return { lat: 47.91785, lng: 106.93528 };
+  const usable = points.filter(isValidPoint);
+  if (!usable.length) return { lat: 47.91785, lng: 106.93528 };
   return {
-    lat: points.reduce((sum, point) => sum + point.lat, 0) / points.length,
-    lng: points.reduce((sum, point) => sum + point.lng, 0) / points.length,
+    lat: usable.reduce((sum, point) => sum + Number(point.lat), 0) / usable.length,
+    lng: usable.reduce((sum, point) => sum + Number(point.lng), 0) / usable.length,
   };
 }
 
 function projectPoint(point: RouteMapPoint, center: RouteMapPoint, zoomLevel: number) {
   return {
-    x: (longitudeToTileX(point.lng, zoomLevel) - longitudeToTileX(center.lng, zoomLevel)) * tileSize,
-    y: (latitudeToTileY(point.lat, zoomLevel) - latitudeToTileY(center.lat, zoomLevel)) * tileSize,
+    x: (longitudeToTileX(Number(point.lng), zoomLevel) - longitudeToTileX(Number(center.lng), zoomLevel)) * tileSize,
+    y: (latitudeToTileY(Number(point.lat), zoomLevel) - latitudeToTileY(Number(center.lat), zoomLevel)) * tileSize,
   };
 }
 
@@ -99,8 +110,10 @@ export function InteractiveRouteMap({
   statusDetail?: string;
   children?: ReactNode;
 }) {
-  const pointsKey = markers.map((marker) => `${marker.id}:${marker.point.lat.toFixed(6)},${marker.point.lng.toFixed(6)}`).join("|");
-  const initialCenter = useMemo(() => centerFor(markers.map((marker) => marker.point)), [pointsKey]);
+  const safeMarkers = useMemo(() => markers.filter((marker) => isValidPoint(marker.point)), [markers]);
+  const safeRoutes = useMemo(() => routes.filter((route) => isValidPoint(route.from) && isValidPoint(route.to)), [routes]);
+  const pointsKey = safeMarkers.map((marker) => `${marker.id}:${Number(marker.point.lat).toFixed(6)},${Number(marker.point.lng).toFixed(6)}`).join("|");
+  const initialCenter = useMemo(() => centerFor(safeMarkers.map((marker) => marker.point)), [pointsKey]);
   const [center, setCenter] = useState(initialCenter);
   const [zoom, setZoom] = useState(initialZoom);
   const dragRef = useRef<{ x: number; y: number; center: RouteMapPoint } | null>(null);
@@ -174,10 +187,10 @@ export function InteractiveRouteMap({
           <img alt="" draggable={false} key={tile.key} src={mapTileUrl(tile.x, tile.y, zoom)} style={tile.style} />
         ))}
       </div>
-      {routes.map((route) => (
+      {safeRoutes.map((route) => (
         <span className={`interactive-route-line route-${route.kind ?? "neutral"}`} key={route.id} style={lineStyle(route, center, zoom)} />
       ))}
-      {markers.map((marker) => (
+      {safeMarkers.map((marker) => (
         <span
           aria-label={marker.label}
           className={`interactive-route-marker marker-${marker.kind}`}

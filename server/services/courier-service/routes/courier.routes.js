@@ -2,6 +2,7 @@ import { asyncHandler } from "../controllers/async-handler.js";
 import { requireAuth } from "../middlewares/auth.middleware.js";
 import {
   acceptCourierAssignment,
+  arriveCourierDropoff,
   arriveCourierStore,
   loginCourierAccount,
   registerCourierAccount,
@@ -32,5 +33,6 @@ export function registerCourierRoutes(app, { basePath = "/api/courier" } = {}) {
   app.post(`${basePath}/jobs/:assignmentId/reject`, requireAuth, asyncHandler(rejectCourierAssignment));
   app.post(`${basePath}/jobs/:assignmentId/arrive-store`, requireAuth, asyncHandler(arriveCourierStore));
   app.post(`${basePath}/jobs/:assignmentId/verify-pickup`, requireAuth, asyncHandler(verifyCourierPickup));
+  app.post(`${basePath}/jobs/:assignmentId/arrive-dropoff`, requireAuth, asyncHandler(arriveCourierDropoff));
   app.post(`${basePath}/jobs/:assignmentId/verify-dropoff`, requireAuth, asyncHandler(verifyCourierDropoff));
 }
