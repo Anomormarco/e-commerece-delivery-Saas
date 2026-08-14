@@ -280,6 +280,8 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [localOnline, setLocalOnline] = useState<boolean | null>(null);
   const [jobs, setJobs] = useState<QueueItem[] | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [successNotice, setSuccessNotice] = useState<string | null>(null);
+  const previousJobStatesRef = useRef<Record<string, string>>({});
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileEditing, setProfileEditing] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
@@ -365,6 +367,18 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     // page reload reset the state. Every fresh dashboard fetch now wins.
     if (!dashboard.data) return;
     setJobs(dashboard.data.jobs);
+
+    // The store confirming the pickup OTP is something the courier never
+    // clicked themselves - detect that transition here so it still shows up
+    // as a toast on the courier's screen instead of silently changing state.
+    const previousStates = previousJobStatesRef.current;
+    for (const job of dashboard.data.jobs) {
+      const previousState = previousStates[job.id];
+      if (previousState === "PICKUP_VERIFICATION" && job.state === "PICKED_UP") {
+        showSuccessNotice("Захиалга хүргэлтэнд гарлаа.");
+      }
+    }
+    previousJobStatesRef.current = Object.fromEntries(dashboard.data.jobs.map((job) => [job.id, job.state]));
   }, [dashboard.data]);
 
   useEffect(() => {
@@ -476,6 +490,11 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     );
   }
 
+  function showSuccessNotice(message: string) {
+    setSuccessNotice(message);
+    window.setTimeout(() => setSuccessNotice(null), 2000);
+  }
+
   async function postJobAction(jobId: string, path: string, body?: unknown) {
     setActionError(null);
 
@@ -483,6 +502,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
       const nextJob = await postJson<QueueItem>(`/jobs/${jobId}/${path}`, body);
       updateJob(nextJob);
       setOtpByJob((current) => ({ ...current, [jobId]: "" }));
+      if (path === "verify-dropoff") showSuccessNotice(text.delivered);
     } catch (error) {
       setActionError(error instanceof Error ? error.message : text.actionError);
     }
@@ -556,6 +576,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   return (
     <main className="courier-page role-page" data-employee-ui-build={employeeUiDeployMarker}>
       <section className={`employee-mobile-shell ${sidebarOpen ? "is-menu-open" : ""}`}>
+        {successNotice && <div className="courier-success-toast">{successNotice}</div>}
         <header className="employee-app-header" data-header-version="work-mode-v7">
           <button className="employee-menu-button" onClick={() => setSidebarOpen(true)} type="button" aria-label={text.menu}>
             <span />
