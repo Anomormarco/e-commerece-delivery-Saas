@@ -2,6 +2,10 @@ export function isGmailAddress(value: string) {
   return /^[^\s@]+@gmail\.com$/i.test(value.trim());
 }
 
+export function isEmailAddress(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
 export function isPhoneNumber(value: string) {
   return /^\+?\d{8,15}$/.test(value.replace(/[^\d+]/g, ""));
 }

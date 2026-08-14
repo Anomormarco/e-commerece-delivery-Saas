@@ -2,7 +2,7 @@
 import { BrandLogo } from "../../components/BrandLogo";
 import { StorePage } from "../../features/store/StorePage";
 import { clearAccessToken, postJson, saveAccessToken } from "../../shared/api";
-import { isGmailAddress, isStrongPassword } from "../../shared/validation";
+import { isEmailAddress, isStrongPassword } from "../../shared/validation";
 
 type StoreIdentity = {
   id: string;
@@ -86,7 +86,7 @@ const text = {
   notFound: "Бүртгэл олдсонгүй",
   wrongPassword: "Нууц үг буруу байна",
   loginError: "Нэвтрэхэд алдаа гарлаа",
-  gmailRequired: "Нэвтрэх ID эсвэл Gmail зөв оруулна уу. Жишээ: Admin1 эсвэл name@gmail.com",
+  gmailRequired: "Нэвтрэх ID утасны дугаар эсвэл имэйл хаяг байх ёстой. Жишээ: 99112233 эсвэл name@company.mn",
   strongPassword: "Нууц үг 8+ тэмдэгттэй, том үсэг, жижиг үсэг, тоо, тусгай тэмдэгт агуулсан байх ёстой.",
   hidePassword: "Нууц үг нуух",
   showPassword: "Нууц үг харуулах",
@@ -97,7 +97,7 @@ const text = {
   phonePlaceholder: "99112233",
   storeTypePlaceholder: "Жишээ: хүнс, эм, хувцас",
   searchableFeaturePlaceholder: "Жишээ: organic, 24/7, premium",
-  usernamePlaceholder: "Admin1",
+  usernamePlaceholder: "name@company.mn эсвэл 99112233",
   passwordPlaceholder: "Нууц үг оруулна уу",
   confirmPlaceholder: "Нууц үгээ давтан оруулна уу",
   copyright: "© 2026 DeliverHub Logistics Inc. Бүх эрх хуулиар хамгаалагдсан.",
@@ -203,7 +203,7 @@ function StoreAuthPage({ onAuthenticated }: { onAuthenticated: (identity: StoreI
       ) {
         throw new Error(text.required);
       }
-      if (!isGmailAddress(trimmedUsername) && !isStorePhone(trimmedUsername)) {
+      if (!isEmailAddress(trimmedUsername) && !isStorePhone(trimmedUsername)) {
         throw new Error(text.gmailRequired);
       }
 

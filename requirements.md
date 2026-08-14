@@ -2,6 +2,8 @@
 
 ## SSL / HTTPS Compliance
 
+nomin.store@deliverhub.mn
+
 SSL шаардлага хангахад дараах технологи, тохиргоог ашиглана:
 
 - **Vercel HTTPS**: frontend production deployment-үүд Vercel-ийн HTTPS endpoint-оор ажиллана.
