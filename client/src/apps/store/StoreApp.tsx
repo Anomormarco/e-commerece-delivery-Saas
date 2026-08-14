@@ -1,46 +1,56 @@
 ﻿import { type FormEvent, useEffect, useState } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 import { StorePage } from "../../features/store/StorePage";
+import { clearAccessToken, postJson, saveAccessToken } from "../../shared/api";
 import { isGmailAddress, isStrongPassword } from "../../shared/validation";
 
-type StoreUser = {
+type StoreIdentity = {
   id: string;
   storeName: string;
-  ownerName: string;
-  username: string;
-  password: string;
-  logoUrl?: string;
-  address?: string;
-  phone?: string;
-  storeType?: string;
-  searchableFeature?: string;
+};
+
+type StoreAuthResponse = {
+  userId: string;
+  tenantId: string;
+  accessToken: string;
+  store: { id: string; name: string } | null;
 };
 
 type AuthMode = "login" | "register";
 
-const usersStorageKey = "deliverhub-store-users";
-const sessionStorageKey = "deliverhub-store-session";
-const defaultStorePassword = "Zk94387282@";
-const defaultStoreNames = [
-  "Номин Супермаркет",
-  "Pharma Plus",
-  "Tech Hub",
-  "Golden Bakery",
-  "Coffee Corner",
-  "Pet Care",
-  "Beauty Box",
-  "Book Nest",
-  "Baby World",
-  "Sport Zone",
-];
+const sessionProfileStorageKey = "deliverhub-store-session-profile";
+const accessTokenStorageKey = "deliverhub-store-access-token";
 
-const defaultStoreUsers: StoreUser[] = defaultStoreNames.map((storeName, index) => ({
-  id: `Admin${index + 1}`,
-  storeName,
-  ownerName: `${storeName} admin`,
-  username: `Admin${index + 1}`,
-  password: defaultStorePassword,
-}));
+function isStorePhone(value: string) {
+  return /^\+?\d{8,15}$/.test(value.trim());
+}
+
+function readSessionProfile(): StoreIdentity | null {
+  try {
+    const hasToken = Boolean(localStorage.getItem(accessTokenStorageKey) ?? sessionStorage.getItem(accessTokenStorageKey));
+    if (!hasToken) return null;
+    const raw = localStorage.getItem(sessionProfileStorageKey) ?? sessionStorage.getItem(sessionProfileStorageKey);
+    return raw ? (JSON.parse(raw) as StoreIdentity) : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveSessionProfile(profile: StoreIdentity, remember: boolean) {
+  const raw = JSON.stringify(profile);
+  if (remember) {
+    localStorage.setItem(sessionProfileStorageKey, raw);
+    sessionStorage.removeItem(sessionProfileStorageKey);
+  } else {
+    sessionStorage.setItem(sessionProfileStorageKey, raw);
+    localStorage.removeItem(sessionProfileStorageKey);
+  }
+}
+
+function clearSessionProfile() {
+  localStorage.removeItem(sessionProfileStorageKey);
+  sessionStorage.removeItem(sessionProfileStorageKey);
+}
 
 const text = {
   title: "DeliverHub Дэлгүүр",
@@ -92,28 +102,6 @@ const text = {
   confirmPlaceholder: "Нууц үгээ давтан оруулна уу",
   copyright: "© 2026 DeliverHub Logistics Inc. Бүх эрх хуулиар хамгаалагдсан.",
 };
-function readUsers(): StoreUser[] {
-  try {
-    const raw = localStorage.getItem(usersStorageKey);
-    const savedUsers = raw ? (JSON.parse(raw) as StoreUser[]) : [];
-    const defaultUsernames = new Set(defaultStoreUsers.map((user) => user.username.toLowerCase()));
-    return [
-      ...defaultStoreUsers,
-      ...savedUsers.filter((user) => !defaultUsernames.has(user.username.toLowerCase())),
-    ];
-  } catch {
-    return defaultStoreUsers;
-  }
-}
-
-function writeUsers(users: StoreUser[]) {
-  localStorage.setItem(usersStorageKey, JSON.stringify(users));
-}
-
-function isStoreLoginId(value: string) {
-  return /^Admin([1-9]|1[01])$/i.test(value.trim()) || isGmailAddress(value);
-}
-
 function AuthIcon({ type }: { type: "store" | "user" | "name" | "lock" | "eye" | "eyeOff" }) {
   if (type === "store") {
     return (
@@ -162,7 +150,7 @@ function AuthIcon({ type }: { type: "store" | "user" | "name" | "lock" | "eye" |
   );
 }
 
-function StoreAuthPage({ onAuthenticated }: { onAuthenticated: (user: StoreUser) => void }) {
+function StoreAuthPage({ onAuthenticated }: { onAuthenticated: (identity: StoreIdentity) => void }) {
   const [mode, setMode] = useState<AuthMode>("login");
   const [storeName, setStoreName] = useState("");
   const [ownerName, setOwnerName] = useState("");
@@ -193,96 +181,82 @@ function StoreAuthPage({ onAuthenticated }: { onAuthenticated: (user: StoreUser)
     setConfirmPassword("");
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
     setError(null);
     setSuccess(null);
 
-    window.setTimeout(() => {
-      try {
-        const trimmedUsername = username.trim();
-        if (
-          !trimmedUsername
-          || !password.trim()
-          || (mode === "register" && (
-            !storeName.trim()
-            || !ownerName.trim()
-            || !address.trim()
-            || !phone.trim()
-            || !storeType.trim()
-            || !searchableFeature.trim()
-          ))
-        ) {
-          throw new Error(text.required);
-        }
-        if (!isStoreLoginId(trimmedUsername)) {
-          throw new Error(text.gmailRequired);
-        }
-
-        const users = readUsers();
-        const existingUser = users.find((user) => user.username.toLowerCase() === trimmedUsername.toLowerCase());
-
-        if (mode === "register") {
-          if (password !== confirmPassword) {
-            throw new Error(text.mismatch);
-          }
-          if (!isStrongPassword(password)) {
-            throw new Error(text.strongPassword);
-          }
-
-          if (existingUser) {
-            throw new Error(text.exists);
-          }
-
-          const nextUser: StoreUser = {
-            id: crypto.randomUUID(),
-            storeName: storeName.trim(),
-            ownerName: ownerName.trim(),
-            username: trimmedUsername,
-            password,
-            logoUrl: logoUrl.trim(),
-            address: address.trim(),
-            phone: phone.trim(),
-            storeType: storeType.trim(),
-            searchableFeature: searchableFeature.trim(),
-          };
-
-          writeUsers([...users, nextUser]);
-          setMode("login");
-          setStoreName("");
-          setOwnerName("");
-          setLogoUrl("");
-          setAddress("");
-          setPhone("");
-          setStoreType("");
-          setSearchableFeature("");
-          setPassword("");
-          setConfirmPassword("");
-          setSuccess(text.success);
-          return;
-        }
-
-        if (!existingUser) {
-          throw new Error(text.notFound);
-        }
-
-        if (existingUser.password !== password) {
-          throw new Error(text.wrongPassword);
-        }
-
-        if (rememberMe) {
-          localStorage.setItem(sessionStorageKey, existingUser.id);
-        } else {
-          sessionStorage.setItem(sessionStorageKey, existingUser.id);
-        }
-        onAuthenticated(existingUser);
-      } catch (submitError) {
-        setError(submitError instanceof Error ? submitError.message : text.loginError);
-      } finally {
-        setSubmitting(false);
+    try {
+      const trimmedUsername = username.trim();
+      if (
+        !trimmedUsername
+        || !password.trim()
+        || (mode === "register" && (
+          !storeName.trim()
+          || !ownerName.trim()
+          || !address.trim()
+          || !phone.trim()
+          || !storeType.trim()
+          || !searchableFeature.trim()
+        ))
+      ) {
+        throw new Error(text.required);
       }
-    }, 260);
+      if (!isGmailAddress(trimmedUsername) && !isStorePhone(trimmedUsername)) {
+        throw new Error(text.gmailRequired);
+      }
+
+      if (mode === "register") {
+        if (password !== confirmPassword) {
+          throw new Error(text.mismatch);
+        }
+        if (!isStrongPassword(password)) {
+          throw new Error(text.strongPassword);
+        }
+
+        await postJson<StoreAuthResponse>("/auth/register", {
+          storeName: storeName.trim(),
+          ownerName: ownerName.trim(),
+          username: trimmedUsername,
+          password,
+          address: address.trim(),
+          phone: phone.trim(),
+          storeType: storeType.trim(),
+          searchableFeature: searchableFeature.trim(),
+        });
+
+        setMode("login");
+        setStoreName("");
+        setOwnerName("");
+        setLogoUrl("");
+        setAddress("");
+        setPhone("");
+        setStoreType("");
+        setSearchableFeature("");
+        setPassword("");
+        setConfirmPassword("");
+        setSuccess(text.success);
+        return;
+      }
+
+      const response = await postJson<StoreAuthResponse>("/auth/login", {
+        username: trimmedUsername,
+        password,
+      });
+
+      saveAccessToken(response.accessToken, rememberMe);
+      const identity: StoreIdentity = {
+        id: response.store?.id ?? response.userId,
+        storeName: response.store?.name ?? trimmedUsername,
+      };
+      saveSessionProfile(identity, rememberMe);
+      onAuthenticated(identity);
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : text.loginError);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -458,22 +432,19 @@ function StoreAuthPage({ onAuthenticated }: { onAuthenticated: (user: StoreUser)
 }
 
 export function StoreApp() {
-  const [user, setUser] = useState<StoreUser | null>(() => {
-    const sessionId = localStorage.getItem(sessionStorageKey) ?? sessionStorage.getItem(sessionStorageKey);
-    return readUsers().find((storedUser) => storedUser.id === sessionId) ?? null;
-  });
+  const [identity, setIdentity] = useState<StoreIdentity | null>(() => readSessionProfile());
 
   function handleLogout() {
-    localStorage.removeItem(sessionStorageKey);
-    sessionStorage.removeItem(sessionStorageKey);
-    setUser(null);
+    clearAccessToken();
+    clearSessionProfile();
+    setIdentity(null);
   }
 
-  if (!user) {
-    return <StoreAuthPage onAuthenticated={setUser} />;
+  if (!identity) {
+    return <StoreAuthPage onAuthenticated={setIdentity} />;
   }
 
-  return <StorePage onLogout={handleLogout} store={{ id: user.id, storeName: user.storeName }} />;
+  return <StorePage onLogout={handleLogout} store={identity} />;
 }
 
 export default StoreApp;

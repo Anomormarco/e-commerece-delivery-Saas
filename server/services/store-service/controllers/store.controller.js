@@ -6,10 +6,20 @@ import {
   createStoreSubscriptionInvoice,
   getStoreDashboard,
   getStoreSubscription,
+  loginStoreAccount,
   markStoreOrderPrepared,
+  registerStoreAccount,
   requestStoreDelivery,
   verifyStorePickup,
 } from "../services/store.service.js";
+
+export async function registerStore(request, response) {
+  response.status(201).json(await registerStoreAccount(request.body));
+}
+
+export async function loginStore(request, response) {
+  response.json(await loginStoreAccount(request.body));
+}
 
 export async function showStoreDashboard(request, response) {
   response.json(await getStoreDashboard(tenantIdFromRequest(request)));

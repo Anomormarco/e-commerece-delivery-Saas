@@ -23,6 +23,7 @@ const API_BASE_URL = enforceSecureUrl(import.meta.env.VITE_API_BASE_URL ?? defau
 const accessTokenStorageKeys: Record<string, string> = {
   admin: "deliverhub-admin-access-token",
   courier: "deliverhub-courier-access-token",
+  store: "deliverhub-store-access-token",
 };
 
 const defaultRealtimeBaseUrls: Record<string, string> = {

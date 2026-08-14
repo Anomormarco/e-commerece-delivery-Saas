@@ -1,5 +1,14 @@
 import { appCache } from "@deliverhub/server-platform/cache/memory-cache";
 import { prisma } from "@deliverhub/server-platform/database/prisma";
+import { signJwt } from "@deliverhub/server-platform/http/jwt";
+import {
+  hashPassword,
+  isPhoneNumber,
+  normalizeGmailAddress,
+  normalizePhone,
+  validateStrongPassword,
+  verifyPassword,
+} from "@deliverhub/server-platform/auth/credentials";
 import {
   createDeliveryOffer,
   findEmployeeInAdminReview,
@@ -18,6 +27,124 @@ const vehicleLabels = {
   MOPED: "Мопед",
   CAR: "Машин",
 };
+
+const storeAccessTokenMaxAgeSeconds = 60 * 60 * 8;
+
+function slugify(value) {
+  return String(value ?? "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "") || "store";
+}
+
+function normalizeStoreLoginId(value) {
+  const loginId = String(value ?? "").trim();
+  if (!loginId) return "";
+  return loginId.includes("@") ? normalizeGmailAddress(loginId) : normalizePhone(loginId);
+}
+
+function createStoreAccessToken(userId, tenantId) {
+  return signJwt({ sub: userId, tenantId, roles: ["STORE_ADMIN"] }, { expiresInSeconds: storeAccessTokenMaxAgeSeconds });
+}
+
+function requireField(value, message) {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) {
+    const error = new Error(message);
+    error.statusCode = 400;
+    throw error;
+  }
+  return trimmed;
+}
+
+export async function registerStoreAccount(payload = {}) {
+  const storeName = requireField(payload.storeName, "Дэлгүүрийн нэрээ оруулна уу.");
+  const ownerName = requireField(payload.ownerName, "Эзэмшигчийн нэрээ оруулна уу.");
+  const address = requireField(payload.address, "Хаягаа оруулна уу.");
+  const phone = requireField(payload.phone, "Утасны дугаараа оруулна уу.");
+  const username = normalizeStoreLoginId(payload.username);
+  const password = String(payload.password ?? "");
+
+  if (!username || (!username.includes("@") && !isPhoneNumber(username))) {
+    const error = new Error("Нэвтрэх ID утасны дугаар эсвэл Gmail хаяг байх ёстой.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  validateStrongPassword(password);
+
+  const isEmail = username.includes("@");
+  const existing = await prisma.user.findFirst({ where: isEmail ? { email: username } : { phone: username } });
+  if (existing) {
+    const error = new Error("Энэ нэвтрэх ID бүртгэлтэй байна.");
+    error.statusCode = 409;
+    throw error;
+  }
+
+  const slugSuffix = Date.now().toString(36);
+  const result = await prisma.$transaction(async (transaction) => {
+    const tenant = await transaction.tenant.create({
+      data: { name: storeName, slug: `${slugify(storeName)}-${slugSuffix}`, status: "TRIALING" },
+    });
+
+    const store = await transaction.store.create({
+      data: { tenantId: tenant.id, name: storeName, slug: `${slugify(storeName)}-${slugSuffix}` },
+    });
+
+    const user = await transaction.user.create({
+      data: {
+        fullName: ownerName,
+        email: isEmail ? username : null,
+        phone: isEmail ? phone : username,
+        passwordHash: hashPassword(password),
+        tenantMemberships: { create: { tenantId: tenant.id, role: "STORE_ADMIN" } },
+      },
+    });
+
+    return { tenant, store, user };
+  });
+
+  return {
+    userId: result.user.id,
+    tenantId: result.tenant.id,
+    accessToken: createStoreAccessToken(result.user.id, result.tenant.id),
+    store: { id: result.store.id, name: result.store.name },
+  };
+}
+
+export async function loginStoreAccount(payload = {}) {
+  const username = normalizeStoreLoginId(payload.username ?? payload.login);
+  const password = String(payload.password ?? "");
+
+  if (!username || !password) {
+    const error = new Error("Нэвтрэх ID болон нууц үгээ оруулна уу.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const isEmail = username.includes("@");
+  const user = await prisma.user.findFirst({
+    where: isEmail ? { email: username } : { phone: username },
+    include: { tenantMemberships: { where: { role: "STORE_ADMIN" } } },
+  });
+
+  const membership = user?.tenantMemberships[0];
+  if (!user || !membership || !verifyPassword(password, user.passwordHash)) {
+    const error = new Error("Нэвтрэх ID эсвэл нууц үг буруу байна.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const store = await prisma.store.findFirst({ where: { tenantId: membership.tenantId } });
+
+  return {
+    userId: user.id,
+    tenantId: membership.tenantId,
+    accessToken: createStoreAccessToken(user.id, membership.tenantId),
+    store: store ? { id: store.id, name: store.name } : null,
+  };
+}
 
 const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
 const offerTimeoutMs = 10_000;

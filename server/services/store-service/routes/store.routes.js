@@ -5,13 +5,17 @@ import {
   checkSubscriptionPayment,
   createStoreDeliveryRequest,
   createSubscriptionInvoice,
+  loginStore,
   markOrderPrepared,
+  registerStore,
   showStoreDashboard,
   showStoreSubscription,
   verifyPickup,
 } from "../controllers/store.controller.js";
 
 export function registerStoreRoutes(app, { basePath = "/api/store" } = {}) {
+  app.post(`${basePath}/auth/register`, asyncHandler(registerStore));
+  app.post(`${basePath}/auth/login`, asyncHandler(loginStore));
   app.get(`${basePath}/dashboard`, asyncHandler(showStoreDashboard));
   app.get(`${basePath}/subscription`, asyncHandler(showStoreSubscription));
   app.post(`${basePath}/subscription/qpay/invoice`, asyncHandler(createSubscriptionInvoice));
