@@ -703,7 +703,7 @@ export async function createStoreSubscriptionInvoice(tenantId) {
     throw error;
   }
 
-  const invoiceNo = `STORE-SUB-${tenantId}-${Date.now()}`;
+  const invoiceNo = `SUB${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`.toUpperCase();
   const qpayInvoice = await createQpayInvoice({
     invoiceNo,
     amountMnt: storeSubscriptionAmountMnt,
