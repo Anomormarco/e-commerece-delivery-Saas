@@ -168,7 +168,16 @@ function sanitizeDocumentFile(file) {
     size: Number(file.size ?? 0),
     type: String(file.type ?? "application/octet-stream").slice(0, 80),
     lastModified: Number(file.lastModified ?? 0),
+    profileImageDataUrl: sanitizeProfileImageDataUrl(file.profileImageDataUrl),
   };
+}
+
+function sanitizeProfileImageDataUrl(value) {
+  const dataUrl = String(value ?? "").trim();
+  if (!dataUrl) return "";
+  if (dataUrl.length > 800_000) return "";
+  if (!/^data:image\/(png|jpe?g|webp);base64,[a-z0-9+/=]+$/i.test(dataUrl)) return "";
+  return dataUrl;
 }
 
 function sanitizeDocumentFiles(files = {}) {
@@ -356,6 +365,7 @@ export async function registerCourier(payload = {}) {
   const documentVerification = verifiedDocumentFromPayload(payload);
   const faceVerification = verifiedFaceFromPayload(payload);
   const documentFiles = sanitizeDocumentFiles(payload.documentFiles);
+  const documentAvatarDataUrl = documentFiles.front?.profileImageDataUrl ?? "";
   const applicationProfile = {
     firstName: String(payload.firstName ?? "").trim(),
     lastName: String(payload.lastName ?? "").trim(),
@@ -364,6 +374,7 @@ export async function registerCourier(payload = {}) {
     homeAddress: String(payload.homeAddress ?? "").trim(),
     emergencyPhones: String(payload.emergencyPhones ?? "").trim(),
     phoneVerified: Boolean(payload.phoneVerified),
+    avatarDataUrl: documentAvatarDataUrl,
   };
 
   if (!fullName || !rawLoginId || !password) {

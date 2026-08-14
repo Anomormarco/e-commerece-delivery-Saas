@@ -14661,8 +14661,11 @@ h3 {
 
 .employee-profile-avatar-wrap {
   position: relative;
-  width: 72px;
-  height: 72px;
+  display: grid;
+  width: 78px;
+  min-height: 100px;
+  justify-items: center;
+  gap: 6px;
 }
 
 .employee-profile-avatar {
@@ -14748,13 +14751,26 @@ h3 {
 .employee-profile-avatar-wrap b {
   position: absolute;
   right: -8px;
-  bottom: -3px;
+  top: 54px;
   border-radius: 999px;
   padding: 4px 7px;
   background: #fd761a;
   color: white;
   font-size: 10px;
   font-weight: 950;
+  white-space: nowrap;
+}
+
+.employee-profile-avatar-wrap em {
+  width: 100%;
+  color: #0f172a;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 950;
+  line-height: 1.15;
+  overflow: hidden;
+  text-align: center;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 

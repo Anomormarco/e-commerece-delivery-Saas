@@ -143,6 +143,7 @@ type SelectedDocumentFile = {
   size: number;
   type: string;
   lastModified: number;
+  profileImageDataUrl?: string | null;
 };
 
 const mongolianTextPattern = "[А-Яа-яЁёӨөҮү0-9\\s,./#\\-()]+";
@@ -155,6 +156,44 @@ function documentFileMeta(file: File | null): SelectedDocumentFile | null {
     type: file.type,
     lastModified: file.lastModified,
   };
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onerror = () => reject(reader.error ?? new Error("File read failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
+function loadImage(dataUrl: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("Image load failed"));
+    image.src = dataUrl;
+  });
+}
+
+async function documentProfileImageDataUrl(file: File | null) {
+  if (!file?.type.startsWith("image/")) return null;
+
+  const source = await readFileAsDataUrl(file);
+  const image = await loadImage(source);
+  const side = Math.min(image.naturalWidth || image.width, image.naturalHeight || image.height);
+  if (!side) return null;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 360;
+  canvas.height = 360;
+  const context = canvas.getContext("2d");
+  if (!context) return null;
+
+  const sourceX = ((image.naturalWidth || image.width) - side) / 2;
+  const sourceY = ((image.naturalHeight || image.height) - side) / 2;
+  context.drawImage(image, sourceX, sourceY, side, side, 0, 0, 360, 360);
+  return canvas.toDataURL("image/jpeg", 0.82);
 }
 
 async function cameraPermissionState() {
@@ -568,6 +607,9 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
         throw new Error(text.strongPassword);
       }
 
+      const frontDocumentMeta = documentFileMeta(documentFront);
+      const backDocumentMeta = documentFileMeta(documentBack);
+      const documentProfileImage = mode === "register" ? await documentProfileImageDataUrl(documentFront) : null;
       const response = await postJson<CourierAuthResponse>(
         mode === "login" ? "/auth/login" : "/auth/register",
         mode === "login"
@@ -591,14 +633,14 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
               documentFront: Boolean(documentFront),
               documentBack: Boolean(documentBack),
               documentFiles: {
-                front: documentFileMeta(documentFront),
-                back: documentFileMeta(documentBack),
+                front: frontDocumentMeta ? { ...frontDocumentMeta, profileImageDataUrl: documentProfileImage } : null,
+                back: backDocumentMeta,
               },
               documentReviewAudit: {
                 reviewedAt: documentReviewedAt,
                 documentType,
-                front: documentFileMeta(documentFront),
-                back: documentFileMeta(documentBack),
+                front: frontDocumentMeta,
+                back: backDocumentMeta,
                 source: "employee-register-document-review",
               },
               selfieWithDocument,

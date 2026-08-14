@@ -950,6 +950,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                       <span className="employee-profile-avatar">
                         {profileForm.avatarDataUrl ? <img alt="" src={profileForm.avatarDataUrl} /> : (dashboard.data.employeeName ?? text.title).slice(0, 1)}
                       </span>
+                      <em>{dashboard.data.employeeName}</em>
                       <b>4.9 ★</b>
                     </div>
                     <div>
