@@ -11127,6 +11127,46 @@ h3 {
   }
 }
 
+.store-pickup-otp {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 12px;
+  align-items: end;
+  margin-top: 10px;
+}
+
+.store-pickup-otp span {
+  grid-column: 1 / -1;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.store-pickup-otp input {
+  min-height: 44px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+  padding: 0 14px;
+  background: rgba(15, 23, 42, 0.68);
+  color: white;
+  font-size: 18px;
+  font-weight: 950;
+  letter-spacing: 0.18em;
+}
+
+.store-pickup-otp button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 999px;
+  padding: 0 22px;
+  background: linear-gradient(135deg, #ff8a00, #ff6b00);
+  color: white;
+  font-weight: 950;
+  white-space: nowrap;
+}
+
 .store-order-focus-actions {
   justify-content: flex-end;
 }
