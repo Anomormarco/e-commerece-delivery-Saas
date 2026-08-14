@@ -19,7 +19,11 @@ function notificationCopy(event) {
     const customerName = event.payload?.customerName ? String(event.payload.customerName) : "Хэрэглэгч";
     const totalMnt = Number(event.payload?.totalMnt ?? event.payload?.amountMnt ?? 0).toLocaleString("mn-MN");
     const orderNo = event.payload?.orderNo ?? event.payload?.orderId;
-    const orderSuffix = orderNo ? ` #${String(orderNo).slice(-6)}` : "";
+    // NOTE: keep the full id here (not a truncated suffix) - the store dashboard
+    // parses this "#<id>" token out of the notification text to resolve the real
+    // order/dispatch record. Truncating it breaks "Хүргэлт дуудах" for orders that
+    // were opened from a notification instead of the live orders list.
+    const orderSuffix = orderNo ? ` #${String(orderNo)}` : "";
     const itemSummary = Array.isArray(event.payload?.items)
       ? event.payload.items
         .map((item) => {

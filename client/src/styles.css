@@ -15877,6 +15877,25 @@ h3 {
   letter-spacing: 0.18em;
 }
 
+.employee-otp-waiting {
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
+.employee-otp-waiting span {
+  color: #2563eb;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.employee-otp-waiting strong {
+  color: #1e3a8a;
+  font-size: 13px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
 .employee-delivered-note {
   border-radius: 12px;
   padding: 12px;
