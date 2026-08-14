@@ -2607,7 +2607,7 @@ h3 {
 
 .landing-qpay-panel {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.82), rgba(239, 246, 255, 0.72)),
     rgba(255, 255, 255, 0.68);
@@ -2638,19 +2638,23 @@ h3 {
 
 .landing-qpay-body {
   display: grid;
-  grid-template-columns: 92px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   align-items: center;
   gap: 12px;
+}
+
+.landing-qpay-panel.is-ready .landing-qpay-body {
+  grid-template-columns: 164px minmax(0, 1fr);
 }
 
 .landing-qpay-qr {
   display: grid;
   place-items: center;
-  width: 92px;
-  height: 92px;
-  border: 6px solid white;
-  border-radius: 12px;
-  padding: 5px;
+  width: 164px;
+  height: 164px;
+  border: 8px solid white;
+  border-radius: 14px;
+  padding: 6px;
   background: white;
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
 }
@@ -2678,8 +2682,9 @@ h3 {
 
 .landing-qpay-qr strong {
   color: #ff7a1a;
-  font-size: 24px;
+  font-size: 13px;
   font-weight: 950;
+  text-align: center;
 }
 
 .landing-qpay-meta {
@@ -2708,14 +2713,14 @@ h3 {
 .landing-qpay-panel footer code,
 .landing-qpay-panel footer a {
   color: #64748b;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 850;
 }
 
 .landing-qpay-panel footer code,
 .landing-qpay-panel footer a {
   overflow: hidden;
-  max-width: 180px;
+  max-width: 220px;
   border-radius: 999px;
   padding: 4px 7px;
   background: rgba(15, 23, 42, 0.06);

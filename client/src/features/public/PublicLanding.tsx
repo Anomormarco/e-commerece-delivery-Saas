@@ -474,8 +474,14 @@ function formatMnt(value: number | string) {
 }
 
 function qpayQrImageSource(qrImage?: string) {
-  if (!qrImage) return "";
-  return qrImage.startsWith("data:image/") ? qrImage : `data:image/png;base64,${qrImage}`;
+  const value = qrImage?.trim().replace(/\s/g, "");
+  if (!value) return "";
+  if (value.startsWith("data:image/")) return value;
+  if (value.startsWith("image/") && value.includes("base64,")) return `data:${value}`;
+  if (value.startsWith("<svg")) return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(qrImage ?? "")}`;
+  if (value.startsWith("PHN2Zy")) return `data:image/svg+xml;base64,${value}`;
+  if (value.startsWith("/9j/")) return `data:image/jpeg;base64,${value}`;
+  return `data:image/png;base64,${value}`;
 }
 
 function fixMojibake(value: string) {
@@ -607,6 +613,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const cartPanelRef = useRef<HTMLElement | null>(null);
   const cartReturnRef = useRef<{ section: LandingSection; scrollY: number }>({ section: page, scrollY: 0 });
   const paymentSuccessTimerRef = useRef<number | null>(null);
+  const qpayPanelRef = useRef<HTMLElement | null>(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", phone: "", login: "", password: "" });
@@ -951,6 +958,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const qpayBankLinks = (qpayPayment?.urls ?? []).filter((url) => Boolean(url.link)).slice(0, 4);
   const qpayPrimaryLink = qpayPayment?.shortUrl || qpayBankLinks[0]?.link || "";
   const qpayInvoiceText = qpayPayment?.shortUrl || qpayPayment?.qrText || "";
+  const qpayDraftKey = [
+    paymentMethod,
+    selectedItems.map((item) => `${item.id}:${item.quantity}`).join("|"),
+    deliveryType,
+    addressLabel,
+    addressText,
+    location ? `${location.latitude}:${location.longitude}` : "",
+  ].join("::");
   const storeCategories = useMemo(
     () => [...marketCategoryFilters],
     [],
@@ -963,6 +978,16 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   useEffect(() => {
     setMarketPage((current) => Math.min(current, totalMarketPages));
   }, [totalMarketPages]);
+
+  useEffect(() => {
+    if (!qpayPayment) return;
+    qpayPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [qpayPayment]);
+
+  useEffect(() => {
+    setQpayPayment(null);
+  }, [qpayDraftKey]);
+
   const addressSuggestions = [
     addressLabel,
     addressText,
@@ -1813,19 +1838,21 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     </div>
 
                     {paymentMethod === "qpay" ? (
-                      <section className="landing-qpay-panel" aria-label="QPay төлбөр">
+                      <section className={`landing-qpay-panel${qpayPayment ? " is-ready" : ""}`} aria-label="QPay төлбөр" ref={qpayPanelRef}>
                         <header>
-                          <strong>{qpayPayment ? "QPay invoice үүслээ" : "QPay invoice"}</strong>
-                          <span>{qpayPayment ? "ТӨЛБӨР ХҮЛЭЭЖ БАЙНА" : "ҮҮСГЭХЭД БЭЛЭН"}</span>
+                          <strong>{qpayPayment ? "QPay invoice" : "QPay төлбөр"}</strong>
+                          <span>{qpayPayment ? "ТӨЛБӨР ХҮЛЭЭЖ БАЙНА" : "INVOICE ҮҮСГЭХ"}</span>
                         </header>
                         <div className="landing-qpay-body">
-                          <div className={`landing-qpay-qr${qpayQrSrc ? "" : " is-empty"}`}>
-                            {qpayQrSrc ? (
-                              <img alt="QPay invoice QR" src={qpayQrSrc} />
-                            ) : (
-                              <strong>QR</strong>
-                            )}
-                          </div>
+                          {qpayPayment ? (
+                            <div className={`landing-qpay-qr${qpayQrSrc ? "" : " is-empty"}`}>
+                              {qpayQrSrc ? (
+                                <img alt="QPay invoice QR" src={qpayQrSrc} />
+                              ) : (
+                                <strong>QR ирсэнгүй</strong>
+                              )}
+                            </div>
+                          ) : null}
                           <div className="landing-qpay-meta">
                             <span>Invoice</span>
                             <strong>{qpayPayment?.invoiceId ?? "Төлбөр төлөхөд үүснэ"}</strong>
@@ -1850,7 +1877,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           {qpayPrimaryLink ? (
                             <a href={qpayPrimaryLink} rel="noreferrer" target="_blank">{qpayPrimaryLink}</a>
                           ) : (
-                            <code>{qpayInvoiceText || "QR болон банкны link invoice үүссэний дараа гарна"}</code>
+                            <code>{qpayInvoiceText || "Захиалга баталгаажуулахад QPay-аас invoice авна"}</code>
                           )}
                         </footer>
                       </section>
@@ -1878,7 +1905,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     {checkoutError ? <p className="landing-checkout-error" role="alert">{checkoutError}</p> : null}
                     <footer>
                       <button onClick={qpayPayment ? checkQpayPaymentStatus : checkoutOrder} type="button" disabled={checkoutSubmitting}>
-                        {checkoutSubmitting ? "Шалгаж байна..." : qpayPayment ? "Төлбөр шалгах" : "Төлбөр төлөх"}
+                        {checkoutSubmitting ? "Шалгаж байна..." : qpayPayment ? "Төлбөр шалгах" : paymentMethod === "qpay" ? "QPay invoice үүсгэх" : "Төлбөр төлөх"}
                       </button>
                       <button onClick={() => setCart({})} type="button">Буцах</button>
                     </footer>
