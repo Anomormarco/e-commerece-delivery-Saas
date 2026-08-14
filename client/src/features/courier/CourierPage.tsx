@@ -275,7 +275,7 @@ function profileFromDashboard(data?: CourierDashboard | null): EmployeeProfile {
 export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const dashboard = useRealtimeResource<CourierDashboard>("/dashboard", ["courier.dashboard.refresh", "courier.job.updated"]);
   const refreshDashboard = dashboard.refetch;
-  const [activeTab, setActiveTab] = useState<CourierTab>("map");
+  const [activeTab, setActiveTab] = useState<CourierTab>("deliveries");
   const [localOnline, setLocalOnline] = useState<boolean | null>(null);
   const [jobs, setJobs] = useState<QueueItem[] | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -335,7 +335,6 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const walletWeeklyBars = [42, 62, 36, 78, 56, 94, 24];
   const formatWalletMoney = (value: number) => `₮${value.toLocaleString("mn-MN")}`;
   const tabItems: Array<{ key: CourierTab; label: string; icon: string }> = [
-    { key: "map", label: text.mapTab, icon: "\u25A1" },
     { key: "deliveries", label: text.deliveriesTab, icon: "\u25F7" },
     { key: "wallet", label: text.walletTab, icon: "$" },
     { key: "profile", label: text.profileTab, icon: "\u25CB" },
@@ -432,7 +431,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
       setLocalOnline(nextDashboard.online);
       setJobs(nextOnline ? nextDashboard.jobs : nextDashboard.jobs.filter((job) => job.state === "DELIVERED"));
       if (!nextOnline) {
-        setActiveTab("map");
+        setActiveTab("deliveries");
         setAcceptedRouteJobIds(new Set());
       }
     } catch (error) {
