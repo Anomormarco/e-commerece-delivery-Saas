@@ -1311,7 +1311,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       }
 
       if (paymentSuccessTimerRef.current) window.clearTimeout(paymentSuccessTimerRef.current);
-      setPaymentSuccess("QPay төлбөр баталгаажлаа");
+      setPaymentSuccess("Захиалга амжилттай боллоо");
       paymentSuccessTimerRef.current = window.setTimeout(() => {
         setPaymentSuccess("");
         paymentSuccessTimerRef.current = null;
@@ -1322,7 +1322,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       setCartOpen(false);
       setWishlistOpen(false);
       setProfileOpen(false);
-      setTrackingOpen(true);
+      setTrackingOpen(false);
       setSeenOrderKey(result.orderNo ?? qpayPayment.orderNo);
       localStorage.setItem(orderSeenStorageKey, result.orderNo ?? qpayPayment.orderNo);
       localStorage.setItem(`${orderSeenStorageKey}:${session.customer.id}`, result.orderNo ?? qpayPayment.orderNo);
