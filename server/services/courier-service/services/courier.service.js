@@ -85,6 +85,12 @@ function isMongolianText(value) {
   return Boolean(trimmed) && /[А-Яа-яЁёӨөҮү]/.test(trimmed) && !/[A-Za-z]/.test(trimmed);
 }
 
+function isMongolianTextOrPhoneList(value) {
+  const trimmed = String(value ?? "").trim();
+  if (!trimmed) return false;
+  return isMongolianText(trimmed) || /^[0-9+\-\s,()]+$/.test(trimmed);
+}
+
 function assignmentWeightKg(assignment) {
   const items = assignment.order?.items ?? [];
   const grams = items.reduce((sum, item) => {
@@ -548,17 +554,26 @@ export async function registerCourier(payload = {}) {
 }
 
 export async function editCourierProfile(userId, payload = {}) {
-  const firstName = String(payload.firstName ?? "").trim();
-  const lastName = String(payload.lastName ?? "").trim();
-  const phone = payload.phone ? normalizePhone(payload.phone) : null;
-  const email = payload.email ? validateGmailAddress(payload.email) : null;
-  const age = payload.age ? Number(payload.age) : null;
-  const gender = String(payload.gender ?? "").trim();
-  const homeAddress = String(payload.homeAddress ?? "").trim();
-  const emergencyPhones = String(payload.emergencyPhones ?? "").trim();
-  const vehicleType = String(payload.vehicleType ?? "WALK").toUpperCase();
-  const vehiclePlate = String(payload.vehiclePlate ?? "").trim() || null;
-  const avatarDataUrl = String(payload.avatarDataUrl ?? "").trim();
+  const currentEmployee = await findCourierDashboardByUserId(userId);
+  if (!currentEmployee) {
+    throw createHttpError(404, "\u0410\u0436\u0438\u043B\u0442\u043D\u044B \u0431\u04AF\u0440\u0442\u0433\u044D\u043B \u043E\u043B\u0434\u0441\u043E\u043D\u0433\u04AF\u0439.");
+  }
+
+  const currentProfile = latestProfileResult(currentEmployee);
+  const firstName = String(payload.firstName ?? currentProfile.firstName ?? "").trim();
+  const lastName = String(payload.lastName ?? currentProfile.lastName ?? "").trim();
+  const phoneSource = payload.phone ?? currentEmployee.user?.phone ?? "";
+  const emailSource = payload.email ?? currentEmployee.user?.email ?? "";
+  const phone = phoneSource ? normalizePhone(phoneSource) : null;
+  const email = emailSource ? validateGmailAddress(emailSource) : null;
+  const ageSource = payload.age ?? currentProfile.age;
+  const age = ageSource ? Number(ageSource) : null;
+  const gender = String(payload.gender ?? currentProfile.gender ?? "").trim();
+  const homeAddress = String(payload.homeAddress ?? currentProfile.homeAddress ?? "").trim();
+  const emergencyPhones = String(payload.emergencyPhones ?? currentProfile.emergencyPhones ?? "").trim();
+  const vehicleType = String(payload.vehicleType ?? currentEmployee.vehicleType ?? "WALK").toUpperCase();
+  const vehiclePlate = String(payload.vehiclePlate ?? currentEmployee.vehiclePlate ?? "").trim() || null;
+  const avatarDataUrl = String(payload.avatarDataUrl ?? currentProfile.avatarDataUrl ?? "").trim();
 
   if (!firstName || !lastName || !phone || !email || !age || !gender || !homeAddress || !emergencyPhones) {
     throw createHttpError(400, "\u041F\u0440\u043E\u0444\u0430\u0439\u043B\u044B\u043D \u043C\u044D\u0434\u044D\u044D\u043B\u044D\u043B \u0434\u0443\u0442\u0443\u0443 \u0431\u0430\u0439\u043D\u0430.");
@@ -568,7 +583,7 @@ export async function editCourierProfile(userId, payload = {}) {
     !isMongolianText(firstName)
     || !isMongolianText(lastName)
     || !isMongolianText(homeAddress)
-    || !isMongolianText(emergencyPhones)
+    || !isMongolianTextOrPhoneList(emergencyPhones)
     || (vehiclePlate && !isMongolianText(vehiclePlate))
   ) {
     throw createHttpError(400, "Email, \u0443\u0442\u0430\u0441, \u043D\u0430\u0441, \u043D\u0443\u0443\u0446 \u04AF\u0433\u044D\u044D\u0441 \u0431\u0443\u0441\u0430\u0434 \u043C\u044D\u0434\u044D\u044D\u043B\u043B\u0438\u0439\u0433 \u041C\u043E\u043D\u0433\u043E\u043B \u043A\u0438\u0440\u0438\u043B\u043B\u044D\u044D\u0440 \u043E\u0440\u0443\u0443\u043B\u043D\u0430 \u0443\u0443.");
@@ -594,7 +609,7 @@ export async function editCourierProfile(userId, payload = {}) {
       updatedAt: new Date().toISOString(),
     },
   });
-  appCache.clearByPrefix(`courier:dashboard:${userId || "default"}`);
+  appCache.clearByPrefix("courier:dashboard:");
   appCache.del("admin:dashboard");
   return formatCourierDashboard(employee);
 }
