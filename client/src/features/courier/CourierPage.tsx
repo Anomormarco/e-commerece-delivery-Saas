@@ -537,7 +537,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
 
   function showSuccessNotice(message: string) {
     setSuccessNotice(message);
-    window.setTimeout(() => setSuccessNotice(null), 2000);
+    window.setTimeout(() => setSuccessNotice(null), 3000);
   }
 
   async function postJobAction(jobId: string, path: string, body?: unknown) {
@@ -645,7 +645,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
         <StateBlock loading={dashboard.loading} error={dashboard.error} empty={!dashboard.data}>
           {dashboard.data && (
             <>
-              <div className="employee-app-scroll">
+              <div className={`employee-app-scroll ${activeTab === "home" ? "is-home-tab" : ""}`}>
               {activeTab === "home" && (
                 <InteractiveRouteMap
                   className="employee-live-map"

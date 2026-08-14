@@ -58,6 +58,50 @@ body {
   margin: 0;
 }
 
+.app-crash-screen {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 24px;
+  background: #0f172a;
+}
+
+.app-crash-card {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  max-width: 340px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  padding: 28px 22px;
+  background: #1e293b;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.5);
+}
+
+.app-crash-card strong {
+  color: white;
+  font-size: 18px;
+}
+
+.app-crash-card p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.app-crash-card button {
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 20px;
+  background: #fd761a;
+  color: white;
+  font-size: 13px;
+  font-weight: 950;
+}
+
 html {
   scroll-behavior: smooth;
   scrollbar-color: #f97316 #0f172a;
@@ -15027,7 +15071,7 @@ h3 {
   font-weight: 900;
   text-align: center;
   box-shadow: 0 14px 30px rgba(22, 163, 74, 0.35);
-  animation: courier-toast-fade 2s ease forwards;
+  animation: courier-toast-fade 3s ease forwards;
 }
 
 @keyframes courier-toast-fade {
@@ -22045,17 +22089,19 @@ h2 {
 
 /* Home tab is just the live map - header + map + bottom nav should fill the
    screen exactly with nothing to scroll, instead of the map's fixed height
-   pushing content below the fold. */
-.employee-mobile-shell .employee-app-scroll:has(> .employee-live-map) {
+   pushing content below the fold. Uses an explicit class (not :has()) so it
+   works on every browser regardless of :has() support. */
+.employee-mobile-shell .employee-app-scroll.is-home-tab {
   display: flex;
   flex-direction: column;
   overflow: hidden;
   padding-bottom: 0;
 }
 
-.employee-mobile-shell .employee-app-scroll:has(> .employee-live-map) .employee-live-map {
+.employee-mobile-shell .employee-app-scroll.is-home-tab .employee-live-map {
   flex: 1;
   min-height: 0;
+  height: 100%;
 }
 
 .employee-mobile-shell .courier-bottom-nav {
