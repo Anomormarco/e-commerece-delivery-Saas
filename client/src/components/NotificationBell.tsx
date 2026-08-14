@@ -36,6 +36,38 @@ function isForStore(item: { storeId?: string; storeName?: string; title?: string
   return item.storeId === storeId || matchesStoreName || (!item.storeId && !item.storeName);
 }
 
+type NotificationCategory = "order" | "accepted" | "rejected" | "arrived" | "verified" | "delivered" | "registered" | "default";
+
+const categoryMeta: Record<NotificationCategory, { icon: string; color: string }> = {
+  order: { icon: "\u{1F4E6}", color: "blue" },
+  accepted: { icon: "✅", color: "purple" },
+  rejected: { icon: "✕", color: "red" },
+  arrived: { icon: "\u{1F4CD}", color: "amber" },
+  verified: { icon: "\u{1F511}", color: "amber" },
+  delivered: { icon: "\u{1F3C1}", color: "green" },
+  registered: { icon: "\u{1F464}", color: "blue" },
+  default: { icon: "\u{1F514}", color: "gray" },
+};
+
+function categoryFor(item: { title: string; body: string }): NotificationCategory {
+  const text = `${item.title} ${item.body}`.toLowerCase();
+  if (text.includes("дуусла") || text.includes("хүргэгд")) return "delivered";
+  if (text.includes("баталгаажл")) return "verified";
+  if (text.includes("ирлээ") || text.includes("ирж")) return "arrived";
+  if (text.includes("татгалз")) return "rejected";
+  if (text.includes("хүлээн ав")) return "accepted";
+  if (text.includes("бүртгэгдл")) return "registered";
+  if (text.includes("захиалга")) return "order";
+  return "default";
+}
+
+function formatNotificationTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}.${pad(date.getMonth() + 1)}.${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 function markInboxRead(inbox: NotificationInbox | null, storeId?: string, storeName?: string): NotificationInbox | null {
   if (!inbox) return inbox;
   const readAt = new Date().toISOString();
@@ -147,28 +179,38 @@ export function NotificationBell({
             </button>
           </div>
           {items.length ? (
-            items.slice(0, 6).map((item) => (
-              <article
-                className={item.readAt ? "" : "unread"}
-                key={item.id}
-                onClick={() => {
-                  onNotificationClick?.(item);
-                  setOpen(false);
-                }}
-                role={onNotificationClick ? "button" : undefined}
-                tabIndex={onNotificationClick ? 0 : undefined}
-                onKeyDown={(event) => {
-                  if (!onNotificationClick || (event.key !== "Enter" && event.key !== " ")) return;
-                  event.preventDefault();
-                  onNotificationClick(item);
-                  setOpen(false);
-                }}
-              >
-                <strong>{item.title}</strong>
-                <p>{item.body}</p>
-                <time>{new Date(item.createdAt).toLocaleString()}</time>
-              </article>
-            ))
+            items.slice(0, 6).map((item, index) => {
+              const category = categoryFor(item);
+              const meta = categoryMeta[category];
+              return (
+                <article
+                  className={`notification-card status-${meta.color} ${item.readAt ? "" : "unread"}`}
+                  key={item.id}
+                  onClick={() => {
+                    onNotificationClick?.(item);
+                    setOpen(false);
+                  }}
+                  role={onNotificationClick ? "button" : undefined}
+                  tabIndex={onNotificationClick ? 0 : undefined}
+                  onKeyDown={(event) => {
+                    if (!onNotificationClick || (event.key !== "Enter" && event.key !== " ")) return;
+                    event.preventDefault();
+                    onNotificationClick(item);
+                    setOpen(false);
+                  }}
+                >
+                  <span className="notification-card-icon" aria-hidden="true">{meta.icon}</span>
+                  <div className="notification-card-body">
+                    <div className="notification-card-head">
+                      <b className="notification-card-number">#{index + 1}</b>
+                      <strong>{item.title}</strong>
+                    </div>
+                    <p>{item.body}</p>
+                    <time>{formatNotificationTime(item.createdAt)}</time>
+                  </div>
+                </article>
+              );
+            })
           ) : (
             <p className="notification-empty">{inbox.loading ? "..." : text.empty}</p>
           )}

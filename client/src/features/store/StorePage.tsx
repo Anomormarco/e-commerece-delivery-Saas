@@ -4,6 +4,7 @@ import { NotificationBell, type NotificationItem } from "../../components/Notifi
 import { StateBlock } from "../../components/StateBlock";
 import { postJson } from "../../shared/api";
 import { nominCatalogProducts, nominStoreProfile } from "../../shared/nominCatalog";
+import { formatOrderDateTime } from "../../shared/orderStatus";
 import type { StoreOrder } from "../../shared/types";
 import { useRealtimeResource } from "../../shared/useRealtimeResource";
 
@@ -1063,7 +1064,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
           ) : null}
           {needsStoreOtp ? (
             <label className="store-pickup-otp">
-              <span>Хүргэлтийн ажилтны өгсөн 6 оронтой OTP</span>
+              <span>Ажилтны 6 оронтой код</span>
               <input
                 inputMode="numeric"
                 maxLength={6}
@@ -1285,7 +1286,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               </section>
               <section>
                 <span>Ирсэн цаг</span>
-                <p>{selectedOrder.orderTime ? new Date(selectedOrder.orderTime).toLocaleString() : "Одоо"}</p>
+                <p>{selectedOrder.orderTime ? formatOrderDateTime(selectedOrder.orderTime) : "Одоо"}</p>
               </section>
             </div>
             <div className="store-order-workflow" aria-label="Захиалгын төлөв">
@@ -1333,8 +1334,9 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
               onClick={() => setSelectedOrderId(order.id)}
             >
               <div>
-                <span>#{order.id}</span>
+                <span>#{index + 1}</span>
                 <em>{orderLabel(index)}</em>
+                {order.orderTime && <time>{formatOrderDateTime(order.orderTime)}</time>}
               </div>
               <strong>{order.district}</strong>
               <p>{storeOrderStatusLabel(liveStatusForOrder(order))}</p>

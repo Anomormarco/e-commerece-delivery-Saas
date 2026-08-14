@@ -4,6 +4,7 @@ import { InteractiveRouteMap, type RouteMapLine, type RouteMapMarker } from "../
 import { NotificationBell } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
 import { postJson } from "../../shared/api";
+import { formatOrderDateTime, statusColorOf, translateStatus } from "../../shared/orderStatus";
 import { useRealtimeResource } from "../../shared/useRealtimeResource";
 import type { QueueItem } from "../../shared/types";
 
@@ -22,9 +23,25 @@ type CourierDashboard = {
   vehicleType?: string;
   vehicleLabel: string;
   jobs: QueueItem[];
+  completedDeliveriesCount?: number;
   verificationText: string;
   verificationStatus: string;
 };
+
+type RankTier = {
+  title: string;
+  max: number;
+  bonusMnt: number;
+};
+
+const rankTiers: RankTier[] = [
+  { title: "Дөнгөж эхэлсэн", max: 30, bonusMnt: 15000 },
+  { title: "Идэвхтэй ажилтан", max: 70, bonusMnt: 35000 },
+  { title: "Туршлагатай ажилтан", max: 150, bonusMnt: 75000 },
+  { title: "Алтан ажилтан", max: Infinity, bonusMnt: 150000 },
+];
+
+const claimedTiersStorageKey = "deliverhub-courier-claimed-tiers";
 
 type EmployeeProfile = {
   firstName: string;
@@ -118,13 +135,17 @@ const text = {
   eta: "~12 \u043C\u0438\u043D",
   arrivedStore: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442 \u0430\u0432\u0430\u0445\u0430\u0434 \u0431\u044D\u043B\u044D\u043D",
   storeOtp: "Дэлгүүрт өгөх баталгаажуулах код",
-  storeOtpSent: "6 оронтой баталгаажуулах код таны и-мэйл рүү илгээгдлээ.",
-  storeOtpWaiting: "Кодыг дэлгүүрийн ажилтанд амаар хэлж өгнө үү. Тэд системд оруулмагц ачаа авсан гэж автоматаар баталгаажина.",
+  storeOtpSent: "Код и-мэйлээр илгээгдлээ",
+  storeOtpWaiting: "Кодыг дэлгүүрт амаар хэлнэ үү",
   arrivedDropoff: "Хэрэглэгч дээр ирлээ",
+  customerPhone: "Хэрэглэгчийн утас:",
+  callCustomer: "Залгах",
   customerOtp: "Хэрэглэгчийн өгсөн баталгаажуулах код",
   verifyPickup: "\u0410\u0447\u0430\u0430 \u0430\u0432\u0430\u0445",
   verifyDropoff: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442 \u0434\u0443\u0443\u0441\u0433\u0430\u0445",
   delivered: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442 \u0430\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439",
+  settings: "\u0422\u043E\u0445\u0438\u0440\u0433\u043E\u043E",
+  bonus: "\u0423\u0440\u0430\u043C\u0448\u0443\u0443\u043B\u0430\u043B",
   home: "\u041D\u04AF\u04AF\u0440",
   history: "\u0422\u04AF\u04AF\u0445",
   control: "\u0425\u044F\u043D\u0430\u043B\u0442",
@@ -282,6 +303,14 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [actionError, setActionError] = useState<string | null>(null);
   const [successNotice, setSuccessNotice] = useState<string | null>(null);
   const previousJobStatesRef = useRef<Record<string, string>>({});
+  const [claimedTiers, setClaimedTiers] = useState<number[]>(() => {
+    try {
+      const raw = localStorage.getItem(claimedTiersStorageKey);
+      return raw ? (JSON.parse(raw) as number[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const [profileMessage, setProfileMessage] = useState<string | null>(null);
   const [profileEditing, setProfileEditing] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
@@ -336,6 +365,22 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const walletHistoryJobs = (deliveredJobs.length ? deliveredJobs : visibleJobs).slice(0, 4);
   const walletWeeklyBars = [42, 62, 36, 78, 56, 94, 24];
   const formatWalletMoney = (value: number) => `₮${value.toLocaleString("mn-MN")}`;
+  const completedDeliveriesCount = dashboard.data?.completedDeliveriesCount ?? 0;
+  const currentTierIndex = Math.max(0, rankTiers.findIndex((tier) => completedDeliveriesCount < tier.max));
+  const currentTier = rankTiers[currentTierIndex];
+  const previousTierMax = currentTierIndex > 0 ? rankTiers[currentTierIndex - 1].max : 0;
+  const currentRankTitle = claimedTiers.length ? rankTiers[Math.min(claimedTiers.length, rankTiers.length) - 1].title : "Цол аваагүй";
+  const tierRangeSize = Number.isFinite(currentTier.max) ? currentTier.max - previousTierMax : Math.max(30, previousTierMax);
+  const tierProgressPercent = Math.max(0, Math.min(100, Math.round(((completedDeliveriesCount - previousTierMax) / tierRangeSize) * 100)));
+  const canClaimTier = completedDeliveriesCount >= currentTier.max && !claimedTiers.includes(currentTierIndex);
+
+  function claimTier() {
+    if (!canClaimTier) return;
+    const nextClaimed = [...claimedTiers, currentTierIndex];
+    setClaimedTiers(nextClaimed);
+    localStorage.setItem(claimedTiersStorageKey, JSON.stringify(nextClaimed));
+    showSuccessNotice(`"${currentTier.title}" цол хүртлээ! +${formatWalletMoney(currentTier.bonusMnt)}`);
+  }
   const tabItems: Array<{ key: CourierTab; label: string; icon: string }> = [
     { key: "home", label: text.home, icon: "\u2302" },
     { key: "deliveries", label: text.deliveriesTab, icon: "\u25F7" },
@@ -655,6 +700,12 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                       <strong>Ажилтан → Дэлгүүр чиглэл</strong>
                       <span>{routeMapJob.routePlan?.label ?? "Дэлгүүр рүү хамгийн ойр зам"}</span>
                     </div>
+                    {routeMapJob.customerPhone && (
+                      <div className="employee-route-contact">
+                        <span>{text.customerPhone} {routeMapJob.customerPhone}</span>
+                        <a href={`tel:${routeMapJob.customerPhone}`}>{text.callCustomer}</a>
+                      </div>
+                    )}
                     {routeMapJob.state === "ACCEPTED" && (
                       <button className="employee-full-action" onClick={() => postJobAction(routeMapJob.id, "arrive-store")} type="button">
                         {text.arrivedStore}
@@ -703,9 +754,13 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
               {filteredJobs.map((job, index) => (
                 <article className="employee-request-card" key={job.id}>
                   <div className="employee-request-title">
-                    <span>{job.state === "OFFERED" && index === 0 ? text.urgent : text.incoming}</span>
+                    <span>
+                      <b className="employee-request-number">#{index + 1}</b>
+                      {job.state === "OFFERED" && index === 0 ? text.urgent : text.incoming}
+                    </span>
                     <strong>{job.payoutMnt ?? "0"} MNT</strong>
                   </div>
+                  {job.createdAt && <time className="employee-request-time">{formatOrderDateTime(job.createdAt)}</time>}
                   <div className="employee-address-row">
                     <i className="pickup" />
                     <div>
@@ -775,7 +830,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                         <button className="orange-button" disabled={job.canAccept === false} onClick={() => acceptJob(job.id)} type="button">{text.acceptOrder}</button>
                       </>
                     ) : (
-                      <span className="employee-status-chip">{job.state}</span>
+                      <span className={`employee-status-chip status-${statusColorOf(job.state)}`}>{translateStatus(job.state)}</span>
                     )}
                   </div>
                 </article>
@@ -816,6 +871,25 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     Данс руу татах
                   </button>
 
+                  <section className="employee-bonus-card" aria-label={text.bonus}>
+                    <div className="employee-bonus-head">
+                      <div>
+                        <span>{text.bonus}</span>
+                        <strong>{currentRankTitle}</strong>
+                      </div>
+                      <b>{completedDeliveriesCount} / {Number.isFinite(currentTier.max) ? currentTier.max : previousTierMax} хүргэлт</b>
+                    </div>
+                    <div className="employee-bonus-progress">
+                      <em style={{ width: `${tierProgressPercent}%` }} />
+                    </div>
+                    <div className="employee-bonus-foot">
+                      <span>Дараагийн цол: <b>{currentTier.title}</b> (+{formatWalletMoney(currentTier.bonusMnt)})</span>
+                      <button disabled={!canClaimTier} onClick={claimTier} type="button">
+                        {canClaimTier ? "Цол авах" : `${tierProgressPercent}%`}
+                      </button>
+                    </div>
+                  </section>
+
                   <section className="employee-wallet-history" aria-label="Орлогын түүх">
                     <div className="employee-wallet-section-title">
                       <h3>Орлогын түүх</h3>
@@ -826,8 +900,8 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                         <article key={job.id}>
                           <span aria-hidden="true">▣</span>
                           <div>
-                            <strong>#{job.id.slice(-6).toUpperCase()}</strong>
-                            <small>{index === 0 ? "Өнөөдөр, 14:20" : "Өнөөдөр, 12:45"}</small>
+                            <strong>#{index + 1}</strong>
+                            <small>{job.createdAt ? formatOrderDateTime(job.createdAt) : ""}</small>
                           </div>
                           <p>
                             <b>+ {formatWalletMoney(Number(job.payoutMnt ?? averagePayoutMnt))}</b>
@@ -884,7 +958,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                       <div key={job.id}>
                         <span>{job.name}</span>
                         <strong>{job.payoutMnt ?? "0"} MNT</strong>
-                        <small>{job.state}</small>
+                        <small className={`status-${statusColorOf(job.state)}`}>{translateStatus(job.state)}{job.createdAt ? ` · ${formatOrderDateTime(job.createdAt)}` : ""}</small>
                       </div>
                     ))}
                     {!visibleJobs.length && <p>{text.noJobs}</p>}
@@ -1137,6 +1211,26 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   {item.label}
                 </button>
               ))}
+              <button
+                className={activeTab === "wallet" ? "active" : ""}
+                onClick={() => {
+                  setActiveTab("wallet");
+                  setSidebarOpen(false);
+                }}
+                type="button"
+              >
+                {text.bonus}
+              </button>
+              <button
+                className={activeTab === "profile" ? "active" : ""}
+                onClick={() => {
+                  setActiveTab("profile");
+                  setSidebarOpen(false);
+                }}
+                type="button"
+              >
+                {text.settings}
+              </button>
               {onLogout && <button onClick={onLogout} type="button">{text.logout}</button>}
             </aside>
           </div>

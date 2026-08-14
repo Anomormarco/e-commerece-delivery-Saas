@@ -33,6 +33,17 @@ function busyAssignmentWhere() {
   };
 }
 
+// Guards against dispatching the same order twice (double-click, a stale
+// "Хүргэлт дуудах" button, a retried request, ...) which would otherwise
+// create two simultaneous DeliveryAssignment rows - two couriers offered the
+// same delivery at once.
+export async function findBusyAssignmentForOrder(orderId) {
+  return prisma.deliveryAssignment.findFirst({
+    where: { orderId, ...busyAssignmentWhere() },
+    orderBy: { createdAt: "desc" },
+  });
+}
+
 export async function listRecentOrdersByTenant(tenantId, { limit = 10 } = {}) {
   return prisma.order.findMany({
     where: { tenantId },

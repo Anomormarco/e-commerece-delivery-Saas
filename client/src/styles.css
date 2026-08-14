@@ -2253,9 +2253,11 @@ h3 {
 }
 
 .notification-panel article {
-  display: grid;
-  gap: 4px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
   border: 1px solid #e2e8f0;
+  border-left: 3px solid #cbd5e1;
   border-radius: 12px;
   padding: 10px;
   background: #f8fafc;
@@ -2265,6 +2267,30 @@ h3 {
 .notification-panel article.unread {
   border-color: rgba(37, 99, 235, 0.28);
   background: #eff6ff;
+}
+
+.notification-card-icon {
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.notification-card-body {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.notification-card-head {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.notification-card-number {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 900;
 }
 
 .notification-panel article strong {
@@ -2284,6 +2310,13 @@ h3 {
   color: #94a3b8;
   font-size: 11px;
 }
+
+.notification-card.status-blue { border-left-color: #2563eb; }
+.notification-card.status-purple { border-left-color: #7c3aed; }
+.notification-card.status-amber { border-left-color: #f59e0b; }
+.notification-card.status-green { border-left-color: #16a34a; }
+.notification-card.status-red { border-left-color: #dc2626; }
+.notification-card.status-gray { border-left-color: #94a3b8; }
 
 .landing-profile-menu {
   position: relative;
@@ -15446,10 +15479,6 @@ h3 {
   backdrop-filter: blur(16px);
 }
 
-.employee-live-map > .courier-map-request-card.is-active-route {
-  display: none;
-}
-
 .employee-map-offer-card {
   display: grid;
   gap: 10px;
@@ -16000,6 +16029,35 @@ h3 {
   text-align: center;
 }
 
+.employee-status-chip.status-gray { background: #f1f5f9; color: #64748b; }
+.employee-status-chip.status-blue { background: #eff6ff; color: #2563eb; }
+.employee-status-chip.status-purple { background: #f5f3ff; color: #7c3aed; }
+.employee-status-chip.status-amber { background: #fffbeb; color: #b45309; }
+.employee-status-chip.status-green { background: #ecfdf5; color: #059669; }
+.employee-status-chip.status-red { background: #fef2f2; color: #dc2626; }
+
+.employee-request-number {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 900;
+  margin-right: 6px;
+}
+
+.employee-request-time {
+  display: block;
+  margin: -4px 0 2px;
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 750;
+}
+
+.employee-wallet-list small.status-gray { color: #64748b; }
+.employee-wallet-list small.status-blue { color: #2563eb; }
+.employee-wallet-list small.status-purple { color: #7c3aed; }
+.employee-wallet-list small.status-amber { color: #b45309; }
+.employee-wallet-list small.status-green { color: #059669; }
+.employee-wallet-list small.status-red { color: #dc2626; }
+
 .employee-verify-strip {
   display: flex;
   align-items: center;
@@ -16434,6 +16492,94 @@ h3 {
   place-items: center;
   border-radius: 9px;
   background: rgba(255, 255, 255, 0.18);
+}
+
+.employee-bonus-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(124, 58, 237, 0.22);
+  border-radius: 18px;
+  padding: 16px;
+  background: linear-gradient(160deg, rgba(124, 58, 237, 0.08), rgba(124, 58, 237, 0.02));
+}
+
+.employee-bonus-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.employee-bonus-head > div {
+  display: grid;
+  gap: 2px;
+}
+
+.employee-bonus-head span {
+  color: #7c3aed;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.employee-bonus-head strong {
+  color: #0f172a;
+  font-size: 17px;
+}
+
+.employee-bonus-head b {
+  flex-shrink: 0;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.employee-bonus-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(124, 58, 237, 0.14);
+}
+
+.employee-bonus-progress em {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #a78bfa, #7c3aed);
+  transition: width 300ms ease;
+}
+
+.employee-bonus-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.employee-bonus-foot span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.employee-bonus-foot b {
+  color: #0f172a;
+}
+
+.employee-bonus-foot button {
+  flex-shrink: 0;
+  min-height: 36px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0 14px;
+  background: #7c3aed;
+  color: white;
+  font-size: 12px;
+  font-weight: 950;
+}
+
+.employee-bonus-foot button:disabled {
+  background: rgba(124, 58, 237, 0.16);
+  color: #7c3aed;
 }
 
 .employee-wallet-history,
@@ -21711,6 +21857,21 @@ h2 {
   overflow-x: hidden;
   overflow-y: auto;
   padding-bottom: 18px;
+}
+
+/* Home tab is just the live map - header + map + bottom nav should fill the
+   screen exactly with nothing to scroll, instead of the map's fixed height
+   pushing content below the fold. */
+.employee-mobile-shell .employee-app-scroll:has(> .employee-live-map) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding-bottom: 0;
+}
+
+.employee-mobile-shell .employee-app-scroll:has(> .employee-live-map) .employee-live-map {
+  flex: 1;
+  min-height: 0;
 }
 
 .employee-mobile-shell .courier-bottom-nav {

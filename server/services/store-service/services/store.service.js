@@ -11,6 +11,7 @@ import {
 } from "@deliverhub/server-platform/auth/credentials";
 import {
   createDeliveryOffer,
+  findBusyAssignmentForOrder,
   findEmployeeInAdminReview,
   findDispatchOrder,
   findLatestDispatchableOrder,
@@ -818,6 +819,14 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
     const error = new Error("Хүргэлт дуудах бодит захиалга олдсонгүй.");
     error.statusCode = 404;
     error.code = "NOT_FOUND";
+    throw error;
+  }
+
+  const existingActiveAssignment = await findBusyAssignmentForOrder(order.id);
+  if (existingActiveAssignment) {
+    const error = new Error("Энэ захиалгад аль хэдийн идэвхтэй хүргэлтийн ажил байна.");
+    error.statusCode = 409;
+    error.code = "ALREADY_DISPATCHED";
     throw error;
   }
 

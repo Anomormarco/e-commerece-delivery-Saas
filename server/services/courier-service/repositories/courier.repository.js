@@ -757,9 +757,14 @@ export async function findCourierDashboardByUserId(userId) {
 
   if (!employee) return null;
 
+  const completedDeliveriesCount = await prisma.deliveryAssignment.count({
+    where: { employeeId: employee.id, status: "DELIVERED" },
+  });
+
   return {
     ...employee,
     assignments: employee.assignments,
+    completedDeliveriesCount,
   };
 }
 

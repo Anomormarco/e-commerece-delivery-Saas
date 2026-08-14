@@ -407,6 +407,7 @@ function formatCourierDashboard(employee) {
     vehicleType,
     vehicleLabel: vehicleLabels[vehicleType] ?? vehicleLabels.WALK,
     jobs,
+    completedDeliveriesCount: employee.completedDeliveriesCount ?? 0,
     verificationLogs: formatVerificationLogs(employee),
     verificationText: `\u0411\u0430\u0442\u0430\u043B\u0433\u0430\u0430\u0436\u0443\u0443\u043B\u0430\u043B\u0442\u044B\u043D \u0442\u04E9\u043B\u04E9\u0432: ${employee.verificationStatus}`,
     verificationStatus: employee.verificationStatus,
