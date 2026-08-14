@@ -1492,107 +1492,80 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     const selectedBank = qpayBankOptions.find((bank) => bank.id === selectedSubscriptionBank) ?? qpayBankOptions[0];
     const selectedBankLink = subscriptionPayment ? qpayBankLinkFor(subscriptionPayment.urls, selectedBank) : undefined;
     const bankLinks = (subscriptionPayment?.urls ?? []).filter((url) => Boolean(url.link));
-    const visibleBankLinks = [
-      ...(selectedBankLink ? [selectedBankLink] : []),
-      ...bankLinks.filter((url) => url.link !== selectedBankLink?.link),
-    ].slice(0, 4);
     const primaryLink = selectedBankLink?.link || subscriptionPayment?.shortUrl || bankLinks[0]?.link || "";
     const qrSrc = qpayQrImageSource(subscriptionPayment?.qrImage);
     const amount = subscriptionPayment?.amountMnt ?? subscription?.amountMnt ?? storeSubscriptionAmountMnt;
 
     return (
-      <section className="store-subscription-gate">
-        <div className="store-subscription-copy">
+      <section className="store-sub-card" aria-label="Үйлчилгээний эрх">
+        <div className="store-sub-summary">
           <span>Үйлчилгээний эрх</span>
-          <h1>Store dashboard ашиглахын тулд сарын төлбөрөө төлнө үү</h1>
-          <p>Төлбөр баталгаажсаны дараа бараа, захиалга, хүргэлтийн самбар автоматаар нээгдэнэ.</p>
-          <div>
-            <strong>{formatMnt(amount)}</strong>
-            <small>Сарын эрх · {subscription?.status ?? "PAST_DUE"}</small>
-          </div>
+          <strong>{formatMnt(amount)}<small> / сар</small></strong>
+          <em className={`store-sub-status ${subscription?.active ? "is-active" : "is-past-due"}`}>
+            {subscription?.active ? "Идэвхтэй" : "Төлбөр хүлээгдэж байна"}
+          </em>
         </div>
 
-        <button className="store-subscription-open" onClick={() => setSubscriptionPaymentOpen(true)} type="button">
-          Төлбөр төлөх
-        </button>
-
-        {subscriptionPaymentOpen ? (
-        <div className="store-subscription-payment">
-          <header>
-            <strong>QPay төлбөр</strong>
-            <span>{subscriptionPayment ? "INVOICE ҮҮССЭН" : "INVOICE ҮҮСГЭХ"}</span>
-          </header>
-
-          <div className="store-subscription-banks" aria-label="Төлөх банк">
-            {qpayBankOptions.map((bank) => (
-              <button
-                className={selectedSubscriptionBank === bank.id ? "active" : ""}
-                key={bank.id}
-                onClick={() => setSelectedSubscriptionBank(bank.id)}
-                type="button"
-              >
-                <span>{bank.mark}</span>
-                <strong>{bank.label}</strong>
-              </button>
-            ))}
-          </div>
-
-          {subscriptionPayment ? (
-            <>
-              <a
-                className={`store-subscription-bank-cta${primaryLink ? "" : " is-disabled"}`}
-                href={primaryLink || undefined}
-                onClick={(event) => {
-                  if (!primaryLink) event.preventDefault();
-                }}
-                rel="noreferrer"
-                target="_blank"
-              >
-                <span>{selectedBank.mark}</span>
-                <strong>{selectedBank.label}-аар төлөх</strong>
-                <small>{primaryLink ? "Банкны app нээх" : "Энэ банкны link QPay-аас ирсэнгүй"}</small>
-              </a>
-
-              <div className="store-subscription-invoice">
-                <div>
+        {!subscriptionPaymentOpen ? (
+          <button className="store-sub-cta" onClick={() => setSubscriptionPaymentOpen(true)} type="button">
+            Төлбөр төлөх
+          </button>
+        ) : (
+          <div className="store-sub-panel">
+            {!subscriptionPayment ? (
+              <>
+                <p className="store-sub-hint">QPay invoice үүсгээд, QR уншуулах эсвэл банкны аппаараа төлнө үү.</p>
+                {subscriptionError ? <p className="store-sub-error" role="alert">{subscriptionError}</p> : null}
+                <button className="store-sub-cta" disabled={subscriptionSubmitting} onClick={createSubscriptionInvoice} type="button">
+                  {subscriptionSubmitting ? "Үүсгэж байна..." : "QPay invoice үүсгэх"}
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="store-sub-qr">
+                  {qrSrc ? <img alt="QPay invoice QR" src={qrSrc} /> : <span>QR ирсэнгүй</span>}
+                </div>
+                <div className="store-sub-invoice-row">
                   <span>Invoice</span>
                   <strong>{subscriptionPayment.invoiceId}</strong>
-                  <span>Дүн</span>
-                  <strong>{formatMnt(amount)}</strong>
                 </div>
-                <div className={`store-subscription-qr${qrSrc ? "" : " is-empty"}`}>
-                  {qrSrc ? <img alt="QPay invoice QR" src={qrSrc} /> : <strong>QR ирсэнгүй</strong>}
-                </div>
-              </div>
-
-              {visibleBankLinks.length ? (
-                <div className="store-subscription-apps" aria-label="QPay банкны апп">
-                  {visibleBankLinks.map((url) => (
-                    <a href={url.link} key={`${url.name ?? url.description}-${url.link}`} rel="noreferrer" target="_blank">
-                      {url.logo ? <img alt="" src={url.logo} /> : null}
-                      <span>{url.name || url.description || "Банкны app"}</span>
-                    </a>
-                  ))}
-                </div>
-              ) : null}
-            </>
-          ) : null}
-
-          {subscriptionError ? <p role="alert">{subscriptionError}</p> : null}
-          <button
-            className="store-subscription-action"
-            disabled={subscriptionSubmitting}
-            onClick={subscriptionPayment ? checkSubscriptionPaymentStatus : createSubscriptionInvoice}
-            type="button"
-          >
-            {subscriptionSubmitting ? "Шалгаж байна..." : subscriptionPayment ? "Төлбөр шалгах" : "QPay invoice үүсгэх"}
-          </button>
-        </div>
-        ) : (
-          <div className="store-subscription-launch">
-            <strong>Эрх идэвхгүй байна</strong>
-            <span>Төлбөр төлөх товч дарж QPay invoice үүсгэнэ.</span>
-            <button onClick={() => setSubscriptionPaymentOpen(true)} type="button">Төлбөр төлөх</button>
+                <a
+                  className={`store-sub-bank-cta${primaryLink ? "" : " is-disabled"}`}
+                  href={primaryLink || undefined}
+                  onClick={(event) => {
+                    if (!primaryLink) event.preventDefault();
+                  }}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  Банкны аппаар төлөх
+                </a>
+                <details className="store-sub-bank-picker">
+                  <summary>Тодорхой банк сонгох</summary>
+                  <div className="store-sub-bank-grid">
+                    {qpayBankOptions.map((bank) => (
+                      <button
+                        className={selectedSubscriptionBank === bank.id ? "active" : ""}
+                        key={bank.id}
+                        onClick={() => setSelectedSubscriptionBank(bank.id)}
+                        type="button"
+                      >
+                        {bank.label}
+                      </button>
+                    ))}
+                  </div>
+                </details>
+                {subscriptionError ? <p className="store-sub-error" role="alert">{subscriptionError}</p> : null}
+                <button
+                  className="store-sub-cta"
+                  disabled={subscriptionSubmitting}
+                  onClick={checkSubscriptionPaymentStatus}
+                  type="button"
+                >
+                  {subscriptionSubmitting ? "Шалгаж байна..." : "Төлбөр шалгах"}
+                </button>
+              </>
+            )}
           </div>
         )}
       </section>

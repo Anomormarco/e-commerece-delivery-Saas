@@ -9552,6 +9552,190 @@ h3 {
   font-weight: 900;
 }
 
+.store-sub-card {
+  display: grid;
+  gap: 16px;
+  width: min(380px, 100%);
+  margin: 0 auto;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  padding: 22px;
+  background: #0b1120;
+  box-shadow: 0 20px 50px rgba(2, 6, 23, 0.4);
+}
+
+.store-sub-summary {
+  display: grid;
+  gap: 6px;
+  justify-items: center;
+  text-align: center;
+}
+
+.store-sub-summary > span {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.store-sub-summary > strong {
+  color: white;
+  font-size: 30px;
+  font-weight: 950;
+}
+
+.store-sub-summary > strong small {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.store-sub-status {
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 900;
+  font-style: normal;
+}
+
+.store-sub-status.is-active {
+  background: rgba(34, 197, 94, 0.14);
+  color: #4ade80;
+}
+
+.store-sub-status.is-past-due {
+  background: rgba(251, 146, 60, 0.14);
+  color: #fb923c;
+}
+
+.store-sub-cta {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  padding: 0 18px;
+  background: #fd761a;
+  color: white;
+  font-size: 14px;
+  font-weight: 950;
+}
+
+.store-sub-cta:disabled {
+  opacity: 0.6;
+}
+
+.store-sub-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.store-sub-hint {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 13px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.store-sub-error {
+  margin: 0;
+  color: #fca5a5;
+  font-size: 12px;
+  font-weight: 750;
+  text-align: center;
+}
+
+.store-sub-qr {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 14px;
+  padding: 14px;
+  background: white;
+}
+
+.store-sub-qr img {
+  width: 100%;
+  max-width: 200px;
+}
+
+.store-sub-qr span {
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.store-sub-invoice-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.store-sub-invoice-row strong {
+  color: #cbd5e1;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.store-sub-bank-cta {
+  display: grid;
+  place-items: center;
+  min-height: 46px;
+  border: 1px solid rgba(37, 99, 235, 0.32);
+  border-radius: 12px;
+  background: rgba(37, 99, 235, 0.1);
+  color: #93c5fd;
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.store-sub-bank-cta.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.store-sub-bank-picker summary {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 750;
+  cursor: pointer;
+  list-style: none;
+}
+
+.store-sub-bank-picker summary::-webkit-details-marker {
+  display: none;
+}
+
+.store-sub-bank-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.store-sub-bank-grid button {
+  min-height: 34px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  padding: 0 6px;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.store-sub-bank-grid button.active {
+  border-color: rgba(37, 99, 235, 0.42);
+  background: rgba(37, 99, 235, 0.12);
+  color: #93c5fd;
+}
+
 .store-subscription-gate {
   display: grid;
   grid-template-columns: minmax(0, 0.9fr) minmax(340px, 1.1fr);
