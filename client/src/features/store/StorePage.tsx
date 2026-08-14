@@ -832,22 +832,32 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
 
     if (mappedStatus) {
       let usedLocalFallback = false;
-      const isLocalOrder = localOrders.some((order) => order.id === target);
       const isPreparedAction = mappedStatus === storeOrderStatuses.prepared;
+      // Only orders that actually exist on the server (e.g. surfaced via a notification,
+      // or already in the dashboard list) can be advanced through the real workflow.
+      // Purely local orders (manual entries not yet persisted) fall back to an
+      // optimistic local-only update.
+      const isRealOrder = Boolean(dashboard.data?.orders.some((order) => order.id === target));
       const orderSnapshot = localOrders.find((order) => order.id === target)
         ?? dashboard.data?.orders.find((order) => order.id === target);
       try {
-        if ((isLocalOrder || isPreparedAction) && label !== text.callCourier) {
+        if (!isRealOrder || label === text.reject) {
           usedLocalFallback = true;
         } else if (label === text.confirm) {
           await postJson(`/orders/${target}/accept`);
+          void dashboard.refetch({ silent: true });
+        } else if (isPreparedAction) {
+          await postJson(`/orders/${target}/prepared`);
+          void dashboard.refetch({ silent: true });
         } else if (label === text.callCourier) {
           const result = await postJson<StoreDispatchResponse>("/dispatch-request", { orderId: target });
           setDispatchTrackings((current) => ({ ...current, [target]: trackingFromDispatch(result) }));
+          void dashboard.refetch({ silent: true });
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : "";
-        const canContinueLocally = label !== text.callCourier && (isPreparedAction || message.startsWith("404:") || message.includes("Захиалга олдсонгүй"));
+        const canContinueLocally = label !== text.callCourier && !isPreparedAction && label !== text.confirm
+          && (message.startsWith("404:") || message.includes("Захиалга олдсонгүй"));
         if (!canContinueLocally) {
           setNotice(error instanceof Error ? error.message : "Захиалгын төлөв шинэчлэхэд алдаа гарлаа.");
           window.setTimeout(() => setNotice(null), 2600);

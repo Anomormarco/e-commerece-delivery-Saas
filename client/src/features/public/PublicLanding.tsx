@@ -2691,8 +2691,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           <span className="landing-qpay-logo-mark">
                             <img alt="QPay" src={qpayLogoUrl} />
                           </span>
-                          <strong>{selectedQpayBankOption.label}-аар төлөх</strong>
-                          <small>Банкны app-ууд popup дотор</small>
+                          <strong>QPay-ээр төлөх</strong>
+                          <small>QR уншуулах эсвэл банкны аппаар төлнө үү</small>
                         </button>
                         <div className="landing-qpay-body">
                           <div className="landing-qpay-meta">
