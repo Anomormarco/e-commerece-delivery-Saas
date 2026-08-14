@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --watch main.js",
     "start": "node main.js",
-    "build": "node --check main.js && node --check socket.js && node --check messaging.js && node --check app/customer.app.js && node --check routes/customer.routes.js && node --check controllers/async-handler.js && node --check controllers/customer.controller.js && node --check controllers/event.controller.js && node --check controllers/notification.controller.js && node --check middlewares/auth.middleware.js && node --check middlewares/error-handler.middleware.js && node --check services/customer.service.js && node --check repositories/customer.repository.js && node --check utils/customer-formatting.js",
+    "build": "node --check main.js && node --check socket.js && node --check messaging.js && node --check app/customer.app.js && node --check routes/customer.routes.js && node --check controllers/async-handler.js && node --check controllers/customer.controller.js && node --check controllers/event.controller.js && node --check controllers/notification.controller.js && node --check middlewares/auth.middleware.js && node --check middlewares/error-handler.middleware.js && node --check services/customer.service.js && node --check services/qpay.service.js && node --check repositories/customer.repository.js && node --check utils/customer-formatting.js",
     "db:generate": "node ../../src/scripts/prisma-service.js generate --schema ../../prisma/schema.prisma",
     "db:validate": "node ../../src/scripts/prisma-service.js validate --schema ../../prisma/schema.prisma",
     "db:studio": "node ../../src/scripts/prisma-studio.js"

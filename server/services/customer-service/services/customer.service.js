@@ -13,6 +13,7 @@ import { createNotificationFromEvent } from "@deliverhub/server-platform/notific
 import { customerEventBus } from "../messaging.js";
 import { findCustomerOrderHistory, findCustomerWithLatestOrder } from "../repositories/customer.repository.js";
 import { formatTrackingTime, maskPhone } from "../utils/customer-formatting.js";
+import { checkQpayInvoice, createQpayInvoice, isQpayConfigured } from "./qpay.service.js";
 
 const demoTenantSlug = "deliverhub-public";
 const demoStoreSlug = "nomincart-public";
@@ -146,6 +147,41 @@ function quoteDelivery({ distanceKmValue, weightKg, deliveryType }) {
     deliveryFeeMnt: feeMnt,
     etaMinutes,
   };
+}
+
+function buildPaidEventPayload({ order, quote, paymentMethod }) {
+  return {
+    orderId: order.id,
+    storeId: order.store.id,
+    storeName: order.store.name,
+    customerId: order.customer.id,
+    customerName: order.customer.fullName,
+    customerPhone: order.customer.phone,
+    addressText: order.customerAddress?.address ?? "Хаяг сонгогдоогүй",
+    addressLabel: order.customerAddress?.label ?? "Одоогийн байршил",
+    paymentMethod,
+    amountMnt: order.totalMnt.toString(),
+    subtotalMnt: order.subtotalMnt.toString(),
+    deliveryFeeMnt: order.deliveryFeeMnt.toString(),
+    deliveryType: quote?.deliveryType ?? "bike",
+    deliveryTypeLabel: quote?.deliveryTypeLabel ?? "Мопед/дугуй",
+    items: order.items.map((item) => ({
+      name: item.productName,
+      quantity: item.quantity,
+      amountMnt: item.totalMnt.toString(),
+    })),
+  };
+}
+
+function publishPaidOrder(order, quote, paymentMethod = "QPay") {
+  const paidEventPayload = buildPaidEventPayload({ order, quote, paymentMethod });
+  customerEventBus.publishSoon("order.paid", paidEventPayload);
+  createNotificationFromEvent("store", {
+    type: "order.paid",
+    payload: paidEventPayload,
+  }).catch((error) => {
+    console.warn("[customer-service] store notification create failed", error.message);
+  });
 }
 
 async function ensureCustomerRole() {
@@ -398,6 +434,12 @@ export async function createCustomerOrder(userId, input) {
   const quote = quoteDelivery({ distanceKmValue, weightKg, deliveryType: input.deliveryType });
   const serviceFeeMnt = 500;
   const totalMnt = subtotalMnt + quote.deliveryFeeMnt + serviceFeeMnt;
+  const paymentMethod = String(input.paymentMethod ?? "QPay");
+  const useQpay = paymentMethod.toLowerCase().includes("qpay");
+
+  if (useQpay && !isQpayConfigured()) {
+    throw createHttpError(500, "QPay тохиргоо дутуу байна. Customer service env-ээ шалгана уу.", "QPAY_NOT_CONFIGURED");
+  }
 
   const order = await prisma.$transaction(async (tx) => {
     const address = await tx.customerAddress.create({
@@ -418,7 +460,7 @@ export async function createCustomerOrder(userId, input) {
         branchId: branch.id,
         customerId: customer.id,
         customerAddressId: address.id,
-        status: OrderStatus.PAID,
+        status: useQpay ? OrderStatus.PAYMENT_PENDING : OrderStatus.PAID,
         subtotalMnt: BigInt(subtotalMnt),
         deliveryFeeMnt: BigInt(quote.deliveryFeeMnt),
         serviceFeeMnt: BigInt(serviceFeeMnt),
@@ -442,70 +484,119 @@ export async function createCustomerOrder(userId, input) {
 
     await tx.orderStatusHistory.createMany({
       data: [
-        { orderId: createdOrder.id, status: OrderStatus.PAID, note: "Төлбөр төлөгдсөн" },
+        {
+          orderId: createdOrder.id,
+          status: useQpay ? OrderStatus.PAYMENT_PENDING : OrderStatus.PAID,
+          note: useQpay ? "QPay төлбөр хүлээгдэж байна" : "Төлбөр төлөгдсөн",
+        },
       ],
     });
 
-    await tx.paymentInvoice.create({
-      data: {
-        tenantId: tenant.id,
-        orderId: createdOrder.id,
-        provider: "local-demo",
-        providerInvoiceId: `local-${createdOrder.id}`,
-        amountMnt: BigInt(totalMnt),
-        status: PaymentStatus.PAID,
-        paidAt: new Date(),
-        callbackPayload: {
-          deliveryType: quote.deliveryType,
-          deliveryTypeLabel: quote.deliveryTypeLabel,
-          distanceKm: quote.distanceKm,
-          weightKg: quote.weightKg,
+    if (!useQpay) {
+      await tx.paymentInvoice.create({
+        data: {
+          tenantId: tenant.id,
+          orderId: createdOrder.id,
+          provider: "local-demo",
+          providerInvoiceId: `local-${createdOrder.id}`,
+          amountMnt: BigInt(totalMnt),
+          status: PaymentStatus.PAID,
+          paidAt: new Date(),
+          callbackPayload: {
+            deliveryType: quote.deliveryType,
+            deliveryTypeLabel: quote.deliveryTypeLabel,
+            distanceKm: quote.distanceKm,
+            weightKg: quote.weightKg,
+          },
         },
-      },
-    });
+      });
+    }
 
     return createdOrder;
   });
 
   appCache.forget?.(`customer:tracking:${userId}`);
-  const paidEventPayload = {
-    orderId: order.id,
-    storeId: store.id,
-    storeName: store.name,
-    customerId: customer.id,
-    customerName: customer.fullName,
-    customerPhone: customer.phone,
-    addressText: input.addressText.trim(),
-    addressLabel: String(input.addressLabel ?? "Одоогийн байршил"),
-    paymentMethod: String(input.paymentMethod ?? "QPay"),
-    amountMnt: String(totalMnt),
-    subtotalMnt: String(subtotalMnt),
-    deliveryFeeMnt: String(quote.deliveryFeeMnt),
-    deliveryType: quote.deliveryType,
-    deliveryTypeLabel: quote.deliveryTypeLabel,
-    items: items.map((item) => ({
-      name: String(item.name),
-      quantity: money(item.quantity),
-      amountMnt: String(money(item.priceMnt) * money(item.quantity)),
-    })),
+
+  let payment = {
+    status: useQpay ? "PENDING" : "PAID",
+    provider: useQpay ? "qpay" : "local-demo",
   };
 
-  customerEventBus.publishSoon("order.paid", paidEventPayload);
-  createNotificationFromEvent("store", {
-    type: "order.paid",
-    payload: paidEventPayload,
-  }).catch((error) => {
-    console.warn("[customer-service] store notification create failed", error.message);
-  });
+  if (useQpay) {
+    try {
+      const qpayInvoice = await createQpayInvoice({
+        orderId: order.id,
+        amountMnt: totalMnt,
+        description: `DeliverHub захиалга ${order.id}`,
+        customerCode: customer.phone,
+      });
+
+      await prisma.paymentInvoice.create({
+        data: {
+          tenantId: tenant.id,
+          orderId: order.id,
+          provider: "qpay",
+          providerInvoiceId: qpayInvoice.providerInvoiceId,
+          amountMnt: BigInt(totalMnt),
+          status: PaymentStatus.PENDING,
+          expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+          callbackPayload: {
+            deliveryType: quote.deliveryType,
+            deliveryTypeLabel: quote.deliveryTypeLabel,
+            distanceKm: quote.distanceKm,
+            weightKg: quote.weightKg,
+            senderInvoiceNo: qpayInvoice.senderInvoiceNo,
+            qpay: qpayInvoice.raw,
+          },
+        },
+      });
+
+      payment = {
+        status: "PENDING",
+        provider: "qpay",
+        invoiceId: qpayInvoice.providerInvoiceId,
+        qrText: qpayInvoice.qrText,
+        qrImage: qpayInvoice.qrImage,
+        shortUrl: qpayInvoice.shortUrl,
+        urls: qpayInvoice.urls,
+      };
+    } catch (error) {
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { status: OrderStatus.PAYMENT_FAILED },
+      });
+      await prisma.orderStatusHistory.create({
+        data: {
+          orderId: order.id,
+          status: OrderStatus.PAYMENT_FAILED,
+          note: "QPay invoice үүсгэхэд алдаа гарлаа",
+          evidence: { message: error?.message, code: error?.code },
+        },
+      });
+      throw error;
+    }
+  } else {
+    const paidOrder = await prisma.order.findUnique({
+      where: { id: order.id },
+      include: {
+        store: true,
+        customer: true,
+        customerAddress: true,
+        items: true,
+      },
+    });
+    publishPaidOrder(paidOrder, quote, paymentMethod);
+  }
 
   return {
     success: true,
-    message: "Хүсэлт амжилттай. Төлбөр баталгаажиж хүргэлтэд шилжлээ.",
+    message: useQpay ? "QPay invoice үүслээ. Төлбөр баталгаажмагц захиалга дэлгүүр рүү илгээгдэнэ." : "Хүсэлт амжилттай. Төлбөр баталгаажиж хүргэлтэд шилжлээ.",
     orderNo: order.id,
     quote,
     subtotalMnt,
     serviceFeeMnt,
     totalMnt,
+    payment,
   };
 }
 
@@ -596,6 +687,124 @@ export async function listCustomerStores(userId, input = {}) {
     totalPages: Math.max(1, Math.ceil(total / pageSize)),
   };
 }
+
+export async function confirmQpayPayment(input = {}) {
+  const providerInvoiceId = String(
+    input.invoice_id
+    ?? input.object_id
+    ?? input.qpay_invoice_id
+    ?? input.payment_invoice_id
+    ?? "",
+  ).trim();
+  const senderInvoiceNo = String(input.sender_invoice_no ?? input.order_id ?? "").trim();
+
+  if (!providerInvoiceId && !senderInvoiceNo) {
+    throw createHttpError(400, "QPay invoice дугаар ирсэнгүй.");
+  }
+
+  const invoice = await prisma.paymentInvoice.findFirst({
+    where: providerInvoiceId
+      ? { provider: "qpay", providerInvoiceId }
+      : { provider: "qpay", orderId: senderInvoiceNo },
+    include: {
+      order: {
+        include: {
+          store: true,
+          customer: true,
+          customerAddress: true,
+          items: true,
+        },
+      },
+    },
+  });
+
+  if (!invoice) {
+    throw createHttpError(404, "QPay invoice бүртгэл олдсонгүй.", "NOT_FOUND");
+  }
+
+  if (invoice.status === PaymentStatus.PAID) {
+    return {
+      success: true,
+      status: "PAID",
+      orderNo: invoice.orderId,
+      message: "Төлбөр өмнө нь баталгаажсан байна.",
+    };
+  }
+
+  const paymentCheck = await checkQpayInvoice(invoice.providerInvoiceId);
+  if (!paymentCheck.paid) {
+    return {
+      success: false,
+      status: "PENDING",
+      orderNo: invoice.orderId,
+      message: "QPay төлбөр хараахан баталгаажаагүй байна.",
+    };
+  }
+
+  const quote = invoice.callbackPayload ?? {};
+  const paidRow = paymentCheck.rows[0] ?? {};
+  const providerTransactionId = String(paidRow.payment_id ?? paidRow.transaction_id ?? invoice.providerInvoiceId);
+  const idempotencyKey = `qpay:${invoice.id}:${providerTransactionId}`;
+
+  await prisma.$transaction(async (tx) => {
+    await tx.paymentInvoice.update({
+      where: { id: invoice.id },
+      data: {
+        status: PaymentStatus.PAID,
+        paidAt: new Date(),
+        callbackPayload: {
+          ...quote,
+          callback: input,
+          paymentCheck: paymentCheck.raw,
+        },
+      },
+    });
+
+    await tx.paymentTransaction.upsert({
+      where: { idempotencyKey },
+      update: {
+        status: PaymentStatus.PAID,
+        rawPayload: paymentCheck.raw,
+      },
+      create: {
+        invoiceId: invoice.id,
+        providerTransactionId,
+        amountMnt: BigInt(Math.round(paymentCheck.paidAmount || Number(invoice.amountMnt))),
+        status: PaymentStatus.PAID,
+        idempotencyKey,
+        rawPayload: paymentCheck.raw,
+      },
+    });
+
+    await tx.order.update({
+      where: { id: invoice.orderId },
+      data: { status: OrderStatus.PAID },
+    });
+
+    await tx.orderStatusHistory.create({
+      data: {
+        orderId: invoice.orderId,
+        status: OrderStatus.PAID,
+        note: "QPay төлбөр баталгаажлаа",
+        evidence: {
+          providerInvoiceId: invoice.providerInvoiceId,
+          providerTransactionId,
+        },
+      },
+    });
+  });
+
+  appCache.forget?.(`customer:tracking:${invoice.order.customer.userId}`);
+  publishPaidOrder(invoice.order, quote, "QPay");
+
+  return {
+    success: true,
+    status: "PAID",
+    orderNo: invoice.orderId,
+    message: "QPay төлбөр баталгаажлаа.",
+  };
+}
+
 export async function getCurrentCustomerTracking(userId) {
   return appCache.remember(`customer:tracking:${userId || "default"}`, () => loadCurrentCustomerTracking(userId), 8_000);
 }

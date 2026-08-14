@@ -1,5 +1,6 @@
 import { userIdFromRequest } from "@deliverhub/server-platform/http/request-context";
 import {
+  confirmQpayPayment,
   createCustomerOrder,
   getCurrentCustomerTracking,
   listCustomerOrderHistory,
@@ -18,6 +19,10 @@ export async function login(request, response) {
 
 export async function createOrder(request, response) {
   response.status(201).json(await createCustomerOrder(userIdFromRequest(request), request.body));
+}
+
+export async function checkQpayPayment(request, response) {
+  response.json(await confirmQpayPayment(request.body));
 }
 
 export async function listStores(request, response) {

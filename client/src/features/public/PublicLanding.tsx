@@ -17,6 +17,16 @@ type DeliveryType = "bike" | "car" | "foot";
 type PaymentMethod = "qpay" | "card";
 type LandingSection = "home" | "market" | "contact" | "courier" | "partner";
 
+type QpayPaymentState = {
+  orderNo: string;
+  invoiceId: string;
+  amountMnt: number;
+  qrText?: string;
+  qrImage?: string;
+  shortUrl?: string;
+  urls?: Array<{ name?: string; description?: string; link?: string; logo?: string }>;
+};
+
 type PublicLandingProps = {
   page?: LandingSection;
   onNavigateHome?: () => void;
@@ -649,6 +659,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [checkoutError, setCheckoutError] = useState("");
   const [notice, setNotice] = useState("");
   const [paymentSuccess, setPaymentSuccess] = useState("");
+  const [qpayPayment, setQpayPayment] = useState<QpayPaymentState | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkoutSubmitting, setCheckoutSubmitting] = useState(false);
   const [storesLoading, setStoresLoading] = useState(false);
@@ -1091,6 +1102,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       orderNo: string;
       totalMnt: number;
       quote: { deliveryTypeLabel: string };
+      payment?: QpayPaymentState & { status?: string; provider?: string };
     };
 
     try {
@@ -1101,6 +1113,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         orderNo: string;
         totalMnt: number;
         quote: { deliveryTypeLabel: string };
+        payment?: QpayPaymentState & { status?: string; provider?: string };
       }>("/customer/orders", {
         items: selectedItems.map((item) => ({
           id: item.id,
@@ -1137,6 +1150,20 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     } finally {
       setLoading(false);
       setCheckoutSubmitting(false);
+    }
+
+    if (orderResult.payment?.status === "PENDING" && orderResult.payment.invoiceId) {
+      setQpayPayment({
+        orderNo: orderResult.orderNo,
+        invoiceId: orderResult.payment.invoiceId,
+        amountMnt: orderResult.totalMnt,
+        qrText: orderResult.payment.qrText,
+        qrImage: orderResult.payment.qrImage,
+        shortUrl: orderResult.payment.shortUrl,
+        urls: orderResult.payment.urls,
+      });
+      setNotice("QPay invoice үүслээ. QR уншуулаад эсвэл банкны app-аар төлөөд дараа нь шалгана уу.");
+      return;
     }
 
     const nextTracking: TrackingResponse = {
@@ -1213,6 +1240,50 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     localStorage.setItem(`${orderSeenStorageKey}:${session.customer.id}`, nextTracking.orderNo);
     setSection("market");
     setMenuHidden(false);
+  }
+
+  async function checkQpayPaymentStatus() {
+    if (!session || !qpayPayment) return;
+
+    setCheckoutError("");
+    setCheckoutSubmitting(true);
+    setNotice("QPay төлбөр шалгаж байна...");
+
+    try {
+      const result = await apiPost<{ success: boolean; status: string; message?: string; orderNo?: string }>("/customer/payments/qpay/check", {
+        invoice_id: qpayPayment.invoiceId,
+      }, session.token);
+
+      if (result.status !== "PAID") {
+        setNotice(result.message ?? "Төлбөр хараахан баталгаажаагүй байна.");
+        return;
+      }
+
+      if (paymentSuccessTimerRef.current) window.clearTimeout(paymentSuccessTimerRef.current);
+      setPaymentSuccess("QPay төлбөр баталгаажлаа");
+      paymentSuccessTimerRef.current = window.setTimeout(() => {
+        setPaymentSuccess("");
+        paymentSuccessTimerRef.current = null;
+      }, 3000);
+      setNotice("");
+      setQpayPayment(null);
+      setCart({});
+      setCartOpen(false);
+      setWishlistOpen(false);
+      setProfileOpen(false);
+      setTrackingOpen(true);
+      setSeenOrderKey(result.orderNo ?? qpayPayment.orderNo);
+      localStorage.setItem(orderSeenStorageKey, result.orderNo ?? qpayPayment.orderNo);
+      localStorage.setItem(`${orderSeenStorageKey}:${session.customer.id}`, result.orderNo ?? qpayPayment.orderNo);
+      setSection("market");
+      setMenuHidden(false);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "QPay төлбөр шалгахад алдаа гарлаа.";
+      setCheckoutError(message);
+      setNotice(message);
+    } finally {
+      setCheckoutSubmitting(false);
+    }
   }
 
   function useCurrentLocation() {
@@ -1748,27 +1819,29 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     {paymentMethod === "qpay" ? (
                       <section className="landing-qpay-sandbox" aria-label="QPay sandbox">
                         <header>
-                          <strong>QPay Sandbox</strong>
-                          <span>WAITING</span>
+                          <strong>{qpayPayment ? "QPay төлбөр" : "QPay"}</strong>
+                          <span>{qpayPayment ? "PENDING" : "WAITING"}</span>
                         </header>
                         <div className="landing-qpay-body">
                           <div className="landing-qpay-qr" aria-hidden="true">
-                            {Array.from({ length: 49 }, (_, index) => (
+                            {qpayPayment?.qrImage ? (
+                              <img alt="" src={`data:image/png;base64,${qpayPayment.qrImage}`} />
+                            ) : Array.from({ length: 49 }, (_, index) => (
                               <span className={index % 2 === 0 || index % 5 === 0 || [6, 8, 18, 24, 30, 40, 42].includes(index) ? "is-dark" : ""} key={index} />
                             ))}
                           </div>
                           <div className="landing-qpay-meta">
                             <span>Invoice</span>
-                            <strong>{qpaySandboxInvoice.id}</strong>
+                            <strong>{qpayPayment?.invoiceId ?? qpaySandboxInvoice.id}</strong>
                             <span>Merchant</span>
                             <strong>{qpaySandboxInvoice.merchant}</strong>
                             <span>Amount</span>
-                            <strong>{formatMnt(subtotal + deliveryFee)}</strong>
+                            <strong>{formatMnt(qpayPayment?.amountMnt ?? subtotal + deliveryFee)}</strong>
                           </div>
                         </div>
                         <footer>
                           <span>Expires: {qpaySandboxInvoice.expires}</span>
-                          <code>{qpaySandboxInvoice.deeplink}</code>
+                          <code>{qpayPayment?.shortUrl || qpayPayment?.qrText || qpaySandboxInvoice.deeplink}</code>
                         </footer>
                       </section>
                     ) : (
@@ -1794,8 +1867,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     <p>Энд харагдаж байгаа нь урьдчилсан тооцоо. Захиалга баталгаажих үед эцсийн төлбөр тооцогдоно.</p>
                     {checkoutError ? <p className="landing-checkout-error" role="alert">{checkoutError}</p> : null}
                     <footer>
-                      <button onClick={checkoutOrder} type="button" disabled={checkoutSubmitting}>
-                        {checkoutSubmitting ? "Баталгаажуулж байна..." : "Төлбөр төлөх"}
+                      <button onClick={qpayPayment ? checkQpayPaymentStatus : checkoutOrder} type="button" disabled={checkoutSubmitting}>
+                        {checkoutSubmitting ? "Шалгаж байна..." : qpayPayment ? "Төлбөр шалгах" : "Төлбөр төлөх"}
                       </button>
                       <button onClick={() => setCart({})} type="button">Буцах</button>
                     </footer>
