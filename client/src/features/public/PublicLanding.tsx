@@ -473,6 +473,11 @@ function formatMnt(value: number | string) {
   return `₮${Number(value || 0).toLocaleString("mn-MN")}`;
 }
 
+function qpayQrImageSource(qrImage?: string) {
+  if (!qrImage) return "";
+  return qrImage.startsWith("data:image/") ? qrImage : `data:image/png;base64,${qrImage}`;
+}
+
 function fixMojibake(value: string) {
   if (!/[ÃÐÑÒÓ]/.test(value)) return value;
 
@@ -940,20 +945,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const km = distanceKm(storeLocation, customerLocation);
   const deliveryFee = Math.round(activeDelivery.base + km * activeDelivery.perKm + weightKg * activeDelivery.perKg);
   const etaMinutes = Math.max(12, Math.round((km / activeDelivery.speedKmh) * 60 + 10));
-  const qpaySandboxInvoice = useMemo(() => {
-    const rawKey = selectedItems.map((item) => `${item.id}:${item.quantity}`).join("|") || "empty";
-    let hash = 0;
-    for (let index = 0; index < rawKey.length; index += 1) {
-      hash = (hash * 31 + rawKey.charCodeAt(index)) % 1000000;
-    }
-
-    return {
-      id: `QP-SBX-${String(hash).padStart(6, "0")}`,
-      merchant: selectedItems[0]?.storeName ?? selectedStore?.name ?? "DeliverHub market",
-      expires: "15 минут",
-      deeplink: `qpay://sandbox/invoice/${String(hash).padStart(6, "0")}`,
-    };
-  }, [selectedItems, selectedStore?.name]);
+  const qpayMerchantName = selectedItems[0]?.storeName ?? selectedStore?.name ?? "DeliverHub market";
+  const qpayAmountMnt = qpayPayment?.amountMnt ?? subtotal + deliveryFee;
+  const qpayQrSrc = qpayQrImageSource(qpayPayment?.qrImage);
+  const qpayBankLinks = (qpayPayment?.urls ?? []).filter((url) => Boolean(url.link)).slice(0, 4);
+  const qpayPrimaryLink = qpayPayment?.shortUrl || qpayBankLinks[0]?.link || "";
+  const qpayInvoiceText = qpayPayment?.shortUrl || qpayPayment?.qrText || "";
   const storeCategories = useMemo(
     () => [...marketCategoryFilters],
     [],
@@ -1127,7 +1124,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         location,
         deliveryType,
         paymentMethod: paymentLabel,
-        qpayInvoiceId: paymentMethod === "qpay" ? qpaySandboxInvoice.id : undefined,
       }, session.token);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Захиалга үүсгэхэд алдаа гарлаа.";
@@ -1817,31 +1813,45 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     </div>
 
                     {paymentMethod === "qpay" ? (
-                      <section className="landing-qpay-sandbox" aria-label="QPay sandbox">
+                      <section className="landing-qpay-panel" aria-label="QPay төлбөр">
                         <header>
-                          <strong>{qpayPayment ? "QPay төлбөр" : "QPay"}</strong>
-                          <span>{qpayPayment ? "PENDING" : "WAITING"}</span>
+                          <strong>{qpayPayment ? "QPay invoice үүслээ" : "QPay invoice"}</strong>
+                          <span>{qpayPayment ? "ТӨЛБӨР ХҮЛЭЭЖ БАЙНА" : "ҮҮСГЭХЭД БЭЛЭН"}</span>
                         </header>
                         <div className="landing-qpay-body">
-                          <div className="landing-qpay-qr" aria-hidden="true">
-                            {qpayPayment?.qrImage ? (
-                              <img alt="" src={`data:image/png;base64,${qpayPayment.qrImage}`} />
-                            ) : Array.from({ length: 49 }, (_, index) => (
-                              <span className={index % 2 === 0 || index % 5 === 0 || [6, 8, 18, 24, 30, 40, 42].includes(index) ? "is-dark" : ""} key={index} />
-                            ))}
+                          <div className={`landing-qpay-qr${qpayQrSrc ? "" : " is-empty"}`}>
+                            {qpayQrSrc ? (
+                              <img alt="QPay invoice QR" src={qpayQrSrc} />
+                            ) : (
+                              <strong>QR</strong>
+                            )}
                           </div>
                           <div className="landing-qpay-meta">
                             <span>Invoice</span>
-                            <strong>{qpayPayment?.invoiceId ?? qpaySandboxInvoice.id}</strong>
+                            <strong>{qpayPayment?.invoiceId ?? "Төлбөр төлөхөд үүснэ"}</strong>
                             <span>Merchant</span>
-                            <strong>{qpaySandboxInvoice.merchant}</strong>
-                            <span>Amount</span>
-                            <strong>{formatMnt(qpayPayment?.amountMnt ?? subtotal + deliveryFee)}</strong>
+                            <strong>{qpayMerchantName}</strong>
+                            <span>Дүн</span>
+                            <strong>{formatMnt(qpayAmountMnt)}</strong>
                           </div>
                         </div>
+                        {qpayBankLinks.length ? (
+                          <div className="landing-qpay-apps" aria-label="QPay банкны апп">
+                            {qpayBankLinks.map((url) => (
+                              <a href={url.link} key={`${url.name ?? url.description}-${url.link}`} rel="noreferrer" target="_blank">
+                                {url.logo ? <img alt="" src={url.logo} /> : null}
+                                <span>{url.name || url.description || "Банкны app"}</span>
+                              </a>
+                            ))}
+                          </div>
+                        ) : null}
                         <footer>
-                          <span>Expires: {qpaySandboxInvoice.expires}</span>
-                          <code>{qpayPayment?.shortUrl || qpayPayment?.qrText || qpaySandboxInvoice.deeplink}</code>
+                          <span>{qpayPayment ? "QPay invoice 15 минут хүчинтэй" : "Төлбөр төлөх дарж бодит invoice авна"}</span>
+                          {qpayPrimaryLink ? (
+                            <a href={qpayPrimaryLink} rel="noreferrer" target="_blank">{qpayPrimaryLink}</a>
+                          ) : (
+                            <code>{qpayInvoiceText || "QR болон банкны link invoice үүссэний дараа гарна"}</code>
+                          )}
                         </footer>
                       </section>
                     ) : (
