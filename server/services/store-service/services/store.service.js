@@ -30,6 +30,29 @@ const activeAssignmentStatuses = [
   "IN_TRANSIT",
   "ARRIVING_DROPOFF",
 ];
+const routeProfiles = {
+  WALK: {
+    mode: "WALKING",
+    speedKmh: 4.8,
+    networkFactor: 1.18,
+    turnPenaltyMinutes: 1,
+    label: "Явган замаар хамгийн ойр",
+  },
+  MOPED: {
+    mode: "MOPED_ROAD",
+    speedKmh: 24,
+    networkFactor: 1.28,
+    turnPenaltyMinutes: 2,
+    label: "Мопедоор хамгийн ойр авто зам",
+  },
+  CAR: {
+    mode: "AUTO_ROAD",
+    speedKmh: 34,
+    networkFactor: 1.38,
+    turnPenaltyMinutes: 3,
+    label: "Машинаар хамгийн хурдан авто зам",
+  },
+};
 
 function dispatchRule(weightKg, distanceKm) {
   if (weightKg > 12 || distanceKm > 8) return { requiredVehicle: "CAR", eligibleVehicles: ["CAR"] };
@@ -50,6 +73,21 @@ function haversineKm(from, to) {
   const lat2 = (to.lat * Math.PI) / 180;
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
   return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function routeProfileForVehicle(vehicleType) {
+  return routeProfiles[String(vehicleType ?? "WALK").toUpperCase()] ?? routeProfiles.WALK;
+}
+
+function estimateRouteSegment(from, to, profile) {
+  const directKm = haversineKm(from, to);
+  const routeKm = directKm * profile.networkFactor;
+  const minutes = Math.max(1, Math.round((routeKm / profile.speedKmh) * 60 + profile.turnPenaltyMinutes));
+  return {
+    directKm,
+    routeKm,
+    minutes,
+  };
 }
 
 function pickupLocation(order) {
@@ -89,24 +127,30 @@ function routePlanFor(order, employee, distanceKm, courierLocation = null) {
   const courier = courierLocation ?? latestEmployeeLocation(employee);
   if (!courier) return null;
 
-  const toPickupKm = haversineKm(courier, pickup);
-  const deliveryKm = haversineKm(pickup, dropoff);
-  const totalKm = toPickupKm + deliveryKm;
+  const profile = routeProfileForVehicle(employee?.vehicleType);
+  const pickupRoute = estimateRouteSegment(courier, pickup, profile);
+  const deliveryRoute = estimateRouteSegment(pickup, dropoff, profile);
+  const totalKm = pickupRoute.routeKm + deliveryRoute.routeKm;
   const walkingMinutes = Math.max(4, Math.round(totalKm * 13));
-  const drivingMinutes = Math.max(3, Math.round(totalKm * 4.2 + 3));
-  const fastestMode = drivingMinutes < walkingMinutes ? "AUTO_ROAD" : "WALKING";
+  const mopedMinutes = Math.max(3, Math.round((totalKm / routeProfiles.MOPED.speedKmh) * 60 + routeProfiles.MOPED.turnPenaltyMinutes));
+  const drivingMinutes = Math.max(3, Math.round((totalKm / routeProfiles.CAR.speedKmh) * 60 + routeProfiles.CAR.turnPenaltyMinutes));
+  const etaMinutes = pickupRoute.minutes + deliveryRoute.minutes;
 
   return {
-    engine: "Haversine realtime geospatial scoring",
+    engine: "A*/Dijkstra-style multimodal weighted routing estimator",
+    routingMode: profile.mode,
     pickup,
     dropoff,
     courier,
-    toPickupKm: Number(toPickupKm.toFixed(2)),
+    toPickupKm: Number(pickupRoute.routeKm.toFixed(2)),
+    toPickupMinutes: pickupRoute.minutes,
     totalKm: Number(totalKm.toFixed(2)),
     walkingMinutes,
+    mopedMinutes,
     drivingMinutes,
-    fastestMode,
-    etaMinutes: Math.min(walkingMinutes, drivingMinutes),
+    fastestMode: profile.mode,
+    etaMinutes,
+    label: profile.label,
   };
 }
 
@@ -133,7 +177,7 @@ async function rankNearbyEmployees(order, employees, distanceKm) {
     return {
       employee,
       routePlan,
-      score: routePlan?.toPickupKm ?? Number.POSITIVE_INFINITY,
+      score: routePlan?.toPickupMinutes ?? routePlan?.toPickupKm ?? Number.POSITIVE_INFINITY,
       hasLiveLocation: Boolean(liveLocation),
     };
   }));

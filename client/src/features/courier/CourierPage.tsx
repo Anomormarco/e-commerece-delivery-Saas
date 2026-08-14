@@ -40,7 +40,7 @@ type EmployeeProfile = {
   vehiclePlate?: string;
 };
 
-type CourierTab = "home" | "map" | "deliveries" | "wallet" | "profile";
+type CourierTab = "home" | "deliveries" | "wallet" | "profile";
 
 type GeoPoint = {
   lat: number;
@@ -96,7 +96,6 @@ const text = {
   noJobs: "\u041E\u0434\u043E\u043E\u0445\u043E\u043D\u0434\u043E\u043E \u043E\u0439\u0440\u043E\u043B\u0446\u043E\u043E \u0445\u04AF\u0441\u044D\u043B\u0442 \u0430\u043B\u0433\u0430.",
   actionError: "\u04AE\u0439\u043B\u0434\u044D\u043B \u0430\u043C\u0436\u0441\u0430\u043D\u0433\u04AF\u0439.",
   menu: "\u0426\u044D\u0441",
-  mapTab: "\u0413\u0430\u0437\u0440\u044B\u043D \u0437\u0443\u0440\u0430\u0433",
   deliveriesTab: "\u0425\u04AF\u0440\u0433\u044D\u043B\u0442",
   walletTab: "Хэтэвч",
   profileTab: "\u041F\u0440\u043E\u0444\u0430\u0439\u043B",
@@ -609,7 +608,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
           {dashboard.data && (
             <>
               <div className="employee-app-scroll">
-              {activeTab === "map" && (
+              {/*
                 <InteractiveRouteMap
                   className="employee-live-map"
                   initialZoom={14}
@@ -673,7 +672,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                 </InteractiveRouteMap>
               )}
 
-              {activeTab === "map" && routeMapJob && activePickupStates.includes(routeMapJob.state) && (
+              {false && routeMapJob && activePickupStates.includes(routeMapJob.state) && (
                 <article className="employee-map-offer-card employee-map-route-card">
                   <div className="courier-map-request-head">
                     <div>
@@ -703,7 +702,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                 </article>
               )}
 
-              {false && activeTab === "map" && offerJob && (
+              {false && offerJob && (
                 <article className="employee-map-offer-card">
                   <div className="courier-map-request-head">
                     <div>
@@ -728,6 +727,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                   </div>
                 </article>
               )}
+              */}
               {actionError && <p className="courier-rule-note danger">{actionError}</p>}
 
               {(activeTab === "home" || activeTab === "deliveries") && (

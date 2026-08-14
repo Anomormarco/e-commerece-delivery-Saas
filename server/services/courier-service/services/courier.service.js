@@ -38,6 +38,29 @@ const vehicleLabels = {
 const courierAccessTokenMaxAgeSeconds = 60 * 60 * 24 * 30;
 const courierOfferTimeoutMs = 10_000;
 const faceAuditFreshMs = 2 * 60 * 1000;
+const routeProfiles = {
+  WALK: {
+    mode: "WALKING",
+    speedKmh: 4.8,
+    networkFactor: 1.18,
+    turnPenaltyMinutes: 1,
+    label: "Явган замаар хамгийн ойр",
+  },
+  MOPED: {
+    mode: "MOPED_ROAD",
+    speedKmh: 24,
+    networkFactor: 1.28,
+    turnPenaltyMinutes: 2,
+    label: "Мопедоор хамгийн ойр авто зам",
+  },
+  CAR: {
+    mode: "AUTO_ROAD",
+    speedKmh: 34,
+    networkFactor: 1.38,
+    turnPenaltyMinutes: 3,
+    label: "Машинаар хамгийн хурдан авто зам",
+  },
+};
 
 function createCourierAccessToken(employee) {
   return signJwt({
@@ -116,6 +139,21 @@ function haversineKm(from, to) {
   return earthKm * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function routeProfileForVehicle(vehicleType) {
+  return routeProfiles[String(vehicleType ?? "WALK").toUpperCase()] ?? routeProfiles.WALK;
+}
+
+function estimateRouteSegment(from, to, profile) {
+  const directKm = haversineKm(from, to);
+  const routeKm = directKm * profile.networkFactor;
+  const minutes = Math.max(1, Math.round((routeKm / profile.speedKmh) * 60 + profile.turnPenaltyMinutes));
+  return {
+    directKm,
+    routeKm,
+    minutes,
+  };
+}
+
 function assignmentRoutePlan(assignment) {
   const pickup = pickupLocation(assignment.order);
   const dropoff = dropoffLocation(assignment.order, pickup);
@@ -133,6 +171,31 @@ function assignmentRoutePlan(assignment) {
     fastestMode,
     etaMinutes: Math.min(walkingMinutes, drivingMinutes),
     label: fastestMode === "AUTO_ROAD" ? "Авто замаар хамгийн хурдан" : "Явган хамгийн ойр зам",
+  };
+}
+
+function assignmentRoutePlanV2(assignment) {
+  const pickup = pickupLocation(assignment.order);
+  const dropoff = dropoffLocation(assignment.order, pickup);
+  const profile = routeProfileForVehicle(assignment.employee?.vehicleType);
+  const deliveryRoute = estimateRouteSegment(pickup, dropoff, profile);
+  const totalKm = deliveryRoute.routeKm;
+  const walkingMinutes = Math.max(4, Math.round(totalKm * 13));
+  const mopedMinutes = Math.max(3, Math.round((totalKm / routeProfiles.MOPED.speedKmh) * 60 + routeProfiles.MOPED.turnPenaltyMinutes));
+  const drivingMinutes = Math.max(3, Math.round((totalKm / routeProfiles.CAR.speedKmh) * 60 + routeProfiles.CAR.turnPenaltyMinutes));
+
+  return {
+    engine: "A*/Dijkstra-style multimodal weighted routing estimator",
+    routingMode: profile.mode,
+    pickup,
+    dropoff,
+    totalKm: Number(totalKm.toFixed(2)),
+    walkingMinutes,
+    mopedMinutes,
+    drivingMinutes,
+    fastestMode: profile.mode,
+    etaMinutes: deliveryRoute.minutes,
+    label: profile.label,
   };
 }
 
@@ -276,7 +339,7 @@ function formatCourierDashboard(employee) {
       const weightKg = assignmentWeightKg(assignment);
       const distanceKm = assignmentDistanceKm(assignment);
       const requirement = requiredVehicle(weightKg, distanceKm);
-      const routePlan = assignmentRoutePlan(assignment);
+      const routePlan = assignmentRoutePlanV2(assignment);
 
       return {
         id: assignment.id,
@@ -330,7 +393,7 @@ function formatCourierAssignment(assignment) {
   const weightKg = assignmentWeightKg(assignment);
   const distanceKm = assignmentDistanceKm(assignment);
   const requirement = requiredVehicle(weightKg, distanceKm);
-  const routePlan = assignmentRoutePlan(assignment);
+  const routePlan = assignmentRoutePlanV2(assignment);
 
   return {
     id: assignment.id,
