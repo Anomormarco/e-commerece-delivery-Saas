@@ -25,6 +25,6 @@ export function registerAdminRoutes(app, { basePath = "/api/admin" } = {}) {
   app.post(`${basePath}/stores/:storeId/delete`, asyncHandler(requirePlatformAdmin(deleteStore)));
   app.post(`${basePath}/employees/:userId`, asyncHandler(requirePlatformAdmin(updateEmployee)));
   app.post(`${basePath}/employees/:userId/delete`, asyncHandler(requirePlatformAdmin(deleteEmployee)));
-  app.get(`${basePath}/notifications`, asyncHandler(listAdminNotifications));
-  app.post(`${basePath}/notifications/read`, asyncHandler(markAdminNotificationsRead));
+  app.get(`${basePath}/notifications`, asyncHandler(requirePlatformAdmin(listAdminNotifications)));
+  app.post(`${basePath}/notifications/read`, asyncHandler(requirePlatformAdmin(markAdminNotificationsRead)));
 }

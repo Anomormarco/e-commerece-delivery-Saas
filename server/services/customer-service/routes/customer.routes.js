@@ -20,6 +20,6 @@ export function registerCustomerRoutes(app, { basePath = "/api/customer" } = {})
   app.post(`${basePath}/payments/qpay/check`, requireAuth, asyncHandler(checkQpayPayment));
   app.get(`${basePath}/orders/history`, requireAuth, asyncHandler(listOrderHistory));
   app.get(`${basePath}/orders/current/tracking`, requireAuth, asyncHandler(showCurrentCustomerTracking));
-  app.get(`${basePath}/notifications`, asyncHandler(listCustomerNotifications));
-  app.post(`${basePath}/notifications/read`, asyncHandler(markCustomerNotificationsRead));
+  app.get(`${basePath}/notifications`, requireAuth, asyncHandler(listCustomerNotifications));
+  app.post(`${basePath}/notifications/read`, requireAuth, asyncHandler(markCustomerNotificationsRead));
 }
