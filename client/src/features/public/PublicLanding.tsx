@@ -1529,7 +1529,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     ...(qpaySelectedBankLink ? [qpaySelectedBankLink] : []),
     ...qpayBankLinks.filter((url) => url.link !== qpaySelectedBankLink?.link),
   ];
-  const qpayPrimaryLink = qpaySelectedBankLink?.link || qpayPayment?.shortUrl || qpayBankLinks[0]?.link || "";
   const qpayDraftKey = [
     paymentMethod,
     selectedItems.map((item) => `${item.id}:${item.quantity}`).join("|"),
@@ -2695,19 +2694,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           <strong>{selectedQpayBankOption.label}-аар төлөх</strong>
                           <small>Банкны app-ууд popup дотор</small>
                         </button>
-                        <a
-                          className={`landing-qpay-primary-bank${qpayPrimaryLink ? "" : " is-disabled"}`}
-                          href={qpayPrimaryLink || undefined}
-                          onClick={(event) => {
-                            if (!qpayPrimaryLink) event.preventDefault();
-                          }}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          <span>{selectedQpayBankOption.mark}</span>
-                          <strong>{selectedQpayBankOption.label}-аар төлөх</strong>
-                          <small>{qpayPrimaryLink ? "Банкны app нээх" : "Энэ банкны link QPay-аас ирсэнгүй"}</small>
-                        </a>
                         <div className="landing-qpay-body">
                           <div className="landing-qpay-meta">
                             <span>Invoice</span>
@@ -2732,7 +2718,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           <div className="landing-qpay-popup" role="dialog" aria-modal="true" aria-label="QPay банкны апп сонгох">
                             <div className="landing-qpay-popup-card">
                               <header>
-                                <strong>QPay банк сонгох</strong>
+                                <span className="landing-qpay-popup-brand">
+                                  <img alt="QPay" src={qpayLogoUrl} />
+                                  <strong>QPay банк сонгох</strong>
+                                </span>
                                 <button onClick={() => setQpayAppsOpen(false)} type="button" aria-label="Хаах">×</button>
                               </header>
                               <div className="landing-qpay-bank-picker" aria-label="Төлөх банк">

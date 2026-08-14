@@ -3914,6 +3914,21 @@ h3 {
   font-weight: 950;
 }
 
+.landing-qpay-popup-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.landing-qpay-popup-brand img {
+  display: block;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  object-fit: contain;
+}
+
 .landing-qpay-popup-card > header button {
   display: grid;
   width: 34px;

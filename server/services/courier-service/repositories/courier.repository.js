@@ -335,6 +335,14 @@ export async function ensureDefaultTenant() {
   });
 }
 
+export async function ensureDeliveryEmployeeRole(client = prisma) {
+  return client.role.upsert({
+    where: { code: "DELIVERY_EMPLOYEE" },
+    update: {},
+    create: { code: "DELIVERY_EMPLOYEE", name: "Хүргэлтийн ажилтан" },
+  });
+}
+
 export async function findCourierByLoginId(loginId) {
   const isEmail = String(loginId).includes("@");
   return prisma.deliveryEmployee.findFirst({
@@ -383,6 +391,7 @@ export async function createCourierApplication({
   faceVerification,
 }) {
   const tenant = await ensureDefaultTenant();
+  const employeeRole = await ensureDeliveryEmployeeRole();
   const isEmail = String(loginId).includes("@");
 
   return prisma.$transaction(async (transaction) => {
@@ -396,6 +405,11 @@ export async function createCourierApplication({
           create: {
             tenantId: tenant.id,
             role: "DELIVERY_EMPLOYEE",
+          },
+        },
+        userRoles: {
+          create: {
+            roleId: employeeRole.id,
           },
         },
         deliveryEmployee: {
@@ -473,6 +487,13 @@ export async function activateExistingCourierApplication({
         email,
         passwordHash,
       },
+    });
+
+    const employeeRole = await ensureDeliveryEmployeeRole(transaction);
+    await transaction.userRole.upsert({
+      where: { userId_roleId: { userId, roleId: employeeRole.id } },
+      update: {},
+      create: { userId, roleId: employeeRole.id },
     });
 
     await transaction.deliveryEmployee.update({
