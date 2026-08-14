@@ -14,6 +14,7 @@ type StoreDashboard = {
     note: string;
     amountMnt: string;
   } | null;
+  subscription?: StoreSubscription;
   review: {
     employeeCode: string;
     identityState: string;
@@ -21,9 +22,10 @@ type StoreDashboard = {
   } | null;
 };
 
-type StoreTab = "overview" | "orders" | "products" | "reports" | "settings";
+type StoreTab = "overview" | "orders" | "products" | "reports" | "settings" | "payment";
 type ThemeMode = "night" | "light";
 type ProductTone = "success" | "warning" | "danger";
+type QpayBankId = "khanbank" | "xacbank" | "golomt" | "tdbbank" | "statebank" | "most";
 
 type GeoPoint = {
   lat: number;
@@ -66,8 +68,42 @@ type StoreDispatchResponse = {
   message?: string;
 };
 
+type StoreSubscription = {
+  active: boolean;
+  status: string;
+  planName: string;
+  amountMnt: number;
+  startsAt?: string | null;
+  endsAt?: string | null;
+};
+
+type StoreSubscriptionPayment = {
+  orderNo: string;
+  invoiceId: string;
+  amountMnt: number;
+  qrText?: string;
+  qrImage?: string;
+  shortUrl?: string;
+  urls?: Array<{ name?: string; description?: string; link?: string; logo?: string }>;
+  expiresAt?: string;
+};
+
+type StoreSubscriptionInvoiceResponse = {
+  subscription: StoreSubscription;
+  payment: StoreSubscriptionPayment;
+};
+
+type StoreSubscriptionCheckResponse = {
+  success: boolean;
+  status: string;
+  message?: string;
+  subscription: StoreSubscription;
+};
+
 const localStoreOrdersKey = "deliverhub-store-orders";
 const localStoreProductsKey = "deliverhub-store-products";
+const localStoreProductsVersionKey = "deliverhub-store-products-version";
+const localStoreProductsVersion = "nomin-minute-maid-v6";
 const nominLogoUrl = nominStoreProfile.logoUrl;
 const fixedNominStorePosition: GeoPoint = { lat: 47.91785, lng: 106.93528 };
 const fallbackStorePosition: GeoPoint = fixedNominStorePosition;
@@ -75,6 +111,15 @@ const mapTileSize = 256;
 const storeMapZoom = 14;
 const storeOfferTimeoutMs = 10_000;
 const storePreparedLocalBuildMarker = "prepared-local-v2";
+const storeSubscriptionAmountMnt = 50_000;
+const qpayBankOptions: Array<{ id: QpayBankId; label: string; mark: string; aliases: string[] }> = [
+  { id: "khanbank", label: "ХААН Банк", mark: "ХА", aliases: ["khan", "haan", "хаан"] },
+  { id: "xacbank", label: "Хас Банк", mark: "ХС", aliases: ["xac", "has", "xas", "хас"] },
+  { id: "golomt", label: "Голомт", mark: "Г", aliases: ["golomt", "голомт"] },
+  { id: "tdbbank", label: "TDB", mark: "T", aliases: ["tdb", "trade", "development", "худалдаа"] },
+  { id: "statebank", label: "Төрийн банк", mark: "ТБ", aliases: ["state", "төрийн", "turiin"] },
+  { id: "most", label: "MOST Money", mark: "M", aliases: ["most"] },
+];
 const terminalDispatchStatuses = ["REJECTED", "FAILED", "CANCELLED"] as const;
 const activeDispatchStatuses = ["ACCEPTED", "ARRIVING_PICKUP", "PICKUP_VERIFICATION", "PICKED_UP", "IN_TRANSIT", "ARRIVING_DROPOFF", "DELIVERED"];
 
@@ -102,6 +147,40 @@ function isActiveDispatchStatus(status?: string | null) {
   return activeDispatchStatuses.includes(String(status));
 }
 
+function formatMnt(value: number | string) {
+  return `₮${Number(value || 0).toLocaleString("mn-MN")}`;
+}
+
+function moneyValue(value: number | string | undefined) {
+  const amount = Number(String(value ?? "0").replace(/[^\d.-]/g, ""));
+  return Number.isFinite(amount) ? amount : 0;
+}
+
+function qpayQrImageSource(qrImage?: string) {
+  const value = qrImage?.trim().replace(/\s/g, "");
+  if (!value) return "";
+  if (value.startsWith("data:image/")) return value;
+  if (value.startsWith("image/") && value.includes("base64,")) return `data:${value}`;
+  if (value.startsWith("<svg")) return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(qrImage ?? "")}`;
+  if (value.startsWith("PHN2Zy")) return `data:image/svg+xml;base64,${value}`;
+  if (value.startsWith("/9j/")) return `data:image/jpeg;base64,${value}`;
+  return `data:image/png;base64,${value}`;
+}
+
+function normalizeQpayBankText(value?: string) {
+  return (value ?? "").toLowerCase().replace(/\s|_|-|\.|банк|bank/g, "");
+}
+
+function qpayBankLinkFor(
+  urls: StoreSubscriptionPayment["urls"] = [],
+  bank: { aliases: string[] },
+) {
+  return urls.find((url) => {
+    const text = normalizeQpayBankText([url.name, url.description, url.link].filter(Boolean).join(" "));
+    return bank.aliases.some((alias) => text.includes(normalizeQpayBankText(alias)));
+  });
+}
+
 function trackingStatusLabel(tracking?: StoreDeliveryTracking | null) {
   if (!tracking) return "";
   if (tracking.status === "REJECTED") return "Хүргэлтийн ажилтан хариу өгөөгүй - дахин хүргэлт дуудаж болно";
@@ -118,7 +197,7 @@ function trackingStatusLabel(tracking?: StoreDeliveryTracking | null) {
 
 function isForStore(order: StoreOrder, store?: StoreIdentity) {
   if (!store) return true;
-  return order.storeId === store.id || order.storeName === store.storeName || (!order.storeId && !order.storeName);
+  return order.storeId === store.id || displayStoreName(order.storeName) === displayStoreName(store.storeName) || (!order.storeId && !order.storeName);
 }
 
 function readLocalOrders(store?: StoreIdentity): StoreOrder[] {
@@ -172,7 +251,7 @@ function notificationToOrder(item: NotificationItem, store?: StoreIdentity): Sto
 }
 
 const text = {
-  storeName: "\u041D\u043E\u043C\u0438\u043D \u041C\u0430\u0440\u043A\u0435\u0442",
+  storeName: nominStoreProfile.name,
   open: "\u041D\u044D\u044D\u043B\u0442\u0442\u044D\u0439",
   overview: "\u0421\u0430\u043C\u0431\u0430\u0440",
   orders: "\u0417\u0430\u0445\u0438\u0430\u043B\u0433\u0430",
@@ -225,6 +304,7 @@ const text = {
   logout: "\u0413\u0430\u0440\u0430\u0445",
   reportTitle: "\u04E8\u043D\u04E9\u04E9\u0434\u0440\u0438\u0439\u043D \u0442\u0430\u0439\u043B\u0430\u043D",
   settingsTitle: "\u0414\u044D\u043B\u0433\u04AF\u04AF\u0440\u0438\u0439\u043D \u0442\u043E\u0445\u0438\u0440\u0433\u043E\u043E",
+  payment: "\u0422\u04E9\u043B\u0431\u04E9\u0440",
 };
 
 const tabs: Array<{ key: StoreTab; label: string }> = [
@@ -233,6 +313,7 @@ const tabs: Array<{ key: StoreTab; label: string }> = [
   { key: "products", label: text.products },
   { key: "reports", label: text.reports },
   { key: "settings", label: text.settings },
+  { key: "payment", label: text.payment },
 ];
 
 const productTemplates = [
@@ -259,11 +340,11 @@ const productTemplates = [
   ["Ногоон цай", "Ундаа", "₮6,900", "green tea box product"],
   ["Кофе", "Ундаа", "₮18,900", "coffee bag product"],
   ["Ус 1.5л", "Ундаа", "₮2,200", "water bottle product"],
-  ["Жүүс 1л", "Ундаа", "₮6,800", "juice carton product"],
+  ["Minute Maid 1.25л", "Ундаа", "₮5,500", "Minute Maid 1.25L juice bottle product"],
   ["Кола", "Ундаа", "₮3,500", "cola can product"],
-  ["Чипс", "Амттан", "₮5,200", "potato chips bag product"],
-  ["Шоколад", "Амттан", "₮4,800", "chocolate bar product"],
-  ["Печень", "Амттан", "₮6,100", "cookies package product"],
+  ["Lays chips", "Амттан", "₮8,800", "Lay's Masala chips bag product"],
+  ["Maxfun", "Амттан", "₮9,900", "Alpen Gold Max Fun chocolate 160g product"],
+  ["Snickers", "Амттан", "₮4,400", "Snickers chocolate bar product"],
   ["Зайрмаг", "Амттан", "₮4,300", "ice cream cup product"],
   ["Салат", "Бэлэн хоол", "₮8,900", "fresh salad bowl product"],
   ["Сэндвич", "Бэлэн хоол", "₮7,900", "sandwich product"],
@@ -298,7 +379,7 @@ const initialProducts: ProductItem[] = productTemplates.map(([name, category, pr
   category,
   price,
   stockCount: index % 17 === 0 ? 0 : 8 + ((index * 7) % 68),
-  description: `Номин Маркет - ${category.toLowerCase()} ангиллын бараа.`,
+  description: `Номин Супермаркет - ${category.toLowerCase()} ангиллын бараа.`,
   imageUrl: productImageUrl(keyword),
 }));
 
@@ -314,6 +395,12 @@ const syncedNominProducts: ProductItem[] = nominCatalogProducts.map((product) =>
 
 function readSavedProducts(): ProductItem[] {
   try {
+    if (localStorage.getItem(localStoreProductsVersionKey) !== localStoreProductsVersion) {
+      localStorage.setItem(localStoreProductsKey, JSON.stringify(syncedNominProducts));
+      localStorage.setItem(localStoreProductsVersionKey, localStoreProductsVersion);
+      return syncedNominProducts;
+    }
+
     const raw = localStorage.getItem(localStoreProductsKey);
     return raw ? (JSON.parse(raw) as ProductItem[]) : syncedNominProducts;
   } catch {
@@ -347,6 +434,11 @@ function storeOrderStatusLabel(status: string) {
   if (status === "DELIVERED" || status === "COMPLETED") return "Захиалга дууссан";
   if (status === storeOrderStatuses.rejected) return "Татгалзсан";
   return status;
+}
+
+function displayStoreName(name?: string | null) {
+  if (!name || name === "Номин Маркет") return nominStoreProfile.name;
+  return name;
 }
 
 function orderLabel(index: number) {
@@ -471,6 +563,11 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   const [dispatchTrackings, setDispatchTrackings] = useState<Record<string, StoreDeliveryTracking>>({});
   const [pickupOtpByAssignment, setPickupOtpByAssignment] = useState<Record<string, string>>({});
   const [dispatchClock, setDispatchClock] = useState(Date.now());
+  const [selectedSubscriptionBank, setSelectedSubscriptionBank] = useState<QpayBankId>("khanbank");
+  const [subscriptionPayment, setSubscriptionPayment] = useState<StoreSubscriptionPayment | null>(null);
+  const [subscriptionPaymentOpen, setSubscriptionPaymentOpen] = useState(false);
+  const [subscriptionSubmitting, setSubscriptionSubmitting] = useState(false);
+  const [subscriptionError, setSubscriptionError] = useState("");
   const refreshDashboard = dashboard.refetch;
 
   useEffect(() => {
@@ -479,6 +576,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
 
   useEffect(() => {
     localStorage.setItem(localStoreProductsKey, JSON.stringify(products));
+    localStorage.setItem(localStoreProductsVersionKey, localStoreProductsVersion);
   }, [products]);
 
   useEffect(() => {
@@ -598,7 +696,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
       return;
     }
 
-    const deliveryFee = manualOrderForm.feePayer === "store" ? 0 : 5000;
+    const deliveryFee = manualOrderForm.feePayer === "store" ? 0 : 10000;
     const amount = parseProductPrice(selectedProduct.price) + deliveryFee;
     const id = `manual-${Date.now().toString(36)}`;
     const nextOrder: StoreOrderView = {
@@ -607,7 +705,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
       amountMnt: String(amount),
       district: manualOrderForm.addressText.trim(),
       storeId: store?.id,
-      storeName: store?.storeName ?? text.storeName,
+      storeName: displayStoreName(store?.storeName),
       addressText: manualOrderForm.addressText.trim(),
       items: [{ name: selectedProduct.name, quantity: "1", amountMnt: String(parseProductPrice(selectedProduct.price)) }],
       orderTime: new Date().toISOString(),
@@ -671,6 +769,54 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
       setNotice(error instanceof Error ? error.message : "OTP баталгаажуулахад алдаа гарлаа.");
     }
     window.setTimeout(() => setNotice(null), 2600);
+  }
+
+  async function createSubscriptionInvoice() {
+    setSubscriptionError("");
+    setSubscriptionSubmitting(true);
+    setNotice(null);
+
+    try {
+      setSubscriptionPaymentOpen(true);
+      const result = await postJson<StoreSubscriptionInvoiceResponse>("/subscription/qpay/invoice");
+      setSubscriptionPayment(result.payment);
+      setNotice("QPay invoice үүслээ. Банкны app-аар эсвэл QR уншуулж төлнө үү.");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "QPay invoice үүсгэхэд алдаа гарлаа.";
+      setSubscriptionError(message);
+      setNotice(message);
+    } finally {
+      setSubscriptionSubmitting(false);
+    }
+  }
+
+  async function checkSubscriptionPaymentStatus() {
+    if (!subscriptionPayment) return;
+
+    setSubscriptionError("");
+    setSubscriptionSubmitting(true);
+    setNotice("Төлбөр шалгаж байна...");
+
+    try {
+      const result = await postJson<StoreSubscriptionCheckResponse>("/subscription/qpay/check", {
+        invoice_id: subscriptionPayment.invoiceId,
+      });
+
+      if (result.status !== "PAID") {
+        setNotice(result.message ?? "Төлбөр хараахан баталгаажаагүй байна.");
+        return;
+      }
+
+      setSubscriptionPayment(null);
+      setNotice("Үйлчилгээний эрх амжилттай идэвхжлээ.");
+      await refreshDashboard();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Төлбөр шалгахад алдаа гарлаа.";
+      setSubscriptionError(message);
+      setNotice(message);
+    } finally {
+      setSubscriptionSubmitting(false);
+    }
   }
 
   async function runAction(label: string, target: string) {
@@ -1081,7 +1227,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             <div className="store-order-focus-head">
               <div>
                 <span>#{selectedOrder.id}</span>
-                <h3>{selectedOrder.storeName ?? store?.storeName ?? text.storeName}</h3>
+                <h3>{displayStoreName(selectedOrder.storeName ?? store?.storeName)}</h3>
                 <p>{storeOrderStatusLabel(String(selectedStatus))}</p>
               </div>
               <strong>{selectedOrder.amountMnt} MNT</strong>
@@ -1190,7 +1336,10 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
   function renderProducts() {
     const productsPerPage = 8;
     const lowStockCount = products.filter((product) => product.stockCount > 0 && product.stockCount <= 12).length;
+    const inStockCount = products.filter((product) => product.stockCount > 0).length;
+    const outOfStockCount = products.filter((product) => product.stockCount <= 0).length;
     const categoryCount = new Set(products.map((product) => product.category)).size;
+    const totalInventoryValue = products.reduce((sum, product) => sum + moneyValue(product.price) * product.stockCount, 0);
     const filteredProducts = products.filter((product) => {
       const normalizedSearch = productSearch.trim().toLowerCase();
       return !normalizedSearch || `${product.name} ${product.sku} ${product.category}`.toLowerCase().includes(normalizedSearch);
@@ -1220,10 +1369,10 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         </div>
 
         <section className="store-inventory-stats">
-          <article><span>{text.totalProducts}</span><strong>{products.length}</strong><em>+12</em></article>
+          <article><span>{text.totalProducts}</span><strong>{products.length}</strong><em>{inStockCount} идэвхтэй</em></article>
           <article><span>{text.lowStock}</span><strong>{lowStockCount}</strong><em className="warning">{text.reorderNeeded}</em></article>
-          <article><span>{text.totalValue}</span><strong>\u20AE145.2M</strong><em>+8%</em></article>
-          <article><span>{text.categories}</span><strong>{categoryCount}</strong><em>+1</em></article>
+          <article><span>{text.totalValue}</span><strong>{formatMnt(totalInventoryValue)}</strong><em>{outOfStockCount} дууссан</em></article>
+          <article><span>{text.categories}</span><strong>{categoryCount}</strong><em>{filteredProducts.length} харагдаж байна</em></article>
         </section>
 
         <section className="store-product-catalog">
@@ -1305,6 +1454,118 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     );
   }
 
+  function renderSubscriptionPayment(data: StoreDashboard) {
+    const subscription = data.subscription;
+    const selectedBank = qpayBankOptions.find((bank) => bank.id === selectedSubscriptionBank) ?? qpayBankOptions[0];
+    const selectedBankLink = subscriptionPayment ? qpayBankLinkFor(subscriptionPayment.urls, selectedBank) : undefined;
+    const bankLinks = (subscriptionPayment?.urls ?? []).filter((url) => Boolean(url.link));
+    const visibleBankLinks = [
+      ...(selectedBankLink ? [selectedBankLink] : []),
+      ...bankLinks.filter((url) => url.link !== selectedBankLink?.link),
+    ].slice(0, 4);
+    const primaryLink = selectedBankLink?.link || subscriptionPayment?.shortUrl || bankLinks[0]?.link || "";
+    const qrSrc = qpayQrImageSource(subscriptionPayment?.qrImage);
+    const amount = subscriptionPayment?.amountMnt ?? subscription?.amountMnt ?? storeSubscriptionAmountMnt;
+
+    return (
+      <section className="store-subscription-gate">
+        <div className="store-subscription-copy">
+          <span>Үйлчилгээний эрх</span>
+          <h1>Store dashboard ашиглахын тулд сарын төлбөрөө төлнө үү</h1>
+          <p>Төлбөр баталгаажсаны дараа бараа, захиалга, хүргэлтийн самбар автоматаар нээгдэнэ.</p>
+          <div>
+            <strong>{formatMnt(amount)}</strong>
+            <small>Сарын эрх · {subscription?.status ?? "PAST_DUE"}</small>
+          </div>
+        </div>
+
+        <button className="store-subscription-open" onClick={() => setSubscriptionPaymentOpen(true)} type="button">
+          Төлбөр төлөх
+        </button>
+
+        {subscriptionPaymentOpen ? (
+        <div className="store-subscription-payment">
+          <header>
+            <strong>QPay төлбөр</strong>
+            <span>{subscriptionPayment ? "INVOICE ҮҮССЭН" : "INVOICE ҮҮСГЭХ"}</span>
+          </header>
+
+          <div className="store-subscription-banks" aria-label="Төлөх банк">
+            {qpayBankOptions.map((bank) => (
+              <button
+                className={selectedSubscriptionBank === bank.id ? "active" : ""}
+                key={bank.id}
+                onClick={() => setSelectedSubscriptionBank(bank.id)}
+                type="button"
+              >
+                <span>{bank.mark}</span>
+                <strong>{bank.label}</strong>
+              </button>
+            ))}
+          </div>
+
+          {subscriptionPayment ? (
+            <>
+              <a
+                className={`store-subscription-bank-cta${primaryLink ? "" : " is-disabled"}`}
+                href={primaryLink || undefined}
+                onClick={(event) => {
+                  if (!primaryLink) event.preventDefault();
+                }}
+                rel="noreferrer"
+                target="_blank"
+              >
+                <span>{selectedBank.mark}</span>
+                <strong>{selectedBank.label}-аар төлөх</strong>
+                <small>{primaryLink ? "Банкны app нээх" : "Энэ банкны link QPay-аас ирсэнгүй"}</small>
+              </a>
+
+              <div className="store-subscription-invoice">
+                <div>
+                  <span>Invoice</span>
+                  <strong>{subscriptionPayment.invoiceId}</strong>
+                  <span>Дүн</span>
+                  <strong>{formatMnt(amount)}</strong>
+                </div>
+                <div className={`store-subscription-qr${qrSrc ? "" : " is-empty"}`}>
+                  {qrSrc ? <img alt="QPay invoice QR" src={qrSrc} /> : <strong>QR ирсэнгүй</strong>}
+                </div>
+              </div>
+
+              {visibleBankLinks.length ? (
+                <div className="store-subscription-apps" aria-label="QPay банкны апп">
+                  {visibleBankLinks.map((url) => (
+                    <a href={url.link} key={`${url.name ?? url.description}-${url.link}`} rel="noreferrer" target="_blank">
+                      {url.logo ? <img alt="" src={url.logo} /> : null}
+                      <span>{url.name || url.description || "Банкны app"}</span>
+                    </a>
+                  ))}
+                </div>
+              ) : null}
+            </>
+          ) : null}
+
+          {subscriptionError ? <p role="alert">{subscriptionError}</p> : null}
+          <button
+            className="store-subscription-action"
+            disabled={subscriptionSubmitting}
+            onClick={subscriptionPayment ? checkSubscriptionPaymentStatus : createSubscriptionInvoice}
+            type="button"
+          >
+            {subscriptionSubmitting ? "Шалгаж байна..." : subscriptionPayment ? "Төлбөр шалгах" : "QPay invoice үүсгэх"}
+          </button>
+        </div>
+        ) : (
+          <div className="store-subscription-launch">
+            <strong>Эрх идэвхгүй байна</strong>
+            <span>Төлбөр төлөх товч дарж QPay invoice үүсгэнэ.</span>
+            <button onClick={() => setSubscriptionPaymentOpen(true)} type="button">Төлбөр төлөх</button>
+          </div>
+        )}
+      </section>
+    );
+  }
+
   function renderOverview(data: StoreDashboard) {
     const orders = [...localOrders, ...data.orders.filter((order) => !localOrders.some((localOrder) => localOrder.id === order.id))];
     const pendingOrders = orders.filter((order) => order.status !== "DELIVERED").length || orders.length;
@@ -1342,7 +1603,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         <article className="store-dash-welcome">
           <div>
             <span>{text.welcome}</span>
-            <h2>{store?.storeName ?? text.storeName}</h2>
+            <h2>{displayStoreName(store?.storeName)}</h2>
             <p>{text.welcomeCopy}</p>
             <button onClick={() => setActiveTab("orders")} type="button">{text.orderBoard}</button>
           </div>
@@ -1360,11 +1621,35 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
     );
   }
 
+  function dashboardStats(data: StoreDashboard) {
+    const orders = [...localOrders, ...data.orders.filter((order) => !localOrders.some((localOrder) => localOrder.id === order.id))];
+    const activeOrders = orders.filter((order) => !["DELIVERED", "COMPLETED", "PAYMENT_FAILED", "REJECTED", "CANCELLED"].includes(String(order.status)));
+    const paidOrders = orders.filter((order) => ["PAID", "CONFIRMED", "PREPARING", "READY_FOR_PICKUP", "COURIER_ASSIGNED"].includes(String(order.status)));
+    const activeDeliveries = orders.filter((order) => {
+      const tracking = preferredTracking(order.deliveryTracking ?? null, dispatchTrackings[order.id]);
+      return Boolean(tracking && isActiveDispatchStatus(tracking.status));
+    });
+    const revenueMnt = orders.reduce((sum, order) => sum + moneyValue(order.amountMnt), 0);
+    const lowStockCount = products.filter((product) => product.stockCount > 0 && product.stockCount <= 12).length;
+    const outOfStockCount = products.filter((product) => product.stockCount <= 0).length;
+
+    return {
+      orderCount: orders.length,
+      orderMeta: `${activeOrders.length} идэвхтэй`,
+      revenue: formatMnt(revenueMnt),
+      revenueMeta: `${paidOrders.length} төлбөртэй`,
+      activeDeliveryCount: activeDeliveries.length,
+      activeDeliveryMeta: `${activeOrders.length} захиалга нээлттэй`,
+      productCount: products.length,
+      productMeta: lowStockCount ? `${lowStockCount} бага үлдэгдэл` : `${outOfStockCount} дууссан`,
+    };
+  }
+
   function renderSimple(title: string) {
     return (
       <article className="store-dash-card store-dash-wide store-dash-simple">
         <h2>{title}</h2>
-        <p>{store?.storeName ?? text.storeName} - {text.open}</p>
+        <p>{displayStoreName(store?.storeName)} - {text.open}</p>
       </article>
     );
   }
@@ -1377,12 +1662,18 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             <img alt="" src={nominLogoUrl} />
           </span>
           <div>
-            <strong>{store?.storeName ?? text.storeName}</strong>
+            <strong>{displayStoreName(store?.storeName)}</strong>
             <span>{text.open}</span>
           </div>
         </div>
-        <button className="store-dash-primary" onClick={openManualOrderForm} type="button">{text.newDelivery}</button>
-        <nav aria-label={store?.storeName ?? text.storeName}>
+        <button
+          className="store-dash-primary"
+          onClick={openManualOrderForm}
+          type="button"
+        >
+          {text.newDelivery}
+        </button>
+        <nav aria-label={displayStoreName(store?.storeName)}>
           {tabs.map((tab) => (
             <button className={activeTab === tab.key ? "active" : ""} key={tab.key} onClick={() => setActiveTab(tab.key)} type="button">
               <span />
@@ -1412,27 +1703,32 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
             <span>{text.lightMode}</span>
             <i aria-hidden="true" />
           </button>
-          <NotificationBell onNotificationClick={handleNotificationSelect} storeId={store?.id} storeName={store?.storeName} />
+          <NotificationBell onNotificationClick={handleNotificationSelect} storeId={store?.id} storeName={displayStoreName(store?.storeName)} />
         </header>
 
         <div className="store-dash-canvas">
           <StateBlock loading={dashboard.loading} error={dashboard.error} empty={!dashboard.data}>
             {dashboard.data && (
               <>
-                <section className="store-dash-stats">
-                  <article><span>{text.todayOrders}</span><strong>{localOrders.length + dashboard.data.orders.length}</strong><em>+12%</em></article>
-                  <article><span>{text.revenue}</span><strong>{dashboard.data.activeOrder?.amountMnt ?? "0"} MNT</strong><em>+18%</em></article>
-                  <article><span>{text.activeDelivery}</span><strong>{dashboard.data.activeOrder ? "1" : "0"}</strong><em>+5%</em></article>
-                  <article><span>{text.stock}</span><strong>{products.length}</strong><em>+4%</em></article>
-                </section>
-
                 {notice && <div className="store-dash-notice">{notice}</div>}
+                {(() => {
+                  const stats = dashboardStats(dashboard.data);
+                  return (
+                    <section className="store-dash-stats">
+                      <article><span>{text.todayOrders}</span><strong>{stats.orderCount}</strong><em>{stats.orderMeta}</em></article>
+                      <article><span>{text.revenue}</span><strong>{stats.revenue}</strong><em>{stats.revenueMeta}</em></article>
+                      <article><span>{text.activeDelivery}</span><strong>{stats.activeDeliveryCount}</strong><em>{stats.activeDeliveryMeta}</em></article>
+                      <article><span>{text.stock}</span><strong>{stats.productCount}</strong><em>{stats.productMeta}</em></article>
+                    </section>
+                  );
+                })()}
 
                 {activeTab === "overview" && renderOverview(dashboard.data)}
                 {activeTab === "orders" && renderOrders([...localOrders, ...dashboard.data.orders.filter((order) => !localOrders.some((localOrder) => localOrder.id === order.id))])}
                 {activeTab === "products" && renderProducts()}
                 {activeTab === "reports" && renderSimple(text.reportTitle)}
                 {activeTab === "settings" && renderSimple(text.settingsTitle)}
+                {activeTab === "payment" && renderSubscriptionPayment(dashboard.data)}
               </>
             )}
           </StateBlock>
@@ -1472,7 +1768,7 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
       <button className="store-mobile-fab" onClick={openManualOrderForm} type="button" aria-label={text.newDelivery}>
         +
       </button>
-      <nav className="store-mobile-nav" aria-label={store?.storeName ?? text.storeName}>
+      <nav className="store-mobile-nav" aria-label={displayStoreName(store?.storeName)}>
         <button className={activeTab === "overview" ? "active" : ""} onClick={() => setActiveTab("overview")} type="button">
           <span aria-hidden="true">{"\u25A1"}</span>
           {text.home}
@@ -1484,6 +1780,10 @@ export function StorePage({ onLogout, store }: { onLogout?: () => void; store?: 
         <button className={activeTab === "products" ? "active" : ""} onClick={() => setActiveTab("products")} type="button">
           <span aria-hidden="true">{"\u25C7"}</span>
           {text.products}
+        </button>
+        <button className={activeTab === "payment" ? "active" : ""} onClick={() => setActiveTab("payment")} type="button">
+          <span aria-hidden="true">{"\u25C9"}</span>
+          {text.payment}
         </button>
         <button className={activeTab === "settings" ? "active" : ""} onClick={() => setActiveTab("settings")} type="button">
           <span aria-hidden="true">{"\u25CB"}</span>

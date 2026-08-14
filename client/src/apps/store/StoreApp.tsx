@@ -22,8 +22,7 @@ const usersStorageKey = "deliverhub-store-users";
 const sessionStorageKey = "deliverhub-store-session";
 const defaultStorePassword = "Zk94387282@";
 const defaultStoreNames = [
-  "Номин Маркет",
-  "Fresh Mart",
+  "Номин Супермаркет",
   "Pharma Plus",
   "Tech Hub",
   "Golden Bakery",

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --watch main.js",
     "start": "node main.js",
-    "build": "node --check main.js && node --check socket.js && node --check messaging.js && node --check app/store.app.js && node --check routes/store.routes.js && node --check controllers/async-handler.js && node --check controllers/store.controller.js && node --check controllers/event.controller.js && node --check controllers/notification.controller.js && node --check middlewares/auth.middleware.js && node --check middlewares/error-handler.middleware.js && node --check services/store.service.js && node --check repositories/store.repository.js",
+    "build": "node --check main.js && node --check socket.js && node --check messaging.js && node --check app/store.app.js && node --check routes/store.routes.js && node --check controllers/async-handler.js && node --check controllers/store.controller.js && node --check controllers/event.controller.js && node --check controllers/notification.controller.js && node --check middlewares/auth.middleware.js && node --check middlewares/error-handler.middleware.js && node --check services/store.service.js && node --check services/qpay.service.js && node --check repositories/store.repository.js",
     "db:generate": "node ../../src/scripts/prisma-service.js generate --schema ../../prisma/schema.prisma",
     "db:validate": "node ../../src/scripts/prisma-service.js validate --schema ../../prisma/schema.prisma",
     "db:studio": "node ../../src/scripts/prisma-studio.js"

@@ -1111,7 +1111,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                       <button type="button">Бүгд</button>
                     </div>
                     {[
-                      { name: "Номин Маркет", note: "Түргэн, найдвартай хүргэлт.", score: "5.0" },
+                      { name: "Номин Супермаркет", note: "Түргэн, найдвартай хүргэлт.", score: "5.0" },
                       { name: "Хэрэглэгч", note: "Цагтаа ирсэн.", score: "4.8" },
                     ].map((review) => (
                       <article key={review.name}>

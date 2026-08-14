@@ -301,6 +301,23 @@ function hasRegisteredDocumentSession(employee) {
   ));
 }
 
+async function safeRecordFailedLoginFaceVerification(userId, payload) {
+  try {
+    await recordFailedLoginFaceVerification(userId, payload);
+  } catch (error) {
+    console.warn("Failed to store login face verification failure", error);
+  }
+}
+
+async function safeRecordLoginFaceVerification(userId, payload) {
+  try {
+    return await recordLoginFaceVerification(userId, payload);
+  } catch (error) {
+    console.warn("Failed to store login face verification session", error);
+    return findCourierDashboardByUserId(userId);
+  }
+}
+
 function latestProfileResult(employee) {
   const sessions = employee.user?.identityProfile?.sessions ?? [];
   return sessions.find((session) => (
@@ -634,7 +651,7 @@ export async function loginCourier(payload = {}) {
 
   const loginAuditPassed = faceAuditPassed(payload.faceAudit, "login");
   if (!loginAuditPassed) {
-    await recordFailedLoginFaceVerification(employee.userId, {
+    await safeRecordFailedLoginFaceVerification(employee.userId, {
       faceAudit: payload.faceAudit ?? null,
       reason: "LOGIN_FACE_AUDIT_INVALID",
       source: "employee-login",
@@ -644,7 +661,7 @@ export async function loginCourier(payload = {}) {
   }
 
   if (!hasRegisteredDocumentSession(employee)) {
-    await recordFailedLoginFaceVerification(employee.userId, {
+    await safeRecordFailedLoginFaceVerification(employee.userId, {
       faceAudit: payload.faceAudit ?? null,
       reason: "REGISTERED_DOCUMENT_LOG_MISSING",
       source: "employee-login",
@@ -656,7 +673,7 @@ export async function loginCourier(payload = {}) {
   const loginFace = verifiedFaceFromPayload({ ...payload, documentFaceMatched: true });
 
   if (!loginFace.passed) {
-    await recordFailedLoginFaceVerification(employee.userId, {
+    await safeRecordFailedLoginFaceVerification(employee.userId, {
       faceAudit: payload.faceAudit ?? null,
       reason: "LOGIN_FACE_MATCH_DECLINED",
       source: "employee-login",
@@ -665,7 +682,7 @@ export async function loginCourier(payload = {}) {
     throw createHttpError(401, "\u041D\u044D\u0432\u0442\u0440\u044D\u0445\u0434\u044D\u044D \u0446\u0430\u0440\u0430\u0439 \u0442\u0430\u043D\u0438\u043B\u0442 \u0437\u0430\u0430\u0432\u0430\u043B \u0430\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439 \u0431\u0430\u0439\u0445 \u0451\u0441\u0442\u043E\u0439.");
   }
 
-  const verifiedEmployee = await recordLoginFaceVerification(employee.userId, {
+  const verifiedEmployee = await safeRecordLoginFaceVerification(employee.userId, {
     selfieWithDocument: loginFace.selfieWithDocument,
     livenessConfirmed: loginFace.livenessConfirmed,
     faceAudit: payload.faceAudit ?? null,

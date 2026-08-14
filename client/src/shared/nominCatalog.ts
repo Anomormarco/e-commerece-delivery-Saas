@@ -11,9 +11,9 @@ export type NominCatalogProduct = {
 
 export const nominStoreProfile = {
   id: "nomincart-public",
-  name: "Номин Маркет",
-  description: "Номин Маркетийн баталгаатай catalog",
-  address: "Улаанбаатар, Сүхбаатар дүүрэг",
+  name: "Номин Супермаркет",
+  description: "Номин Супермаркетийн баталгаатай catalog",
+  address: "Улаанбаатар хот",
   logoUrl: "https://www.mongoliansaddle.com/partners/Nomin%20supermarket.JPG",
 };
 
@@ -27,8 +27,8 @@ const nominCatalogRows: Array<[string, string, number, string]> = [
   ["Алим 1кг", "Жимс", 7800, "photo-1560806887-1e4cd0b6cbd6"],
   ["Төмс 2кг", "Ногоо", 6200, "photo-1518977676601-b53f82aba655"],
   ["Лууван 1кг", "Ногоо", 5400, "photo-1447175008436-054170c2e979"],
-  ["Үхрийн мах 1кг", "Мах", 24500, "photo-1607623814075-e51df1bdc82f"],
-  ["Тахианы цээж мах", "Мах", 18500, "photo-1604503468506-a8da13d82791"],
+  ["Үхрийн мах 1кг", "Мах", 35000, "photo-1607623814075-e51df1bdc82f"],
+  ["Тахианы цээж мах", "Мах", 20000, "photo-1604503468506-a8da13d82791"],
   ["Бяслаг 200г", "Сүү", 12400, "photo-1486297678162-eb2a19b0a32d"],
   ["Талх", "Талх", 3200, "photo-1509440159596-0249088772ff"],
   ["Цөцгийн тос", "Сүү", 8700, "photo-1589985270826-4b7bb135bc9d"],
@@ -43,11 +43,15 @@ const nominCatalogRows: Array<[string, string, number, string]> = [
   ["Ногоон цай", "Ундаа", 6900, "photo-1564890369478-c89ca6d9cde9"],
   ["Кофе", "Ундаа", 18900, "photo-1447933601403-0c6688de566e"],
   ["Ус 1.5л", "Ундаа", 2200, "photo-1523362628745-0c100150b504"],
-  ["Жүүс 1л", "Ундаа", 6800, "photo-1600271886742-f049cd451bba"],
+  ["Minute Maid 1.25л", "Ундаа", 5500, "photo-1600271886742-f049cd451bba"],
   ["Кола", "Ундаа", 3500, "photo-1622483767028-3f66f32aef97"],
-  ["Чипс", "Амттан", 5200, "photo-1566478989037-eec170784d0b"],
-  ["Шоколад", "Амттан", 4800, "photo-1549007994-cb92caebd54b"],
-  ["Печень", "Амттан", 6100, "photo-1499636136210-6f4ee915583e"],
+  ["Газтай ус", "Ундаа", 3200, "photo-1606168094336-48f2056f095e"],
+  ["Энергийн ундаа", "Ундаа", 6500, "photo-1622543925917-763c34d1a86e"],
+  ["Lays chips", "Амттан", 8800, "photo-1566478989037-eec170784d0b"],
+  ["Maxfun", "Амттан", 9900, "photo-1549007994-cb92caebd54b"],
+  ["Snickers", "Амттан", 4400, "photo-1621939514649-280e2ee25f60"],
+  ["Жигнэмэг", "Амттан", 6900, "photo-1558961363-fa8fdf82db35"],
+  ["Чихэр", "Амттан", 5900, "photo-1582058091505-f87a2e55a40f"],
   ["Зайрмаг", "Амттан", 4300, "photo-1501443762994-82bd5dace89a"],
   ["Салат", "Бэлэн хоол", 8900, "photo-1540420773420-3366772f4999"],
   ["Сэндвич", "Бэлэн хоол", 7900, "photo-1528735602780-2552fd46c7af"],
@@ -72,6 +76,62 @@ const nominCatalogRows: Array<[string, string, number, string]> = [
   ["Витамин C", "Эрүүл мэнд", 16500, "photo-1584308666744-24d5c474f2ae"],
 ];
 
+const nominFeaturedProductOrder = [
+  "Lays chips",
+  "Maxfun",
+  "Snickers",
+  "Жигнэмэг",
+  "Чихэр",
+  "Зайрмаг",
+  "Кола",
+  "Газтай ус",
+  "Энергийн ундаа",
+  "Minute Maid",
+  "Кофе",
+  "Ногоон цай",
+  "Ус",
+  "Йогурт",
+  "Самар",
+  "Үзэм",
+  "Зөгийн бал",
+  "Сүү",
+  "Corn flakes",
+];
+
+const nominFeaturedImageByName = new Map([
+  ["Maxfun", "https://tse4.mm.bing.net/th?q=Alpen%20Gold%20Max%20Fun%20chocolate%20160g%20product&w=1000&h=650&c=7&rs=1&p=0"],
+  ["Lays chips", "https://tse4.mm.bing.net/th?q=Lay%27s%20Masala%20chips%20bag%20product&w=1000&h=650&c=7&rs=1&p=0"],
+  ["Snickers", "https://tse4.mm.bing.net/th?q=Snickers%20chocolate%20bar%20product&w=1000&h=650&c=7&rs=1&p=0"],
+  ["Жигнэмэг", "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=1000&q=92"],
+  ["Чихэр", "https://images.unsplash.com/photo-1582058091505-f87a2e55a40f?auto=format&fit=crop&w=1000&q=92"],
+  ["Зайрмаг", "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?auto=format&fit=crop&w=1000&q=92"],
+  ["Кола", "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=1000&q=92"],
+  ["Газтай ус", "https://tse4.mm.bing.net/th?q=sparkling%20water%20bottle%20product%20photo&w=1000&h=650&c=7&rs=1&p=0"],
+  ["Энергийн ундаа", "https://images.unsplash.com/photo-1622543925917-763c34d1a86e?auto=format&fit=crop&w=1000&q=92"],
+  ["Minute Maid", "https://tse4.mm.bing.net/th?q=Minute%20Maid%201.25L%20juice%20bottle%20product&w=1000&h=650&c=7&rs=1&p=0"],
+  ["Кофе", "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=1000&q=92"],
+  ["Ногоон цай", "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?auto=format&fit=crop&w=1000&q=92"],
+  ["Ус", "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=1000&q=92"],
+  ["Йогурт", "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=1000&q=92"],
+  ["Самар", "https://images.unsplash.com/photo-1508061253366-f7da158b6d46?auto=format&fit=crop&w=1000&q=92"],
+  ["Үзэм", "https://tse4.mm.bing.net/th?q=raisins%20package%20product%20photo&w=1000&h=650&c=7&rs=1&p=0"],
+  ["Зөгийн бал", "https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=1000&q=92"],
+  ["Сүү", "https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=1000&q=92"],
+  ["Corn flakes", "https://images.unsplash.com/photo-1521483451569-e33803c0330c?auto=format&fit=crop&w=1000&q=92"],
+]);
+
+function nominProductRank(name: string, category: string) {
+  const nameRank = nominFeaturedProductOrder.findIndex((keyword) => name.includes(keyword));
+  if (nameRank >= 0) return nameRank;
+  const categoryRank = ["Амттан", "Ундаа", "Сүү"].findIndex((keyword) => category.includes(keyword));
+  return categoryRank >= 0 ? nominFeaturedProductOrder.length + categoryRank : 100;
+}
+
+function nominProductImage(name: string, fallbackImageId: string) {
+  const featuredImage = [...nominFeaturedImageByName.entries()].find(([keyword]) => name.includes(keyword))?.[1];
+  return featuredImage ?? `${imageBase}/${fallbackImageId}?auto=format&fit=crop&w=1000&q=86`;
+}
+
 export const nominCatalogProducts: NominCatalogProduct[] = nominCatalogRows.map(([name, category, priceMnt, imageId], index) => ({
   name,
   sku: `NM-${String(index + 1).padStart(4, "0")}`,
@@ -79,6 +139,9 @@ export const nominCatalogProducts: NominCatalogProduct[] = nominCatalogRows.map(
   priceMnt,
   weightGrams: 180 + (index % 12) * 150,
   stockCount: index % 17 === 0 ? 0 : 8 + ((index * 7) % 68),
-  description: `Номин Маркет - ${category.toLowerCase()} ангиллын баталгаатай бараа.`,
-  imageUrl: `${imageBase}/${imageId}?auto=format&fit=crop&w=900&q=80`,
-}));
+  description: `Номин Супермаркет - ${category.toLowerCase()} ангиллын баталгаатай бараа.`,
+  imageUrl: nominProductImage(name, imageId),
+})).sort((first, second) => (
+  nominProductRank(first.name, first.category) - nominProductRank(second.name, second.category)
+  || second.priceMnt - first.priceMnt
+));

@@ -11,6 +11,7 @@ import {
   updateOrderStatus,
   verifyPickupOtpByStore,
 } from "../repositories/store.repository.js";
+import { checkQpayInvoice, createQpayInvoice, isQpayConfigured } from "./qpay.service.js";
 
 const vehicleLabels = {
   WALK: "Явган хүргэлт",
@@ -22,6 +23,10 @@ const defaultStoreLocation = { lat: 47.91785, lng: 106.93528 };
 const offerTimeoutMs = 10_000;
 const maxStoreOfferAttempts = 5;
 const busyAssignmentWindowMs = 2 * 60 * 60 * 1000;
+const storeSubscriptionPlanCode = "store-monthly-50000";
+const storeSubscriptionAmountMnt = 50_000;
+const storeSubscriptionInvoiceTtlMs = 15 * 60 * 1000;
+const pendingSubscriptionInvoices = new Map();
 const activeAssignmentStatuses = [
   "ACCEPTED",
   "ARRIVING_PICKUP",
@@ -58,6 +63,48 @@ function dispatchRule(weightKg, distanceKm) {
   if (weightKg > 12 || distanceKm > 8) return { requiredVehicle: "CAR", eligibleVehicles: ["CAR"] };
   if (weightKg > 4 || distanceKm > 3) return { requiredVehicle: "MOPED", eligibleVehicles: ["MOPED", "CAR"] };
   return { requiredVehicle: "WALK", eligibleVehicles: ["WALK", "MOPED", "CAR"] };
+}
+
+function subscriptionIsActive(subscription, tenant) {
+  if (tenant?.status === "ACTIVE") return true;
+  if (!subscription) return false;
+  if (subscription.status !== "ACTIVE") return false;
+  return !subscription.endsAt || subscription.endsAt > new Date();
+}
+
+function formatSubscription(subscription, tenant) {
+  const active = subscriptionIsActive(subscription, tenant);
+  return {
+    active,
+    status: active ? "ACTIVE" : tenant?.status ?? subscription?.status ?? "PAST_DUE",
+    planName: subscription?.plan?.name ?? "Store monthly",
+    amountMnt: storeSubscriptionAmountMnt,
+    startsAt: subscription?.startsAt?.toISOString?.() ?? null,
+    endsAt: subscription?.endsAt?.toISOString?.() ?? null,
+  };
+}
+
+async function loadStoreSubscription(tenantId) {
+  const [tenant, subscription] = await Promise.all([
+    prisma.tenant.findUnique({ where: { id: tenantId } }),
+    prisma.subscription.findFirst({
+      where: { tenantId },
+      include: { plan: true },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
+
+  return formatSubscription(subscription, tenant);
+}
+
+async function assertStoreSubscriptionActive(tenantId) {
+  const subscription = await loadStoreSubscription(tenantId);
+  if (subscription.active) return;
+
+  const error = new Error("Store эрх идэвхгүй байна. Сарын төлбөрөө төлж идэвхжүүлнэ үү.");
+  error.statusCode = 402;
+  error.code = "STORE_SUBSCRIPTION_REQUIRED";
+  throw error;
 }
 
 function toNumber(value, fallback) {
@@ -447,9 +494,10 @@ export async function getStoreDashboard(tenantId) {
 }
 
 async function loadStoreDashboard(tenantId) {
-  const [orders, review] = await Promise.all([
+  const [orders, review, subscription] = await Promise.all([
     listRecentOrdersByTenant(tenantId, { limit: 10 }),
     findEmployeeInAdminReview(tenantId),
+    loadStoreSubscription(tenantId),
   ]);
   const activeOrder = orders[0];
 
@@ -468,6 +516,7 @@ async function loadStoreDashboard(tenantId) {
           amountMnt: activeOrder.totalMnt.toString(),
         }
       : null,
+    subscription,
     review: review
       ? {
           employeeCode: review.id,
@@ -478,7 +527,153 @@ async function loadStoreDashboard(tenantId) {
   };
 }
 
+export async function getStoreSubscription(tenantId) {
+  return loadStoreSubscription(tenantId);
+}
+
+async function ensureStoreSubscriptionPlan(transaction = prisma) {
+  return transaction.subscriptionPlan.upsert({
+    where: { code: storeSubscriptionPlanCode },
+    update: {
+      monthlyPriceMnt: BigInt(storeSubscriptionAmountMnt),
+      isActive: true,
+    },
+    create: {
+      code: storeSubscriptionPlanCode,
+      name: "Store monthly",
+      monthlyPriceMnt: BigInt(storeSubscriptionAmountMnt),
+      maxStoreUsers: 5,
+      maxCouriers: 10,
+      maxMonthlyOrders: 500,
+      features: {
+        dashboard: true,
+        orders: true,
+        products: true,
+        delivery: true,
+      },
+    },
+  });
+}
+
+export async function createStoreSubscriptionInvoice(tenantId) {
+  if (!tenantId) {
+    const error = new Error("Store tenant олдсонгүй.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  if (!isQpayConfigured()) {
+    const error = new Error("QPay тохиргоо дутуу байна. Store service env-ээ шалгана уу.");
+    error.statusCode = 500;
+    error.code = "QPAY_NOT_CONFIGURED";
+    throw error;
+  }
+
+  const tenant = await prisma.tenant.findUnique({ where: { id: tenantId } });
+  if (!tenant) {
+    const error = new Error("Store tenant олдсонгүй.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  const invoiceNo = `STORE-SUB-${tenantId}-${Date.now()}`;
+  const qpayInvoice = await createQpayInvoice({
+    invoiceNo,
+    amountMnt: storeSubscriptionAmountMnt,
+    description: `DeliverHub сарын эрх ${tenant.name}`,
+    receiverCode: tenant.slug,
+  });
+
+  const payment = {
+    orderNo: invoiceNo,
+    invoiceId: qpayInvoice.providerInvoiceId,
+    amountMnt: storeSubscriptionAmountMnt,
+    qrText: qpayInvoice.qrText,
+    qrImage: qpayInvoice.qrImage,
+    shortUrl: qpayInvoice.shortUrl,
+    urls: qpayInvoice.urls,
+    expiresAt: new Date(Date.now() + storeSubscriptionInvoiceTtlMs).toISOString(),
+  };
+
+  pendingSubscriptionInvoices.set(qpayInvoice.providerInvoiceId, {
+    tenantId,
+    invoiceNo,
+    amountMnt: storeSubscriptionAmountMnt,
+    createdAt: Date.now(),
+  });
+
+  return {
+    subscription: await loadStoreSubscription(tenantId),
+    payment,
+  };
+}
+
+export async function checkStoreSubscriptionPayment(tenantId, payload = {}) {
+  const invoiceId = String(payload.invoice_id ?? payload.invoiceId ?? "").trim();
+  if (!invoiceId) {
+    const error = new Error("QPay invoice дугаар ирсэнгүй.");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const pendingInvoice = pendingSubscriptionInvoices.get(invoiceId);
+  if (!pendingInvoice) {
+    const error = new Error("QPay invoice бүртгэл олдсонгүй. Invoice-ээ дахин үүсгэнэ үү.");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (pendingInvoice && pendingInvoice.tenantId !== tenantId) {
+    const error = new Error("QPay invoice энэ дэлгүүрт хамаарахгүй байна.");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const paymentCheck = await checkQpayInvoice(invoiceId);
+  if (!paymentCheck.paid) {
+    return {
+      success: false,
+      status: "PENDING",
+      message: "Төлбөр хараахан баталгаажаагүй байна.",
+      subscription: await loadStoreSubscription(tenantId),
+    };
+  }
+
+  const now = new Date();
+  const endsAt = new Date(now.getTime());
+  endsAt.setMonth(endsAt.getMonth() + 1);
+
+  await prisma.$transaction(async (transaction) => {
+    const plan = await ensureStoreSubscriptionPlan(transaction);
+    await transaction.tenant.update({
+      where: { id: tenantId },
+      data: { status: "ACTIVE" },
+    });
+    await transaction.subscription.create({
+      data: {
+        tenantId,
+        planId: plan.id,
+        status: "ACTIVE",
+        startsAt: now,
+        endsAt,
+      },
+    });
+  });
+
+  pendingSubscriptionInvoices.delete(invoiceId);
+  appCache.clearByPrefix(`store:dashboard:${tenantId}`);
+
+  return {
+    success: true,
+    status: "PAID",
+    message: "Үйлчилгээний эрх амжилттай идэвхжлээ.",
+    subscription: await loadStoreSubscription(tenantId),
+  };
+}
+
 export async function requestStoreDelivery(tenantId, payload = {}) {
+  await assertStoreSubscriptionActive(tenantId);
+
   const weightKg = Number(payload.weightKg ?? 1);
   const distanceKm = Number(payload.distanceKm ?? 2);
 
@@ -577,6 +772,8 @@ export async function requestStoreDelivery(tenantId, payload = {}) {
 }
 
 export async function acceptStoreOrder(tenantId, orderId) {
+  await assertStoreSubscriptionActive(tenantId);
+
   const order = await updateOrderStatus(tenantId, orderId, "PREPARING", "Дэлгүүр захиалгыг хүлээж аваад бэлтгэж эхэллээ.");
   appCache.clearByPrefix(`store:dashboard:${tenantId}`);
   appCache.clearByPrefix("customer:tracking:");
@@ -589,6 +786,8 @@ export async function acceptStoreOrder(tenantId, orderId) {
 }
 
 export async function markStoreOrderPrepared(tenantId, orderId) {
+  await assertStoreSubscriptionActive(tenantId);
+
   const order = await updateOrderStatus(tenantId, orderId, "READY_FOR_PICKUP", "Бараа бэлтгэж дууслаа.");
   appCache.clearByPrefix(`store:dashboard:${tenantId}`);
   appCache.clearByPrefix("customer:tracking:");
@@ -601,6 +800,8 @@ export async function markStoreOrderPrepared(tenantId, orderId) {
 }
 
 export async function verifyStorePickup(tenantId, assignmentId, payload = {}) {
+  await assertStoreSubscriptionActive(tenantId);
+
   const assignment = await verifyPickupOtpByStore(tenantId, assignmentId, payload.otp);
   appCache.clearByPrefix(`store:dashboard:${tenantId}`);
   appCache.clearByPrefix("courier:dashboard:");

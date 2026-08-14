@@ -165,6 +165,12 @@ function metricValue(metrics: Metric[], label: string, fallback: string) {
   return metrics.find((metric) => metric.label === label)?.value ?? fallback;
 }
 
+function metricNumber(metrics: Metric[], label: string, fallback = 0) {
+  const rawValue = metricValue(metrics, label, String(fallback)).replace(/[^\d.-]/g, "");
+  const value = Number(rawValue);
+  return Number.isFinite(value) ? value : fallback;
+}
+
 function routeFromHash(): SectionKey {
   const value = window.location.hash.replace("#admin/", "") as SectionKey;
   return navItems.some((item) => item.key === value) || value === "settings" || value === "support" ? value : "overview";
@@ -314,29 +320,34 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
     const pendingCount = data.verificationQueue.length || Number(metricValue(metrics, "Active deliveries", "0"));
     const storeRows = data.stores ?? [];
     const employeeRows = data.employees ?? [];
+    const revenueMnt = metricNumber(metrics, "Revenue");
+    const activeDeliveries = metricNumber(metrics, "Active deliveries", data.verificationQueue.length);
+    const activeStores = storeRows.filter((store) => store.status === "ACTIVE" || store.tenantStatus === "ACTIVE").length;
+    const activeEmployees = employeeRows.filter((employee) => employee.status === "ACTIVE").length;
+    const totalStoreOrders = storeRows.reduce((sum, store) => sum + Number(store.orderCount || 0), 0);
 
     return (
       <section className="dashboard-overview">
         <div className="dashboard-stats">
           <article className="platform-kpi">
             <span>{text.revenue}</span>
-            <strong>{metricValue(metrics, "Revenue", "0")} MNT</strong>
-            <em>+25%</em>
+            <strong>{revenueMnt.toLocaleString("mn-MN")} MNT</strong>
+            <em>{totalStoreOrders.toLocaleString("mn-MN")} захиалга</em>
           </article>
           <article className="platform-kpi">
             <span>{text.usersToday}</span>
             <strong>{metricValue(metrics, "Tenant", String(storeRows.length))}</strong>
-            <em>+5%</em>
+            <em>{activeStores}/{storeRows.length} идэвхтэй</em>
           </article>
           <article className="platform-kpi">
             <span>{text.newClients}</span>
             <strong>{employeeRows.length}</strong>
-            <em className="danger">-9%</em>
+            <em className={activeEmployees === employeeRows.length ? "" : "danger"}>{activeEmployees} идэвхтэй</em>
           </article>
           <article className="platform-kpi">
             <span>{text.totalSales}</span>
-            <strong>{metricValue(metrics, "Active deliveries", "0")}</strong>
-            <em>+5%</em>
+            <strong>{activeDeliveries}</strong>
+            <em>{data.verificationQueue.length} хүлээгдэж байна</em>
           </article>
         </div>
 

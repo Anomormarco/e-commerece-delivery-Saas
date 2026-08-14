@@ -13,16 +13,16 @@ import { createNotificationFromEvent } from "@deliverhub/server-platform/notific
 import { customerEventBus } from "../messaging.js";
 import { findCustomerOrderHistory, findCustomerWithLatestOrder } from "../repositories/customer.repository.js";
 import { formatTrackingTime, maskPhone } from "../utils/customer-formatting.js";
-import { checkQpayInvoice, createQpayInvoice, isQpayConfigured } from "./qpay.service.js";
+import { checkQpayInvoice, createQpayInvoice } from "./qpay.service.js";
 
 const demoTenantSlug = "deliverhub-public";
 const demoStoreSlug = "nomincart-public";
 const customerJwtExpiresInSeconds = 60 * 60 * 24 * 7;
 
 const deliveryRates = {
-  foot: { label: "Явган хүргэлт", base: 1800, perKm: 700, perKg: 180, speedKmh: 4 },
-  bike: { label: "Мопед/дугуй", base: 2500, perKm: 900, perKg: 140, speedKmh: 18 },
-  car: { label: "Машин", base: 4200, perKm: 1200, perKg: 110, speedKmh: 28 },
+  foot: { label: "Явган хүргэлт", base: 3600, perKm: 1400, perKg: 360, speedKmh: 4 },
+  bike: { label: "Мопед/дугуй", base: 5000, perKm: 1800, perKg: 280, speedKmh: 18 },
+  car: { label: "Машин", base: 8400, perKm: 2400, perKg: 220, speedKmh: 28 },
 };
 
 function createHttpError(statusCode, message, code = "VALIDATION_ERROR") {
@@ -212,12 +212,12 @@ async function ensureDemoStore() {
   const store = await prisma.store.upsert({
     where: { slug: demoStoreSlug },
     update: {
-      name: "Номин Маркет",
+      name: "Номин Супермаркет",
       description: "Landing page маркетийн demo catalog",
     },
     create: {
       tenantId: tenant.id,
-      name: "Номин Маркет",
+      name: "Номин Супермаркет",
       slug: demoStoreSlug,
       description: "Landing page маркетийн demo catalog",
     },
@@ -227,7 +227,7 @@ async function ensureDemoStore() {
     where: { id: `${store.id}-main-branch` },
     update: {
       name: "Төв салбар",
-      address: "Улаанбаатар, Сүхбаатар дүүрэг",
+      address: "Улаанбаатар хот",
       latitude: 47.9186,
       longitude: 106.9176,
     },
@@ -236,7 +236,7 @@ async function ensureDemoStore() {
       tenantId: tenant.id,
       storeId: store.id,
       name: "Төв салбар",
-      address: "Улаанбаатар, Сүхбаатар дүүрэг",
+      address: "Улаанбаатар хот",
       latitude: 47.9186,
       longitude: 106.9176,
     },
@@ -421,6 +421,18 @@ export async function createCustomerOrder(userId, input) {
   const items = Array.isArray(input.items) ? input.items.filter((item) => Number(item.quantity) > 0) : [];
   if (!items.length) throw createHttpError(400, "Захиалах бараагаа сонгоно уу.");
   if (!input.addressText?.trim()) throw createHttpError(400, "Хаягаа текстээр баталгаажуулна уу.");
+  const contactEmail = input.contactEmail?.trim()
+    ? validateGmailAddress(input.contactEmail)
+    : customer.email?.trim()
+      ? validateGmailAddress(customer.email)
+      : null;
+  if (!contactEmail) throw createHttpError(400, "OTP авах Gmail хаягаа оруулна уу.");
+  const contactPhone = input.contactPhone?.trim()
+    ? normalizePhone(input.contactPhone)
+    : customer.phone;
+  if (!/^\+?\d{8,15}$/.test(contactPhone.replace(/[^\d+]/g, ""))) {
+    throw createHttpError(400, "Холбоо барих утасны дугаараа зөв оруулна уу.");
+  }
 
   const { tenant, store, branch, warehouse } = await ensureDemoStore();
   const dropoff = {
@@ -437,11 +449,14 @@ export async function createCustomerOrder(userId, input) {
   const paymentMethod = String(input.paymentMethod ?? "QPay");
   const useQpay = paymentMethod.toLowerCase().includes("qpay");
 
-  if (useQpay && !isQpayConfigured()) {
-    throw createHttpError(500, "QPay тохиргоо дутуу байна. Customer service env-ээ шалгана уу.", "QPAY_NOT_CONFIGURED");
-  }
-
   const order = await prisma.$transaction(async (tx) => {
+    if (contactEmail !== customer.email || contactPhone !== customer.phone) {
+      await tx.customer.update({
+        where: { id: customer.id },
+        data: { email: contactEmail, phone: contactPhone },
+      });
+    }
+
     const address = await tx.customerAddress.create({
       data: {
         customerId: customer.id,
@@ -488,6 +503,7 @@ export async function createCustomerOrder(userId, input) {
           orderId: createdOrder.id,
           status: useQpay ? OrderStatus.PAYMENT_PENDING : OrderStatus.PAID,
           note: useQpay ? "QPay төлбөр хүлээгдэж байна" : "Төлбөр төлөгдсөн",
+          evidence: { contactEmail, otpChannel: "email" },
         },
       ],
     });
@@ -507,6 +523,8 @@ export async function createCustomerOrder(userId, input) {
             deliveryTypeLabel: quote.deliveryTypeLabel,
             distanceKm: quote.distanceKm,
             weightKg: quote.weightKg,
+            contactEmail,
+            otpChannel: "email",
           },
         },
       });
@@ -545,6 +563,8 @@ export async function createCustomerOrder(userId, input) {
             deliveryTypeLabel: quote.deliveryTypeLabel,
             distanceKm: quote.distanceKm,
             weightKg: quote.weightKg,
+            contactEmail,
+            otpChannel: "email",
             senderInvoiceNo: qpayInvoice.senderInvoiceNo,
             qpay: qpayInvoice.raw,
           },

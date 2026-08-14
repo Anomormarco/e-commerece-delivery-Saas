@@ -7,7 +7,7 @@ const categories = [
   {
     slug: "grocery",
     name: "Хүнс",
-    stores: ["Номин Супермаркет", "Fresh Mart", "Good Price Market", "Оргил Хүнс", "Minii Delguur"],
+    stores: ["Номин Супермаркет", "Good Price Market", "Carrefour", "M Mart", "eMart", "Сансар Сүлжээ"],
     products: [
       ["Цагаан будаа 5кг", "rice bag"], ["Гурил 2кг", "flour"], ["Сүү 1л", "milk bottle"], ["Өндөг 10ш", "eggs carton"], ["Тараг", "yogurt"],
       ["Алим", "apples"], ["Гадил", "bananas"], ["Төмс", "potatoes"], ["Сонгино", "onions"], ["Лууван", "carrots"],

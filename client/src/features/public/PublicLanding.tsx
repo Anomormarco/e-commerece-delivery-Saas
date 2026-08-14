@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import type { CSSProperties, FormEvent } from "react";
 import { useRef } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 import { InteractiveRouteMap, type RouteMapLine, type RouteMapMarker } from "../../components/InteractiveRouteMap";
@@ -14,9 +14,9 @@ import heroWatchImage from "../../assets/geed-hero/watch.avif";
 type AuthMode = "login" | "register";
 type PartnerAuthMode = "login" | "register";
 type DeliveryType = "bike" | "car" | "foot";
-type PaymentMethod = "qpay" | "card";
+type PaymentMethod = "qpay";
 type LandingSection = "home" | "market" | "contact" | "courier" | "partner";
-type QpayBankId = "khanbank" | "xacbank" | "golomt" | "tdbbank" | "statebank" | "most";
+type QpayBankId = string;
 
 type QpayPaymentState = {
   orderNo: string;
@@ -175,24 +175,43 @@ const storeSessionStorageKey = "deliverhub-store-session";
 const storeLocation = { latitude: 47.9186, longitude: 106.9176 };
 const marketRowsPerPage = 15;
 const marketCardsPerRow = 3;
+const qpayLogoUrl = "https://qpay.mn/q/img/brand-logo.png";
 const paymentMethods: Array<{ id: PaymentMethod; label: string; mark: string }> = [
   { id: "qpay", label: "QPay", mark: "QP" },
-  { id: "card", label: "Bank Card", mark: "CC" },
 ];
-const qpayBankOptions: Array<{ id: QpayBankId; label: string; mark: string; aliases: string[] }> = [
-  { id: "khanbank", label: "ХААН Банк", mark: "ХА", aliases: ["khan", "haan", "хаан"] },
-  { id: "xacbank", label: "Хас Банк", mark: "ХС", aliases: ["xac", "has", "xas", "хас"] },
-  { id: "golomt", label: "Голомт", mark: "Г", aliases: ["golomt", "голомт"] },
-  { id: "tdbbank", label: "TDB", mark: "T", aliases: ["tdb", "trade", "development", "худалдаа"] },
-  { id: "statebank", label: "Төрийн банк", mark: "ТБ", aliases: ["state", "төрийн", "turiin"] },
-  { id: "most", label: "MOST Money", mark: "M", aliases: ["most"] },
+const qpayBankOptions: Array<{ id: QpayBankId; label: string; mark: string; aliases: string[]; logoUrl: string }> = [
+  { id: "khanbank", label: "Khan Bank", mark: "KH", aliases: ["khan", "haan", "хаан"], logoUrl: "https://qpay.mn/q/img/khanbank.webp" },
+  { id: "tdbbank", label: "TDB Online", mark: "TD", aliases: ["tdb", "trade", "development", "худалдаа"], logoUrl: "https://qpay.mn/q/img/tdb.webp" },
+  { id: "socialpay", label: "SocialPay", mark: "SP", aliases: ["socialpay", "social pay"], logoUrl: "https://qpay.mn/q/img/socialpay.webp" },
+  { id: "statebank", label: "State Bank 3.0", mark: "SB", aliases: ["state", "төрийн", "turiin"], logoUrl: "https://qpay.mn/q/img/statebank.webp" },
+  { id: "xacbank", label: "XacBank", mark: "XB", aliases: ["xac", "has", "xas", "хас"], logoUrl: "https://qpay.mn/q/img/xacbank.webp" },
+  { id: "capitron", label: "Capitron Bank", mark: "CB", aliases: ["capitron"], logoUrl: "https://qpay.mn/q/img/capitron-bank.webp" },
+  { id: "bogdbank", label: "Bogd Bank", mark: "BB", aliases: ["bogd"], logoUrl: "https://qpay.mn/q/img/bogd-bank.webp" },
+  { id: "nibank", label: "NIBank", mark: "NI", aliases: ["nibank", "national investment"], logoUrl: "https://qpay.mn/q/img/nibank.webp" },
+  { id: "most", label: "MostMoney", mark: "MM", aliases: ["most"], logoUrl: "https://qpay.mn/q/img/most-money.webp" },
+  { id: "transbank", label: "Transbank", mark: "TB", aliases: ["transbank"], logoUrl: "https://qpay.mn/q/img/transbank.webp" },
+  { id: "mbank", label: "M bank", mark: "MB", aliases: ["m bank", "mbank"], logoUrl: "https://qpay.mn/q/img/mbank.webp" },
+  { id: "arigbank", label: "Arig Bank", mark: "AB", aliases: ["arig"], logoUrl: "https://qpay.mn/q/img/arig-bank.webp" },
+  { id: "ckbank", label: "Chinggis Khaan", mark: "CK", aliases: ["chinggis", "ckbank"], logoUrl: "https://qpay.mn/q/img/ckbank.webp" },
+  { id: "monpay", label: "Monpay", mark: "MP", aliases: ["monpay"], logoUrl: "https://qpay.mn/q/img/monpay.webp" },
+  { id: "toki", label: "Toki", mark: "TK", aliases: ["toki"], logoUrl: "https://qpay.mn/q/img/tokipay.webp" },
+  { id: "ardapp", label: "Ard App", mark: "AR", aliases: ["ard"], logoUrl: "https://qpay.mn/q/img/ard.webp?v=2" },
+  { id: "hipay", label: "Hipay", mark: "HP", aliases: ["hipay"], logoUrl: "https://qpay.mn/q/img/hipay.webp" },
+  { id: "happypay", label: "Happy Pay", mark: "HY", aliases: ["happy pay", "happypay"], logoUrl: "https://qpay.mn/q/img/tdbwallet.webp" },
+  { id: "sono", label: "Sono", mark: "SN", aliases: ["sono"], logoUrl: "https://qpay.mn/q/img/sono.webp" },
+  { id: "payon", label: "PayOn", mark: "PO", aliases: ["payon"], logoUrl: "https://qpay.mn/q/img/payon.webp" },
+  { id: "tino", label: "Tino", mark: "TN", aliases: ["tino"], logoUrl: "https://qpay.mn/q/img/tino.webp" },
+  { id: "qpaywallet", label: "QPAY wallet", mark: "QP", aliases: ["qpay", "wallet"], logoUrl: "https://qpay.mn/q/img/qpay-wallet.webp" },
 ];
 const productsPerMarketPage = marketRowsPerPage * marketCardsPerRow;
-const marketCategoryFilters = ["Бүгд", "Хүнс", "Гэр ахуй", "Хоол захиалга", "Цахилгаан бараа", "Хувцас", "Гар утас, дагалдах", "Гоо сайхан", "Бусад"] as const;
+const marketCategoryFilters = ["Бүгд", "Хүнс", "Гэр ахуй", "Хоол захиалга", "Эмийн сан", "Цэцгийн дэлгүүр", "Спорт бараа", "Цахилгаан бараа", "Хувцас", "Гар утас, дагалдах", "Гоо сайхан", "Бусад"] as const;
 const groupedMarketCategories: Record<string, string[]> = {
   "Хүнс": ["Хүнс", "Мах", "Талх", "Сүү"],
   "Гэр ахуй": ["Гэр ахуй"],
   "Хоол захиалга": ["24/7 дэлгүүр", "Хоол", "Бэлэн хоол"],
+  "Эмийн сан": ["Эмийн сан"],
+  "Цэцгийн дэлгүүр": ["Цэцгийн дэлгүүр", "Цэцэг"],
+  "Спорт бараа": ["Спорт бараа"],
   "Цахилгаан бараа": ["Цахилгаан бараа"],
   "Хувцас": ["Хувцас"],
   "Гар утас, дагалдах": ["Гар утас", "Таблет", "Дагалдах хэрэгсэл"],
@@ -207,42 +226,146 @@ const landingHeroImages = [
   heroAppleeImage,
 ];
 
+function brandLogoDataUrl(label: string, from: string, to: string, accent = "#ffffff") {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="14" y1="8" x2="114" y2="120" gradientUnits="userSpaceOnUse"><stop stop-color="${from}"/><stop offset="1" stop-color="${to}"/></linearGradient></defs><rect width="128" height="128" rx="28" fill="url(#g)"/><circle cx="98" cy="24" r="30" fill="${accent}" opacity=".16"/><circle cx="28" cy="102" r="24" fill="${accent}" opacity=".12"/><text x="64" y="72" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="${label.length > 6 ? 26 : 34}" font-weight="900" fill="${accent}" letter-spacing=".5">${label}</text></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function mMartLogoDataUrl() {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128"><rect width="128" height="128" rx="18" fill="#183db5"/><g transform="translate(21 37)"><path d="M5 0H81C84 0 86 2 86 5V44C86 48 82 50 79 48L64 40C61 39 58 39 55 40L43 46C41 47 39 47 37 46L25 40C22 39 19 39 16 40L7 45C4 47 0 45 0 41V5C0 2 2 0 5 0Z" fill="#ffffff"/><path d="M0 41L18 32C21 30 24 30 27 32L39 38C41 39 43 39 45 38L57 32C60 30 63 30 66 32L86 42V54C86 58 82 60 79 58L64 50C61 49 58 49 55 50L43 56C41 57 39 57 37 56L25 50C22 49 19 49 16 50L7 55C4 57 0 55 0 51Z" fill="#f23778"/><text x="43" y="26" text-anchor="middle" font-family="Arial Rounded MT Bold, Arial, Helvetica, sans-serif" font-size="22" font-weight="900" fill="#183db5">m&#8226;mart</text></g></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
 const storeBrands = [
   {
     match: ["номин", "nomin"],
     logoUrl: "https://www.mongoliansaddle.com/partners/Nomin%20supermarket.JPG",
-    initials: "Н",
+  },
+  {
+    match: ["carrefour", "каррефур"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=carrefour.com&sz=128",
+  },
+  {
+    match: ["m mart", "mmart", "м март", "эм март"],
+    logoUrl: mMartLogoDataUrl(),
+  },
+  {
+    match: ["good price", "goodprice"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=goodprice.mn&sz=128",
   },
   {
     match: ["cu"],
-    logoUrl: "https://gs-private.sgp1.cdn.digitaloceanspaces.com/web-builder/web-builder_6684f03324960/CU%20logo.png",
-    initials: "CU",
+    logoUrl: "https://www.google.com/s2/favicons?domain=cu-mongolia.mn&sz=128",
   },
   {
     match: ["gs25", "gs 25"],
     logoUrl: "https://gs25.mn/favicon.webp",
-    initials: "GS",
   },
   {
     match: ["emart", "e-mart", "еmart"],
-    logoUrl: "https://media.licdn.com/dms/image/v2/C4D12AQFOB2KcJkJ3pQ/article-cover_image-shrink_720_1280/article-cover_image-shrink_720_1280/0/1520175340379?e=2147483647&t=iLbGsrLHLE2MD_kZSzXDYG0eXgNFXk0ULh14MFJl9tI&v=beta",
-    initials: "e",
+    logoUrl: "https://www.google.com/s2/favicons?domain=emartmall.mn&sz=128",
+  },
+  {
+    match: ["circle k", "circlek"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=circlek.com&sz=128",
+  },
+  {
+    match: ["monos", "монос"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=monos.mn&sz=128",
+  },
+  {
+    match: ["emonos", "e-monos"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=emonos.mn&sz=128",
+  },
+  {
+    match: ["asia pharma", "азиа фарма"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=asiapharma.mn&sz=128",
+  },
+  {
+    match: ["next"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=next.mn&sz=128",
+  },
+  {
+    match: ["pc mall", "pcmall"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=pcmall.mn&sz=128",
+  },
+  {
+    match: ["bsb"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=bsb.mn&sz=128",
+  },
+  {
+    match: ["mobicom", "мобиком"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=mobicom.mn&sz=128",
+  },
+  {
+    match: ["unitel", "юнител"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=unitel.mn&sz=128",
+  },
+  {
+    match: ["shoppy"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=shoppy.mn&sz=128",
+  },
+  {
+    match: ["ikea"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=ikea.com&sz=128",
+  },
+  {
+    match: ["jysk"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=jysk.com&sz=128",
+  },
+  {
+    match: ["lhamour"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=lhamour.com&sz=128",
+  },
+  {
+    match: ["sephora"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=sephora.com&sz=128",
+  },
+  {
+    match: ["yves rocher"],
+    logoUrl: "https://www.google.com/s2/favicons?domain=yves-rocher.com&sz=128",
   },
 ];
 
-function storeBrandFor(name: string) {
+const storeLogoPalettes: Record<string, { from: string; to: string; icon: string }> = {
+  "Хүнс": { from: "#16a34a", to: "#f97316", icon: "M8 15.5C8 11.9 10.4 8.5 12 7C13.6 8.5 16 11.9 16 15.5C16 18 14.2 20 12 20C9.8 20 8 18 8 15.5ZM7 5C9.5 5 11.2 5.8 12 7C12.8 5.8 14.5 5 17 5" },
+  "24/7 дэлгүүр": { from: "#2563eb", to: "#14b8a6", icon: "M5 9H19V18.5C19 19.3 18.3 20 17.5 20H6.5C5.7 20 5 19.3 5 18.5V9ZM7 5H17L19 9H5L7 5ZM9 13H15" },
+  "Гэр ахуй": { from: "#0f172a", to: "#94a3b8", icon: "M5 11L12 5L19 11V19H14V14H10V19H5V11Z" },
+  "Цахилгаан бараа": { from: "#4f46e5", to: "#06b6d4", icon: "M8 4H16V20H8V4ZM10 7H14M11 17H13" },
+  "Гар утас": { from: "#111827", to: "#f97316", icon: "M9 4H15C15.8 4 16.5 4.7 16.5 5.5V18.5C16.5 19.3 15.8 20 15 20H9C8.2 20 7.5 19.3 7.5 18.5V5.5C7.5 4.7 8.2 4 9 4ZM11 17.5H13" },
+  "Таблет": { from: "#1d4ed8", to: "#38bdf8", icon: "M6.5 5H17.5V19H6.5V5ZM10.5 16.5H13.5" },
+  "Дагалдах хэрэгсэл": { from: "#7c3aed", to: "#ec4899", icon: "M8 8V6C8 4.9 8.9 4 10 4H14C15.1 4 16 4.9 16 6V8M7 8H17V20H7V8ZM10 12H14" },
+  "Хувцас": { from: "#be123c", to: "#fb7185", icon: "M8 6L10 4H14L16 6L19 8L17 12L15.5 11V20H8.5V11L7 12L5 8L8 6Z" },
+  "Эмийн сан": { from: "#dc2626", to: "#22c55e", icon: "M11 6H13V11H18V13H13V18H11V13H6V11H11V6Z" },
+  "Цэцгийн дэлгүүр": { from: "#db2777", to: "#facc15", icon: "M12 12C10 9.8 10.7 7.5 12 6.5C13.3 7.5 14 9.8 12 12ZM12 12C9.4 11.3 8 9.4 8.4 7.8C10 7.6 11.7 8.6 12 12ZM12 12C14.6 11.3 16 9.4 15.6 7.8C14 7.6 12.3 8.6 12 12ZM12 12C10 14.2 10.7 16.5 12 17.5C13.3 16.5 14 14.2 12 12ZM12 12L8 20M12 12L16 20" },
+  "Гоо сайхан": { from: "#ec4899", to: "#8b5cf6", icon: "M8 19H16L15 10H9L8 19ZM10 10V7C10 5.9 10.9 5 12 5C13.1 5 14 5.9 14 7V10" },
+  "Ном, бичиг хэрэг": { from: "#0891b2", to: "#22c55e", icon: "M6 5H11C12.1 5 13 5.9 13 7V19C13 17.9 12.1 17 11 17H6V5ZM13 7C13 5.9 13.9 5 15 5H18V17H15C13.9 17 13 17.9 13 19V7Z" },
+  "Спорт бараа": { from: "#ea580c", to: "#0f172a", icon: "M7 8C9.8 5.2 14.2 5.2 17 8C19.8 10.8 19.8 15.2 17 18C14.2 20.8 9.8 20.8 7 18C4.2 15.2 4.2 10.8 7 8ZM7.5 8.5L17 18M16.5 8.5L7 18" },
+  "Барилгын дэлгүүр": { from: "#ca8a04", to: "#475569", icon: "M6 18L14.5 9.5L12.5 7.5L15 5L19 9L16.5 11.5L14.5 9.5L6 18ZM5 19H12" },
+  "Хүүхдийн бараа": { from: "#f59e0b", to: "#38bdf8", icon: "M8 12C8 9.8 9.8 8 12 8C14.2 8 16 9.8 16 12C16 14.2 14.2 16 12 16C9.8 16 8 14.2 8 12ZM7 7L9 5M17 7L15 5M9 18H15" },
+  "Амьтны бараа": { from: "#78350f", to: "#f59e0b", icon: "M8 12C7 11 6 10.2 5 11.1C4.1 12 5 13.4 6.5 13.8C6.8 16.8 9.2 19 12 19C14.8 19 17.2 16.8 17.5 13.8C19 13.4 19.9 12 19 11.1C18 10.2 17 11 16 12M9.5 12H9.6M14.4 12H14.5M10.5 15C11.3 15.6 12.7 15.6 13.5 15" },
+};
+
+function storeLogoDataUrl(name: string, category?: string) {
+  const palette = storeLogoPalettes[category ?? ""] ?? { from: "#0f172a", to: "#f97316", icon: "M5 9H19V19H5V9ZM7 5H17L19 9H5L7 5ZM9 13H15" };
+  const seed = Array.from(name).reduce((sum, char) => sum + char.charCodeAt(0), 0) % 360;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><defs><linearGradient id="g" x1="10" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse"><stop stop-color="${palette.from}"/><stop offset="1" stop-color="${palette.to}"/></linearGradient><filter id="s" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0f172a" flood-opacity=".22"/></filter></defs><rect width="64" height="64" rx="18" fill="url(#g)"/><circle cx="${18 + (seed % 14)}" cy="${16 + (seed % 10)}" r="18" fill="#fff" opacity=".16"/><path d="${palette.icon}" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" filter="url(#s)"/></svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+function storeBrandFor(name: string, category?: string) {
   const normalizedName = name.toLowerCase();
   return storeBrands.find((brand) => brand.match.some((keyword) => normalizedName.includes(keyword)))
-    ?? { logoUrl: "", initials: name.trim().slice(0, 2).toUpperCase() || "DH" };
+    ?? { logoUrl: storeLogoDataUrl(name, category) };
 }
 
 function productImageFor(product: Pick<Product, "name" | "category" | "imageUrl">) {
   if (product.imageUrl) return product.imageUrl;
-  return productPhotoUrl(keywordForProduct(product));
+  return productPhotoUrl(productImageKeyword(product));
 }
 
 function productPhotoUrl(keyword: string) {
-  const query = encodeURIComponent(`${keyword} product photo`);
+  const query = encodeURIComponent(`${keyword} ecommerce product photo isolated`);
   return `https://tse4.mm.bing.net/th?q=${query}&w=900&h=650&c=7&rs=1&p=0`;
 }
 
@@ -264,24 +387,59 @@ function marketCategoryMatches(category: string, filter: string) {
   return !Object.values(groupedMarketCategories).some((categories) => categories.includes(category));
 }
 
+function normalizeMarketSearch(value: string) {
+  return value.trim().toLocaleLowerCase("mn");
+}
+
+function marketFilterForCategory(category: string) {
+  return marketCategoryFilters.find((filter) => filter !== "Бүгд" && filter !== "Бусад" && marketCategoryMatches(category, filter)) ?? "Бусад";
+}
+
+function primaryMarketFilterForStore(store: StoreDirectoryItem) {
+  const primaryCategory = store.categories[0] ?? store.products[0]?.category ?? "";
+  return marketFilterForCategory(primaryCategory);
+}
+
 function storeMatchesMarketFilter(store: StoreDirectoryItem, filter: string) {
-  return store.categories.some((category) => marketCategoryMatches(category, filter))
-    || store.products.some((product) => marketCategoryMatches(product.category, filter));
+  return filter === "Бүгд" || primaryMarketFilterForStore(store) === filter;
+}
+
+function storeMatchesMarketSearch(store: StoreDirectoryItem, search: string) {
+  if (!search) return true;
+  const searchTokens = search.split(/\s+/).filter(Boolean);
+  const brandAliases = storeBrands
+    .filter((brand) => brand.match.some((keyword) => normalizeMarketSearch(store.name).includes(normalizeMarketSearch(keyword))))
+    .flatMap((brand) => brand.match);
+  const searchableText = [
+    store.name,
+    store.description,
+    store.address,
+    primaryMarketFilterForStore(store),
+    ...brandAliases,
+    ...store.categories,
+    ...store.products.map((product) => product.category),
+    ...store.products.map((product) => product.name),
+  ].join(" ");
+
+  const normalizedText = normalizeMarketSearch(searchableText);
+  return searchTokens.every((token) => normalizedText.includes(token));
 }
 
 const marketTemplates = [
-  { category: "Хүнс", stores: ["Номин Маркет", "Fresh Mart", "Good Price Market", "Оргил Хүнс", "Minii Delguur"], products: [["Цагаан будаа", "rice bag"], ["Гурил", "flour"], ["Сүү", "milk bottle"], ["Өндөг", "eggs carton"], ["Алим", "apples"], ["Төмс", "potatoes"], ["Лууван", "carrots"], ["Үхрийн мах", "beef meat"], ["Тахианы мах", "chicken breast"], ["Бяслаг", "cheese"]] },
-  { category: "24/7 дэлгүүр", stores: ["CU Mongolia", "GS25 Mongolia", "Quick Stop", "City Express", "Night Mart"], products: [["Сэндвич", "sandwich"], ["Кимбап", "kimbap"], ["Рамен", "instant ramen"], ["Ус", "water bottle"], ["Кола", "cola can"], ["Чипс", "potato chips"], ["Шоколад", "chocolate bar"], ["Зайрмаг", "ice cream"], ["Салат", "fresh salad"], ["Бэлэн хоол", "ready meal"]] },
-  { category: "Гэр ахуй", stores: ["Home Plaza", "Ger Ahuin Tuv", "Cozy Home", "Kitchen House", "Houseware Hub"], products: [["Тавагны сет", "dinnerware"], ["Аяга", "mug"], ["Хайруулын таваг", "frying pan"], ["Сав суулга", "cookware"], ["Хутганы сет", "kitchen knife"], ["Алчуур", "towel"], ["Орны даавуу", "bed sheets"], ["Дэр", "pillow"], ["Сагс", "storage basket"], ["Цэвэрлэгээний багц", "cleaning supplies"]] },
-  { category: "Цахилгаан бараа", stores: ["Tech Hub", "Digital Mall", "Phone Center", "Smart Store", "Electro Shop"], products: [["Чихэвч", "headphones"], ["Speaker", "bluetooth speaker"], ["Phone case", "phone case"], ["Цэнэглэгч", "phone charger"], ["Power bank", "power bank"], ["Keyboard", "keyboard"], ["Mouse", "computer mouse"], ["Web camera", "webcam"], ["Smart watch", "smart watch"], ["Desk lamp", "desk lamp"]] },
-  { category: "Гар утас", stores: ["Phone Center", "Mobinet Store", "iStore Mongolia", "Smart Phone Hub", "Galaxy Shop"], products: [["iPhone 15", "iphone 15"], ["Samsung Galaxy", "samsung galaxy phone"], ["Android утас", "android smartphone"], ["Дугаарын eSIM", "esim card"], ["Утасны шил", "phone screen protector"], ["Утасны гэр", "phone case"], ["Цэнэглэгч адаптер", "phone charger adapter"], ["USB-C кабель", "usb c cable"], ["Wireless charger", "wireless phone charger"], ["Power bank", "power bank"]] },
+  { category: "Хүнс", stores: ["Номин Супермаркет", "Carrefour", "M Mart", "eMart", "Good Price Market"], products: [["Цагаан будаа", "rice bag"], ["Гурил", "flour"], ["Сүү", "milk bottle"], ["Өндөг", "eggs carton"], ["Алим", "apples"], ["Төмс", "potatoes"], ["Лууван", "carrots"], ["Үхрийн мах", "beef meat"], ["Тахианы мах", "chicken breast"], ["Бяслаг", "cheese"]] },
+  { category: "24/7 дэлгүүр", stores: ["CU Mongolia", "GS25 Mongolia", "Circle K", "M Mart Express", "Номин Convenience"], products: [["Сэндвич", "sandwich"], ["Кимбап", "kimbap"], ["Рамен", "instant ramen"], ["Ус", "water bottle"], ["Кола", "cola can"], ["Чипс", "potato chips"], ["Шоколад", "chocolate bar"], ["Зайрмаг", "ice cream"], ["Салат", "fresh salad"], ["Бэлэн хоол", "ready meal"]] },
+  { category: "Гэр ахуй", stores: ["IKEA", "JYSK", "Home Plaza", "Номин Home", "Kitchen House"], products: [["Тавагны сет", "dinnerware"], ["Аяга", "mug"], ["Хайруулын таваг", "frying pan"], ["Сав суулга", "cookware"], ["Хутганы сет", "kitchen knife"], ["Алчуур", "towel"], ["Орны даавуу", "bed sheets"], ["Дэр", "pillow"], ["Сагс", "storage basket"], ["Цэвэрлэгээний багц", "cleaning supplies"]] },
+  { category: "Цахилгаан бараа", stores: ["Next Electronics", "PC Mall", "BSB Electronics", "Номин Electronics", "Shoppy"], products: [["Чихэвч", "headphones"], ["Speaker", "bluetooth speaker"], ["Phone case", "phone case"], ["Цэнэглэгч", "phone charger"], ["Power bank", "power bank"], ["Keyboard", "keyboard"], ["Mouse", "computer mouse"], ["Web camera", "webcam"], ["Smart watch", "smart watch"], ["Desk lamp", "desk lamp"]] },
+  { category: "Гар утас", stores: ["Mobicom Store", "Unitel Store", "iStore Mongolia", "Samsung Store", "Next Mobile"], products: [["iPhone 15", "iphone 15"], ["Samsung Galaxy", "samsung galaxy phone"], ["Android утас", "android smartphone"], ["Дугаарын eSIM", "esim card"], ["Утасны шил", "phone screen protector"], ["Утасны гэр", "phone case"], ["Цэнэглэгч адаптер", "phone charger adapter"], ["USB-C кабель", "usb c cable"], ["Wireless charger", "wireless phone charger"], ["Power bank", "power bank"]] },
   { category: "Таблет", stores: ["Tablet Zone", "iPad Center", "Digital Mall", "Tech Hub", "Smart Store"], products: [["iPad", "ipad tablet"], ["Samsung Tab", "samsung tablet"], ["Android таблет", "android tablet"], ["Tablet keyboard", "tablet keyboard"], ["Tablet pen", "tablet stylus"], ["Tablet case", "tablet case"], ["Дэлгэц хамгаалагч", "tablet screen protector"], ["Цэнэглэгч", "tablet charger"], ["Drawing tablet", "drawing tablet"], ["Kids tablet", "kids tablet"]] },
   { category: "Дагалдах хэрэгсэл", stores: ["Accessory Hub", "Phone Center", "Gadget Corner", "Digital Mall", "Cable House"], products: [["Чихэвч", "earbuds"], ["Bluetooth speaker", "bluetooth speaker"], ["Утасны гэр", "phone case"], ["Дэлгэц хамгаалагч", "screen protector"], ["USB-C кабель", "usb c cable"], ["Power bank", "power bank"], ["Tripod", "phone tripod"], ["Car holder", "phone car holder"], ["Memory card", "memory card"], ["Adapter", "phone adapter"]] },
   { category: "Хувцас", stores: ["Fashion Hub", "Urban Wear", "Kids Fashion", "Daily Outfit", "Style Market"], products: [["Футболк", "t shirt clothing"], ["Цамц", "shirt clothing"], ["Өмд", "pants clothing"], ["Куртик", "jacket clothing"], ["Даашинз", "dress clothing"], ["Пүүз", "sneakers"], ["Малгай", "cap hat"], ["Ороолт", "scarf"], ["Хүүхдийн хувцас", "kids clothes"], ["Спорт хувцас", "sportswear"]] },
-  { category: "Эмийн сан", stores: ["Pharma Plus", "Monos Express", "Health Care", "Vitamin House", "Apteka 24"], products: [["Витамин C", "vitamin c"], ["Витамин D", "vitamin d"], ["Дархлаа дэмжигч", "supplements"], ["Гар ариутгагч", "hand sanitizer"], ["Маск", "medical mask"], ["Шархны наалт", "bandage"], ["Даралт хэмжигч", "blood pressure monitor"], ["Халуун хэмжигч", "thermometer"], ["Нүдний дусаалга", "eye drops"], ["Омега 3", "omega 3"]] },
-  { category: "Гоо сайхан", stores: ["Beauty Box", "Glow Market", "Skin Lab", "Cosmo Shop", "Makeup Studio"], products: [["Уруулын будаг", "lipstick"], ["Mascara", "mascara"], ["Суурь крем", "foundation makeup"], ["Нүүр цэвэрлэгч", "facial cleanser"], ["Чийгшүүлэгч", "moisturizer"], ["Үнэртэй ус", "perfume"], ["Шампунь", "shampoo"], ["Нүүрний маск", "face mask skincare"], ["Хумсны будаг", "nail polish"], ["Serum", "face serum"]] },
+  { category: "Эмийн сан", stores: ["Monos", "eMonos", "Asia Pharma", "Аптека 24", "Health Care"], products: [["Витамин C", "vitamin c"], ["Витамин D", "vitamin d"], ["Дархлаа дэмжигч", "supplements"], ["Гар ариутгагч", "hand sanitizer"], ["Маск", "medical mask"], ["Шархны наалт", "bandage"], ["Даралт хэмжигч", "blood pressure monitor"], ["Халуун хэмжигч", "thermometer"], ["Нүдний дусаалга", "eye drops"], ["Омега 3", "omega 3"]] },
+  { category: "Цэцгийн дэлгүүр", stores: ["Flower House", "Tsetseg Shop", "Bloom Studio", "Rose Market", "Garden Gift"], products: [["Сарнайн баглаа", "rose bouquet"], ["Лили цэцэг", "lily bouquet"], ["Алтанзул", "tulip bouquet"], ["Орхидей", "orchid flower"], ["Хайрцагтай цэцэг", "flower box"], ["Төрсөн өдрийн баглаа", "birthday flowers"], ["Хуримын баглаа", "wedding bouquet"], ["Тасалгааны ургамал", "indoor plant"], ["Кактус", "cactus plant"], ["Бэлгийн багц", "flower gift set"]] },
+  { category: "Гоо сайхан", stores: ["Lhamour", "Sephora", "Yves Rocher", "Beauty Box", "Glow Market"], products: [["Уруулын будаг", "lipstick"], ["Mascara", "mascara"], ["Суурь крем", "foundation makeup"], ["Нүүр цэвэрлэгч", "facial cleanser"], ["Чийгшүүлэгч", "moisturizer"], ["Үнэртэй ус", "perfume"], ["Шампунь", "shampoo"], ["Нүүрний маск", "face mask skincare"], ["Хумсны будаг", "nail polish"], ["Serum", "face serum"]] },
   { category: "Ном, бичиг хэрэг", stores: ["Book Nest", "Аз Хур Ном", "Stationery Pro", "Student Shop", "Paper House"], products: [["Уран зохиолын ном", "novel books"], ["Хүүхдийн ном", "children book"], ["Дэвтэр", "notebook"], ["Бал", "pen"], ["Харандаа", "pencils"], ["Файл хавтас", "file folder"], ["A4 цаас", "printer paper"], ["Marker", "markers"], ["Зургийн дэвтэр", "sketchbook"], ["Календарь", "calendar"]] },
   { category: "Спорт бараа", stores: ["Sport Zone", "Fit Market", "Outdoor Pro", "Bike House", "Active Gear"], products: [["Гүйлтийн пүүз", "running shoes"], ["Иогийн дэвсгэр", "yoga mat"], ["Дамббелл", "dumbbells"], ["Усны сав", "sports water bottle"], ["Хөл бөмбөг", "football ball"], ["Сагсан бөмбөг", "basketball"], ["Дугуйн дуулга", "bike helmet"], ["Спорт цүнх", "gym bag"], ["Майхан", "camping tent"], ["Уулын гутал", "hiking boots"]] },
+  { category: "Барилгын дэлгүүр", stores: ["Build Mart", "Barilga Center", "Tool House", "Material Plus", "Home Build"], products: [["Цемент", "cement bag"], ["Будаг", "paint bucket"], ["Плита", "ceramic tile"], ["Шруп", "screws"], ["Алх", "hammer tool"], ["Өрөм", "electric drill"], ["Хэмжигч метр", "measuring tape"], ["Ажлын бээлий", "work gloves"], ["Цавуу", "construction adhesive"], ["Сантехникийн хоолой", "plumbing pipe"]] },
   { category: "Хүүхдийн бараа", stores: ["Baby World", "Kids Planet", "Toy Land", "Little Star", "Mother Care"], products: [["Живх", "diapers"], ["Baby wipes", "baby wipes"], ["Угж", "baby bottle"], ["Хүүхдийн тоглоом", "baby toys"], ["Puzzle", "kids puzzle"], ["Lego set", "building blocks"], ["Хүүхдийн хувцас", "baby clothes"], ["Тэрэг", "baby stroller"], ["Зөөлөн тоглоом", "plush toy"], ["Сүүн тэжээл", "baby formula"]] },
   { category: "Амьтны бараа", stores: ["Pet Care", "Happy Pet", "Dog & Cat", "Pet Food Market", "Animal House"], products: [["Нохойн хоол", "dog food"], ["Муурын хоол", "cat food"], ["Амьтны тоглоом", "pet toys"], ["Оосор", "dog leash"], ["Муурын элс", "cat litter"], ["Амьтны шампунь", "pet shampoo"], ["Үүр", "pet bed"], ["Аквариум", "aquarium"], ["Загасны хоол", "fish food"], ["Тэжээлийн аяга", "pet bowl"]] },
 ];
@@ -303,13 +461,21 @@ function keywordForProduct(product: Pick<Product, "name" | "category">) {
     "Дагалдах хэрэгсэл": "phone accessories product",
     "Хувцас": "fashion clothing product",
     "Эмийн сан": "pharmacy product",
+    "Цэцгийн дэлгүүр": "flower bouquet",
     "Гоо сайхан": "beauty product",
     "Ном, бичиг хэрэг": "books stationery",
     "Спорт бараа": "sports gear",
+    "Барилгын дэлгүүр": "construction hardware store product",
     "Хүүхдийн бараа": "baby product",
     "Амьтны бараа": "pet product",
   };
   return categoryKeywords[product.category] ?? "product";
+}
+
+function productImageKeyword(product: Pick<Product, "name" | "category">) {
+  const exactName = product.name.replace(/\s+/g, " ").trim();
+  const baseKeyword = keywordForProduct(product);
+  return `${exactName} ${baseKeyword} ${product.category}`.trim();
 }
 
 function productNameVariant(category: string, baseName: string, index: number) {
@@ -323,9 +489,11 @@ function productNameVariant(category: string, baseName: string, index: number) {
     "Дагалдах хэрэгсэл": ["хар", "цагаан", "type-c", "wireless", "сет"],
     "Хувцас": ["S", "M", "L", "XL", "хар"],
     "Эмийн сан": ["30ш", "60ш", "100мл", "250мл", "багц"],
+    "Цэцгийн дэлгүүр": ["жижиг", "дунд", "том", "premium", "бэлгийн"],
     "Гоо сайхан": ["01", "02", "03", "50мл", "100мл"],
     "Ном, бичиг хэрэг": ["A4", "A5", "хатуу хавтастай", "зөөлөн хавтастай", "12ш"],
     "Спорт бараа": ["S", "M", "L", "XL", "багц"],
+    "Барилгын дэлгүүр": ["жижиг", "дунд", "том", "5кг", "сет"],
     "Хүүхдийн бараа": ["0-6 сар", "6-12 сар", "1-2 нас", "3-5 нас", "багц"],
     "Амьтны бараа": ["жижиг", "дунд", "том", "1кг", "3кг"],
   };
@@ -342,15 +510,16 @@ function buildDemoMarketStores(): StoreDirectoryItem[] {
       }
 
       const products = Array.from({ length: 50 }, (_, index) => {
-        const [baseName, keyword] = template.products[index % template.products.length];
+        const [baseName] = template.products[index % template.products.length];
         const name = cleanProductName(productNameVariant(template.category, baseName, index));
+        const imageKeyword = productImageKeyword({ name, category: template.category });
         return {
           id: `${id}-product-${index + 1}`,
           name,
           category: template.category,
           priceMnt: String(1800 + (index + 1) * 420 + templateIndex * 500 + storeIndex * 300),
           weightGrams: 180 + (index % 12) * 150,
-          imageUrl: productPhotoUrl(keyword),
+          imageUrl: productPhotoUrl(imageKeyword),
         };
       });
 
@@ -380,19 +549,87 @@ function storeKey(store: Pick<StoreDirectoryItem, "name">) {
   return store.name.trim().toLowerCase();
 }
 
+function isExcludedMarketStore(name: string) {
+  const normalizedName = normalizeMarketSearch(name);
+  return [
+    "оргил хүнс",
+    "orgil huns",
+    "fresh mart",
+    "minii delguur",
+    "миний дэлгүүр",
+    "сансар сүлжээ",
+    "sansar",
+  ].some((keyword) => normalizedName.includes(keyword));
+}
+
 function isNominStoreName(name: string) {
   const normalizedName = name.trim().toLowerCase();
   return normalizedName.includes("номин") || normalizedName.includes("nomin");
 }
 
+const nominFeaturedProductOrder = [
+  "Lays chips",
+  "Maxfun",
+  "Snickers",
+  "Зайрмаг",
+  "Кола",
+  "Газтай ус",
+  "Minute Maid",
+  "Кофе",
+  "Ногоон цай",
+  "Ус",
+  "Йогурт",
+  "Самар",
+  "Үзэм",
+  "Зөгийн бал",
+  "Сүү",
+  "Corn flakes",
+];
+
+const nominFeaturedImages = [
+  { match: "Maxfun", imageUrl: "https://tse4.mm.bing.net/th?q=Alpen%20Gold%20Max%20Fun%20chocolate%20160g%20product&w=1000&h=650&c=7&rs=1&p=0" },
+  { match: "Lays chips", imageUrl: "https://tse4.mm.bing.net/th?q=Lay%27s%20Masala%20chips%20bag%20product&w=1000&h=650&c=7&rs=1&p=0" },
+  { match: "Snickers", imageUrl: "https://tse4.mm.bing.net/th?q=Snickers%20chocolate%20bar%20product&w=1000&h=650&c=7&rs=1&p=0" },
+  { match: "Зайрмаг", imageUrl: "https://images.unsplash.com/photo-1501443762994-82bd5dace89a?auto=format&fit=crop&w=1000&q=92" },
+  { match: "Кола", imageUrl: "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=1000&q=92" },
+  { match: "Газтай ус", imageUrl: "https://tse4.mm.bing.net/th?q=sparkling%20water%20bottle%20product%20photo&w=1000&h=650&c=7&rs=1&p=0" },
+  { match: "Minute Maid", imageUrl: "https://tse4.mm.bing.net/th?q=Minute%20Maid%201.25L%20juice%20bottle%20product&w=1000&h=650&c=7&rs=1&p=0" },
+  { match: "Кофе", imageUrl: "https://images.unsplash.com/photo-1447933601403-0c6688de566e?auto=format&fit=crop&w=1000&q=92" },
+  { match: "Ногоон цай", imageUrl: "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?auto=format&fit=crop&w=1000&q=92" },
+  { match: "Ус", imageUrl: "https://images.unsplash.com/photo-1523362628745-0c100150b504?auto=format&fit=crop&w=1000&q=92" },
+  { match: "Йогурт", imageUrl: "https://images.unsplash.com/photo-1488477181946-6428a0291777?auto=format&fit=crop&w=1000&q=92" },
+  { match: "Самар", imageUrl: "https://images.unsplash.com/photo-1508061253366-f7da158b6d46?auto=format&fit=crop&w=1000&q=92" },
+  { match: "Үзэм", imageUrl: "https://tse4.mm.bing.net/th?q=raisins%20package%20product%20photo&w=1000&h=650&c=7&rs=1&p=0" },
+  { match: "Зөгийн бал", imageUrl: "https://images.unsplash.com/photo-1587049352846-4a222e784d38?auto=format&fit=crop&w=1000&q=92" },
+  { match: "Сүү", imageUrl: "https://images.unsplash.com/photo-1563636619-e9143da7973b?auto=format&fit=crop&w=1000&q=92" },
+  { match: "Corn flakes", imageUrl: "https://images.unsplash.com/photo-1521483451569-e33803c0330c?auto=format&fit=crop&w=1000&q=92" },
+];
+
+function nominProductDisplayRank(product: { name: string; category: string }) {
+  const name = cleanProductName(product.name);
+  const category = fixMojibake(product.category);
+  const nameRank = nominFeaturedProductOrder.findIndex((keyword) => name.toLocaleLowerCase("mn").includes(keyword.toLocaleLowerCase("mn")));
+  if (nameRank >= 0) return nameRank;
+  const categoryRank = ["Амттан", "Ундаа", "Сүү"].findIndex((keyword) => category.includes(keyword));
+  return categoryRank >= 0 ? nominFeaturedProductOrder.length + categoryRank : 100;
+}
+
+function nominProductImage(product: { name: string; imageUrl: string }) {
+  const name = cleanProductName(product.name);
+  return nominFeaturedImages.find((item) => name.includes(item.match))?.imageUrl ?? product.imageUrl;
+}
+
 function syncedNominStore(base?: Partial<StoreDirectoryItem>): StoreDirectoryItem {
-  const products = nominCatalogProducts.map((product) => ({
+  const products = [...nominCatalogProducts].sort((first, second) => (
+    nominProductDisplayRank(first) - nominProductDisplayRank(second)
+    || second.priceMnt - first.priceMnt
+  )).map((product) => ({
     id: product.sku,
     name: product.name,
     category: product.category,
     priceMnt: String(product.priceMnt),
     weightGrams: product.weightGrams,
-    imageUrl: product.imageUrl,
+    imageUrl: nominProductImage(product),
     stockCount: product.stockCount,
   }));
 
@@ -400,11 +637,11 @@ function syncedNominStore(base?: Partial<StoreDirectoryItem>): StoreDirectoryIte
     id: base?.id || nominStoreProfile.id,
     name: nominStoreProfile.name,
     description: nominStoreProfile.description,
-    address: base?.address || nominStoreProfile.address,
+    address: nominStoreProfile.address,
     coverUrl: products[0]?.imageUrl ?? "",
     productCount: products.length,
     orderCount: base?.orderCount ?? 0,
-    categories: [...new Set(products.map((product) => product.category))],
+    categories: ["Хүнс", ...[...new Set(products.map((product) => product.category))].filter((category) => category !== "Хүнс")],
     products,
   };
 }
@@ -473,9 +710,9 @@ const initialProducts: Product[] = [
 ];
 
 const deliveryOptions: Array<{ id: DeliveryType; label: string; copy: string; base: number; perKm: number; perKg: number; speedKmh: number }> = [
-  { id: "bike", label: "Мопед/дугуй", copy: "Хамгийн хурдан сонголт", base: 2500, perKm: 900, perKg: 140, speedKmh: 18 },
-  { id: "car", label: "Машин", copy: "Том захиалгад найдвартай", base: 4200, perKm: 1200, perKg: 110, speedKmh: 28 },
-  { id: "foot", label: "Явган", copy: "Ойрын хүргэлтэд тохиромжтой", base: 1800, perKm: 700, perKg: 180, speedKmh: 4 },
+  { id: "foot", label: "Явган", copy: "Ойрын хүргэлтэд тохиромжтой", base: 3600, perKm: 1400, perKg: 360, speedKmh: 4 },
+  { id: "bike", label: "Мопед", copy: "Хамгийн хурдан сонголт", base: 5000, perKm: 1800, perKg: 280, speedKmh: 18 },
+  { id: "car", label: "Машин", copy: "Том захиалгад найдвартай", base: 8400, perKm: 2400, perKg: 220, speedKmh: 28 },
 ];
 
 function formatMnt(value: number | string) {
@@ -505,6 +742,103 @@ function qpayBankLinkFor(
     const text = normalizeQpayBankText([url.name, url.description, url.link].filter(Boolean).join(" "));
     return bank.aliases.some((alias) => text.includes(normalizeQpayBankText(alias)));
   });
+}
+
+type LocationSuggestion = {
+  id: string;
+  label: string;
+  detail: string;
+};
+
+type NominatimAddress = {
+  house_number?: string;
+  road?: string;
+  pedestrian?: string;
+  footway?: string;
+  neighbourhood?: string;
+  suburb?: string;
+  district?: string;
+  city?: string;
+  town?: string;
+  state?: string;
+  country?: string;
+};
+
+type NominatimPlace = {
+  place_id?: number;
+  display_name?: string;
+  name?: string;
+  lat?: string;
+  lon?: string;
+  address?: NominatimAddress;
+};
+
+function compactAddressName(place: NominatimPlace) {
+  const address = place.address ?? {};
+  return [
+    address.road ?? address.pedestrian ?? address.footway ?? place.name,
+    address.neighbourhood ?? address.suburb ?? address.district,
+    address.city ?? address.town,
+  ].filter(Boolean).join(", ");
+}
+
+function locationSuggestionFromPlace(place: NominatimPlace, fallbackId: string): LocationSuggestion | null {
+  const label = compactAddressName(place) || place.display_name?.split(",").slice(0, 2).join(", ").trim();
+  const detail = place.display_name?.trim() ?? "";
+  if (!label && !detail) return null;
+
+  return {
+    id: String(place.place_id ?? fallbackId),
+    label: label || detail,
+    detail,
+  };
+}
+
+async function fetchLocationSuggestions(location: GeoLocation) {
+  const reverseUrl = new URL("https://nominatim.openstreetmap.org/reverse");
+  reverseUrl.searchParams.set("format", "jsonv2");
+  reverseUrl.searchParams.set("lat", String(location.latitude));
+  reverseUrl.searchParams.set("lon", String(location.longitude));
+  reverseUrl.searchParams.set("addressdetails", "1");
+  reverseUrl.searchParams.set("accept-language", "mn,en");
+
+  const reverseResponse = await fetch(reverseUrl.toString());
+  if (!reverseResponse.ok) throw new Error("reverse geocode failed");
+  const reversePlace = await reverseResponse.json() as NominatimPlace;
+  const reverseSuggestion = locationSuggestionFromPlace(reversePlace, "gps");
+
+  const searchSeed = compactAddressName(reversePlace).split(",")[0]?.trim();
+  const searchSuggestions: LocationSuggestion[] = [];
+
+  if (searchSeed) {
+    const searchUrl = new URL("https://nominatim.openstreetmap.org/search");
+    searchUrl.searchParams.set("format", "jsonv2");
+    searchUrl.searchParams.set("q", `${searchSeed}, Ulaanbaatar`);
+    searchUrl.searchParams.set("addressdetails", "1");
+    searchUrl.searchParams.set("limit", "5");
+    searchUrl.searchParams.set("accept-language", "mn,en");
+    const delta = 0.018;
+    searchUrl.searchParams.set("viewbox", [
+      location.longitude - delta,
+      location.latitude + delta,
+      location.longitude + delta,
+      location.latitude - delta,
+    ].join(","));
+    searchUrl.searchParams.set("bounded", "1");
+
+    const searchResponse = await fetch(searchUrl.toString());
+    if (searchResponse.ok) {
+      const places = await searchResponse.json() as NominatimPlace[];
+      searchSuggestions.push(...places
+        .map((place, index) => locationSuggestionFromPlace(place, `nearby-${index}`))
+        .filter((suggestion): suggestion is LocationSuggestion => Boolean(suggestion)));
+    }
+  }
+
+  return [reverseSuggestion, ...searchSuggestions]
+    .filter((suggestion): suggestion is LocationSuggestion => Boolean(suggestion))
+    .filter((suggestion, index, suggestions) => suggestions.findIndex((item) => item.label === suggestion.label) === index)
+    .slice(0, 5);
 }
 
 function fixMojibake(value: string) {
@@ -629,6 +963,7 @@ function clearCustomerSessionStorage() {
 export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket, onNavigateContact, onNavigateCourier, onNavigatePartner }: PublicLandingProps = {}) {
   const [section, setSection] = useState<LandingSection>(page);
   const [menuHidden, setMenuHidden] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
   const [authMode, setAuthMode] = useState<AuthMode>("login");
   const [authOpen, setAuthOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -669,6 +1004,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return null;
     }
   });
+  const [profileEditing, setProfileEditing] = useState(false);
+  const [profileDraft, setProfileDraft] = useState({ fullName: "", email: "", phone: "" });
+  const [profileSettings, setProfileSettings] = useState({
+    orderUpdates: true,
+    promoUpdates: false,
+    compactProfile: false,
+  });
   const [cart, setCart] = useState<Record<string, number>>({});
   const [wishlist, setWishlist] = useState<string[]>(() => {
     try {
@@ -680,6 +1022,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("qpay");
   const [selectedQpayBank, setSelectedQpayBank] = useState<QpayBankId>("khanbank");
+  const [qpayAppsOpen, setQpayAppsOpen] = useState(false);
   const [stores, setStores] = useState<StoreDirectoryItem[]>([]);
   const [storeSearch, setStoreSearch] = useState("");
   const [storeFilter, setStoreFilter] = useState("Хүнс");
@@ -690,7 +1033,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [deliveryType, setDeliveryType] = useState<DeliveryType>("bike");
   const [location, setLocation] = useState<GeoLocation | null>(null);
   const [addressText, setAddressText] = useState("");
+  const [addressUnit, setAddressUnit] = useState("");
   const [addressLabel, setAddressLabel] = useState("Одоогийн байршил");
+  const [checkoutEmail, setCheckoutEmail] = useState("");
+  const [checkoutPhone, setCheckoutPhone] = useState("");
+  const [locationSuggestions, setLocationSuggestions] = useState<LocationSuggestion[]>([]);
+  const [addressLookupLoading, setAddressLookupLoading] = useState(false);
   const [addressError, setAddressError] = useState("");
   const [checkoutError, setCheckoutError] = useState("");
   const [notice, setNotice] = useState("");
@@ -710,6 +1058,24 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setSection(page);
     setMenuHidden(false);
   }, [page]);
+
+  useEffect(() => {
+    if (!session) {
+      setProfileEditing(false);
+      setProfileDraft({ fullName: "", email: "", phone: "" });
+      setCheckoutEmail("");
+      setCheckoutPhone("");
+      return;
+    }
+
+    setProfileDraft({
+      fullName: session.customer.fullName,
+      email: session.customer.email ?? "",
+      phone: session.customer.phone,
+    });
+    setCheckoutEmail("");
+    setCheckoutPhone("");
+  }, [session]);
 
   useEffect(() => {
     if (!session) {
@@ -740,11 +1106,48 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setSeenOrderKey(localStorage.getItem(customerKey) ?? "");
   }, [session?.customer.id]);
 
+  function saveCustomerProfile() {
+    if (!session) return;
+
+    const nextSession: CustomerSession = {
+      ...session,
+      customer: {
+        ...session.customer,
+        fullName: profileDraft.fullName.trim() || session.customer.fullName,
+        email: profileDraft.email.trim() || undefined,
+        phone: profileDraft.phone.trim() || session.customer.phone,
+      },
+    };
+
+    setSession(nextSession);
+    localStorage.setItem(customerStorageKey, JSON.stringify(nextSession.customer));
+    setProfileEditing(false);
+    setNotice("Профайл шинэчлэгдлээ.");
+  }
+
+  function openProfileOrders() {
+    if (!session) return;
+
+    setMenuHidden(false);
+    setCartOpen(false);
+    setWishlistOpen(false);
+    setProfileOpen(false);
+    if (latestOrderKey) {
+      const customerKey = `${orderSeenStorageKey}:${session.customer.id}`;
+      localStorage.setItem(customerKey, latestOrderKey);
+      localStorage.setItem(orderSeenStorageKey, latestOrderKey);
+      setSeenOrderKey(latestOrderKey);
+    }
+    setTrackingOpen((open) => !open);
+  }
+
   useEffect(() => {
     if (!cartOpen) return undefined;
 
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    setCheckoutEmail("");
+    setCheckoutPhone("");
     window.requestAnimationFrame(() => cartPanelRef.current?.focus());
 
     return () => {
@@ -764,7 +1167,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
     const intervalId = window.setInterval(() => {
       setHeroImageIndex((current) => (current + 1) % landingHeroImages.length);
-    }, 4000);
+    }, 3000);
 
     return () => window.clearInterval(intervalId);
   }, [section]);
@@ -796,6 +1199,28 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, [authOpen, section]);
+
+  useEffect(() => {
+    let frameId = 0;
+
+    function updateScrollProgress() {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const scrollableHeight = document.documentElement.scrollHeight - window.innerHeight;
+        const nextProgress = scrollableHeight > 0 ? window.scrollY / scrollableHeight : 0;
+        setScrollProgress(Math.min(1, Math.max(0, nextProgress)));
+      });
+    }
+
+    updateScrollProgress();
+    window.addEventListener("scroll", updateScrollProgress, { passive: true });
+    window.addEventListener("resize", updateScrollProgress);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("scroll", updateScrollProgress);
+      window.removeEventListener("resize", updateScrollProgress);
+    };
+  }, [section]);
 
   useEffect(() => {
     if (!session?.token) return;
@@ -847,8 +1272,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       try {
         const params = new URLSearchParams({
           page: "1",
-          pageSize: "50",
-          ...(storeSearch.trim() ? { search: storeSearch.trim() } : {}),
+          pageSize: "100",
         });
         const result = await apiGet<StoreDirectoryResponse>(`/customer/stores?${params.toString()}`, token);
         if (!closed) {
@@ -866,7 +1290,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       closed = true;
       window.clearTimeout(timer);
     };
-  }, [section, session?.token, storeSearch]);
+  }, [section, session?.token]);
 
   useEffect(() => {
     setMarketPage(1);
@@ -875,27 +1299,23 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const demoMarketStores = useMemo(buildDemoMarketStores, []);
   const marketStoreDirectory = useMemo(() => {
     const fallbackByName = new Map(demoMarketStores.map((store) => [storeKey(store), store]));
-    const realStores = stores.map((store) => fillStoreProducts(store, fallbackByName.get(storeKey(store))));
+    const realStores = stores
+      .filter((store) => !isExcludedMarketStore(store.name))
+      .map((store) => fillStoreProducts(store, fallbackByName.get(storeKey(store))));
     const realStoreNames = new Set(realStores.map(storeKey));
-    const supplementalStores = demoMarketStores.filter((store) => !realStoreNames.has(storeKey(store)));
+    const supplementalStores = demoMarketStores.filter((store) => !isExcludedMarketStore(store.name) && !realStoreNames.has(storeKey(store)));
     return [...realStores, ...supplementalStores].sort((first, second) => {
       const priorityCompare = marketStorePriority(first) - marketStorePriority(second);
       if (priorityCompare) return priorityCompare;
       const categoryCompare = (first.categories[0] ?? "").localeCompare(second.categories[0] ?? "", "mn");
       return categoryCompare || first.name.localeCompare(second.name, "mn");
-    }).slice(0, 50);
+    }).slice(0, 100);
   }, [demoMarketStores, stores]);
   const filteredStores = useMemo(() => {
-    const normalizedSearch = storeSearch.trim().toLowerCase();
+    const normalizedSearch = normalizeMarketSearch(storeSearch);
     return marketStoreDirectory.filter((store) => (
-      storeMatchesMarketFilter(store, storeFilter)
-      && (
-        !normalizedSearch
-        || store.name.toLowerCase().includes(normalizedSearch)
-        || store.address.toLowerCase().includes(normalizedSearch)
-        || store.description.toLowerCase().includes(normalizedSearch)
-        || store.categories.some((category) => category.toLowerCase().includes(normalizedSearch))
-      )
+      (normalizedSearch || storeMatchesMarketFilter(store, storeFilter))
+      && storeMatchesMarketSearch(store, normalizedSearch)
     )).sort((first, second) => {
       const priorityCompare = marketStorePriority(first) - marketStorePriority(second);
       if (priorityCompare) return priorityCompare;
@@ -919,7 +1339,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
           weightGrams: product.weightGrams,
           stockCount: product.stockCount ?? stableStockCount(product.id),
           description: `${store.name} - ${product.category.toLowerCase()} ангилал.`,
-          imageUrl: product.imageUrl || productPhotoUrl(keywordForProduct(product)),
+          imageUrl: product.imageUrl || productPhotoUrl(productImageKeyword(product)),
           storeId: store.id,
           storeName: store.name,
         })).filter((product) => (
@@ -977,7 +1397,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const deliveryFee = Math.round(activeDelivery.base + km * activeDelivery.perKm + weightKg * activeDelivery.perKg);
   const etaMinutes = Math.max(12, Math.round((km / activeDelivery.speedKmh) * 60 + 10));
   const qpayMerchantName = selectedItems[0]?.storeName ?? selectedStore?.name ?? "DeliverHub market";
-  const qpayAmountMnt = qpayPayment?.amountMnt ?? subtotal + deliveryFee;
   const qpayQrSrc = qpayQrImageSource(qpayPayment?.qrImage);
   const selectedQpayBankOption = qpayBankOptions.find((bank) => bank.id === selectedQpayBank) ?? qpayBankOptions[0];
   const qpaySelectedBankLink = qpayPayment ? qpayBankLinkFor(qpayPayment.urls, selectedQpayBankOption) : undefined;
@@ -986,14 +1405,19 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     ...(qpaySelectedBankLink ? [qpaySelectedBankLink] : []),
     ...qpayBankLinks.filter((url) => url.link !== qpaySelectedBankLink?.link),
   ].slice(0, 4);
+  const qpayPopupBankLinks = [
+    ...(qpaySelectedBankLink ? [qpaySelectedBankLink] : []),
+    ...qpayBankLinks.filter((url) => url.link !== qpaySelectedBankLink?.link),
+  ];
   const qpayPrimaryLink = qpaySelectedBankLink?.link || qpayPayment?.shortUrl || qpayBankLinks[0]?.link || "";
-  const qpayInvoiceText = qpayPayment?.shortUrl || qpayPayment?.qrText || "";
   const qpayDraftKey = [
     paymentMethod,
     selectedItems.map((item) => `${item.id}:${item.quantity}`).join("|"),
     deliveryType,
     addressLabel,
     addressText,
+    addressUnit,
+    checkoutEmail,
     location ? `${location.latitude}:${location.longitude}` : "",
   ].join("::");
   const storeCategories = useMemo(
@@ -1021,8 +1445,15 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const addressSuggestions = [
     addressLabel,
     addressText,
-    location ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}` : "",
+    addressUnit,
+    ...locationSuggestions.map((suggestion) => suggestion.label),
   ].filter(Boolean);
+
+  function chooseLocationSuggestion(suggestion: LocationSuggestion) {
+    setAddressLabel(suggestion.label);
+    setAddressText(suggestion.detail || suggestion.label);
+    setAddressError("");
+  }
 
   function openMarket() {
     if (!session) {
@@ -1118,6 +1549,15 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     setWishlistOpen(false);
   }
 
+  function selectMarketStore(storeId: string) {
+    setSelectedStoreId(storeId);
+    setCartOpen(false);
+    setWishlistOpen(false);
+    setProfileOpen(false);
+    setQpayPayment(null);
+    setCheckoutError("");
+  }
+
   async function checkoutOrder() {
     if (!session) {
       setAuthMode("login");
@@ -1145,9 +1585,21 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return;
     }
 
+    const normalizedCheckoutEmail = checkoutEmail.trim();
+    if (!/^[^\s@]+@gmail\.com$/i.test(normalizedCheckoutEmail)) {
+      setCheckoutError("OTP авах Gmail хаягаа зөв оруулна уу.");
+      return;
+    }
+
+    const normalizedCheckoutPhone = checkoutPhone.replace(/[^\d+]/g, "").trim();
+    if (!/^\+?\d{8,15}$/.test(normalizedCheckoutPhone)) {
+      setCheckoutError("Холбоо барих утасны дугаараа зөв оруулна уу.");
+      return;
+    }
+
     setAddressError("");
     const paymentLabel = paymentMethods.find((method) => method.id === paymentMethod)?.label ?? "QPay";
-    const deliveryAddressText = addressText.trim();
+    const deliveryAddressText = [addressText.trim(), addressUnit.trim()].filter(Boolean).join(" · ");
     const district = addressSuggestions.join(" · ") || deliveryAddressText;
     const storeName = selectedItems[0]?.storeName ?? selectedStore?.name ?? "DeliverHub market";
     let orderResult: {
@@ -1176,6 +1628,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         })),
         addressText: deliveryAddressText,
         addressLabel,
+        contactEmail: normalizedCheckoutEmail,
+        contactPhone: normalizedCheckoutPhone,
         location,
         deliveryType,
         paymentMethod: paymentLabel,
@@ -1344,8 +1798,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     }
 
     setLoading(true);
+    setAddressLookupLoading(true);
     navigator.geolocation.getCurrentPosition(
-      (position) => {
+      async (position) => {
         const nextLocation = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
@@ -1353,11 +1808,26 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         };
         setLocation(nextLocation);
         setAddressError("");
-        setNotice("Байршил авлаа. Одоо KFC шиг давхар хаягаа текстээр баталгаажуул.");
-        setLoading(false);
+        try {
+          const suggestions = await fetchLocationSuggestions(nextLocation);
+          setLocationSuggestions(suggestions);
+          if (suggestions[0]) {
+            chooseLocationSuggestion(suggestions[0]);
+            setNotice("Байршлын ойролцоох хаягийг оллоо. Буруу бол доорх сонголтоос сонгоод, байр/тоотоо нэмээрэй.");
+          } else {
+            setNotice("GPS авлаа. Хаягийн нэр олдсонгүй, хаягаа гараар оруулаад байр/тоотоо нэмээрэй.");
+          }
+        } catch {
+          setLocationSuggestions([]);
+          setNotice("GPS авлаа. Хаягийн нэр татахад алдаа гарлаа, хаягаа гараар оруулаад байр/тоотоо нэмээрэй.");
+        } finally {
+          setAddressLookupLoading(false);
+          setLoading(false);
+        }
       },
       () => {
         setAddressError("GPS зөвшөөрөгдсөнгүй. Хүргэлт хийхийн тулд одоогийн байршлаа заавал зөвшөөрнө үү.");
+        setAddressLookupLoading(false);
         setLoading(false);
       },
       { enableHighAccuracy: true, timeout: 12000 },
@@ -1647,7 +2117,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   return (
     <main className={`nomad-scroll-page ${section === "market" ? "is-market-route" : ""} ${section === "contact" ? "is-contact-route" : ""} ${section === "courier" ? "is-courier-route" : ""} ${section === "partner" ? "is-partner-route" : ""} ${cartOpen ? "is-cart-open" : ""}`} id="hero">
       {paymentSuccess ? <div className="landing-payment-success" role="status">{paymentSuccess}</div> : null}
-      <nav className={`landing-commerce-nav ${menuHidden && !cartOpen ? "is-hidden" : ""}`} aria-label="Landing navigation">
+      <nav
+        className={`landing-commerce-nav ${menuHidden && !cartOpen ? "is-hidden" : ""}`}
+        style={{ "--nav-scroll-progress": scrollProgress } as CSSProperties}
+        aria-label="Landing navigation"
+      >
         <a className="landing-commerce-brand" href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>
           <BrandLogo showText size={32} />
         </a>
@@ -1705,46 +2179,135 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             </svg>
             {session && wishlistItems.length > 0 ? <b>{wishlistItems.length}</b> : null}
           </button>
-          {session ? (
-            <button
-              className={`landing-order-button ${trackingOpen ? "active" : ""}`}
-              onClick={() => {
-                setMenuHidden(false);
-                setCartOpen(false);
-                setWishlistOpen(false);
-                setProfileOpen(false);
-                if (latestOrderKey) {
-                  const customerKey = `${orderSeenStorageKey}:${session.customer.id}`;
-                  localStorage.setItem(customerKey, latestOrderKey);
-                  localStorage.setItem(orderSeenStorageKey, latestOrderKey);
-                  setSeenOrderKey(latestOrderKey);
-                }
-                setTrackingOpen((open) => !open);
-              }}
-              type="button"
-              aria-expanded={trackingOpen}
-              aria-label="Миний захиалсан"
-            >
-              <svg aria-hidden="true" className="landing-nav-icon" fill="none" viewBox="0 0 24 24">
-                <path d="M7 3.8H17C18.1 3.8 19 4.7 19 5.8V20.2L16.8 18.9L14.6 20.2L12.4 18.9L10.2 20.2L8 18.9L5.8 20.2V5.8C5.8 4.7 6.7 3.8 7.8 3.8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-                <path d="M9 8.4H15" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
-                <path d="M9 12H14" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
-              </svg>
-              <span>Миний захиалсан</span>
-              {unseenOrderCount > 0 ? <b className="is-notification">{unseenOrderCount}</b> : null}
-            </button>
-          ) : null}
         </div>
         {session ? (
           <div className="landing-profile-menu">
             <button className="landing-profile-button" onClick={() => setProfileOpen((open) => !open)} type="button" aria-label="Профайл">
-              <span aria-hidden="true" />
+              <span aria-hidden="true">{session.customer.fullName.slice(0, 1).toUpperCase()}</span>
             </button>
             {profileOpen ? (
-              <section>
-                <strong>{session.customer.fullName}</strong>
-                <span>{session.customer.email || session.customer.phone}</span>
-                <button onClick={logout} type="button">Гарах</button>
+              <section className={`landing-profile-panel ${profileSettings.compactProfile ? "is-compact" : ""}`}>
+                <div className="landing-profile-head">
+                  <div className="landing-profile-avatar" aria-hidden="true">
+                    {session.customer.fullName.slice(0, 1).toUpperCase()}
+                  </div>
+                  <div>
+                    <strong>{session.customer.fullName}</strong>
+                    <span>{session.customer.email || session.customer.phone}</span>
+                  </div>
+                </div>
+
+                <button className="landing-profile-order-link" onClick={openProfileOrders} type="button">
+                  <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                    <path d="M4.5 7.4L12 3.5L19.5 7.4V16.6L12 20.5L4.5 16.6V7.4Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+                    <path d="M4.8 7.7L12 11.5L19.2 7.7M12 11.5V20.1" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+                  </svg>
+                  <span>Миний захиалсан</span>
+                  {unseenOrderCount ? <b aria-label="Шинэ захиалга">{unseenOrderCount}</b> : null}
+                </button>
+
+                <div className="landing-profile-edit">
+                  <div className="landing-profile-subhead">
+                    <span>Профайл</span>
+                    <button
+                      onClick={() => setProfileEditing((editing) => !editing)}
+                      type="button"
+                    >
+                      {profileEditing ? "Хаах" : "Засах"}
+                    </button>
+                  </div>
+                  {profileEditing ? (
+                    <form
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        saveCustomerProfile();
+                      }}
+                    >
+                      <label>
+                        <span>Нэр</span>
+                        <input
+                          onChange={(event) => setProfileDraft((draft) => ({ ...draft, fullName: event.target.value }))}
+                          value={profileDraft.fullName}
+                        />
+                      </label>
+                      <label>
+                        <span>Имэйл</span>
+                        <input
+                          onChange={(event) => setProfileDraft((draft) => ({ ...draft, email: event.target.value }))}
+                          type="email"
+                          value={profileDraft.email}
+                        />
+                      </label>
+                      <label>
+                        <span>Утас</span>
+                        <input
+                          onChange={(event) => setProfileDraft((draft) => ({ ...draft, phone: event.target.value }))}
+                          value={profileDraft.phone}
+                        />
+                      </label>
+                      <div className="landing-profile-form-actions">
+                        <button type="submit">Хадгалах</button>
+                        <button
+                          onClick={() => {
+                            setProfileDraft({
+                              fullName: session.customer.fullName,
+                              email: session.customer.email ?? "",
+                              phone: session.customer.phone,
+                            });
+                            setProfileEditing(false);
+                          }}
+                          type="button"
+                        >
+                          Болих
+                        </button>
+                      </div>
+                    </form>
+                  ) : null}
+                </div>
+
+                <div className="landing-profile-settings">
+                  <div className="landing-profile-subhead">
+                    <span>Settings</span>
+                  </div>
+                  <label className="landing-profile-toggle">
+                    <input
+                      checked={profileSettings.orderUpdates}
+                      onChange={(event) => setProfileSettings((settings) => ({ ...settings, orderUpdates: event.target.checked }))}
+                      type="checkbox"
+                    />
+                    <span>Захиалгын мэдэгдэл</span>
+                  </label>
+                  <label className="landing-profile-toggle">
+                    <input
+                      checked={profileSettings.promoUpdates}
+                      onChange={(event) => setProfileSettings((settings) => ({ ...settings, promoUpdates: event.target.checked }))}
+                      type="checkbox"
+                    />
+                    <span>Урамшууллын мэдээ</span>
+                  </label>
+                  <label className="landing-profile-toggle">
+                    <input
+                      checked={profileSettings.compactProfile}
+                      onChange={(event) => setProfileSettings((settings) => ({ ...settings, compactProfile: event.target.checked }))}
+                      type="checkbox"
+                    />
+                    <span>Компакт харагдац</span>
+                  </label>
+                </div>
+
+                <div className="landing-profile-signout">
+                  <button className="landing-profile-logout" onClick={logout} type="button">
+                    <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                      <path d="M9.5 5H6.8C5.8 5 5 5.8 5 6.8V17.2C5 18.2 5.8 19 6.8 19H9.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+                      <path d="M13 8L17 12L13 16" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+                      <path d="M17 12H9" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+                    </svg>
+                    <span>
+                      <strong>Гарах</strong>
+                      <small>Аккаунтаас гарах</small>
+                    </span>
+                  </button>
+                </div>
               </section>
             ) : null}
           </div>
@@ -1768,7 +2331,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             <header>
               <div>
                 <strong>Таны сагс</strong>
-                <span>{selectedItems.length ? `${selectedItems.length} бүтээгдэхүүн` : "Хоосон байна"}</span>
               </div>
               <button onClick={() => setCartOpen(false)} type="button" aria-label="Сагс хаах">×</button>
             </header>
@@ -1776,197 +2338,250 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             {selectedItems.length ? (
               <>
                 <div className="landing-cart-checkout">
-                  <div className="landing-cart-items">
-                    {selectedItems.map((item) => (
-                      <article key={item.id}>
-                        <img alt={item.name} src={productImageFor(item)} />
-                        <div>
-                          <small className="landing-cart-category">{item.category}</small>
-                          <strong>{item.name}</strong>
-                          <small>Ангилал: {item.category}</small>
-                          <small>Нэгж үнэ: {formatMnt(item.priceMnt)}</small>
-                        </div>
-                        <div className="landing-cart-stepper">
-                          <button onClick={() => updateCart(item.id, -1)} type="button" aria-label="Хасах">−</button>
-                          <b>{item.quantity}</b>
-                          <button onClick={() => updateCart(item.id, 1)} type="button" aria-label="Нэмэх">+</button>
-                          <button className="landing-cart-remove" onClick={() => updateCart(item.id, -item.quantity)} type="button">Устгах</button>
-                        </div>
-                        <div className="landing-cart-line-total">
-                          <span>Нийт үнэ</span>
-                          <strong>{formatMnt(item.priceMnt * item.quantity)}</strong>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-
-                  <aside className="landing-cart-summary">
-                    <h2>Төлбөрийн хэсэг</h2>
-                    <section className="landing-checkout-delivery" aria-label="Хүргэлтийн төрөл ба төлбөр">
-                      <div>
-                        <strong>Хүргэлтийн төрөл</strong>
-                        <span>{activeDelivery.label} · {formatMnt(deliveryFee)}</span>
-                      </div>
-                      <div className="landing-checkout-delivery-options">
-                        {deliveryOptions.map((option) => (
-                          <button className={deliveryType === option.id ? "active" : ""} key={option.id} onClick={() => setDeliveryType(option.id)} type="button">
-                            <strong>{option.label}</strong>
-                            <span>{option.copy}</span>
-                          </button>
-                        ))}
-                      </div>
+                  <div className="landing-checkout-form">
+                    <h1>Захиалгаа баталгаажуулах</h1>
+                    <section className="landing-checkout-steps" aria-label="Хүргэлтийн төрөл">
+                      {deliveryOptions.map((option, index) => (
+                        <button
+                          className={deliveryType === option.id ? "active" : ""}
+                          key={option.id}
+                          onClick={() => setDeliveryType(option.id)}
+                          type="button"
+                        >
+                          <span>{index + 1}</span>
+                          <strong>{option.label}</strong>
+                        </button>
+                      ))}
                     </section>
-                    <div className="landing-cart-totals">
-                      <span><em>Барааны тоо</em><strong>{cartItemCount}</strong></span>
-                      <span><em>Барааны дүн</em><strong>{formatMnt(subtotal)}</strong></span>
-                      <span><em>Хүргэлт · {activeDelivery.label}</em><strong>{formatMnt(deliveryFee)}</strong></span>
-                      <span><em>Нийт төлөх дүн</em><strong>{formatMnt(subtotal + deliveryFee)}</strong></span>
-                    </div>
 
+                    <h2>Холбоо барих мэдээлэл</h2>
+                    <section className="landing-checkout-contact" aria-label="И-мэйл">
+                      <strong>И-мэйл хаяг</strong>
+                      <input
+                        autoComplete="new-password"
+                        inputMode="email"
+                        name="deliverhub-contact-otp-target"
+                        placeholder="name@gmail.com"
+                        type="text"
+                        value={checkoutEmail}
+                        onChange={(event) => {
+                          setCheckoutEmail(event.target.value);
+                          if (checkoutError.includes("Gmail")) setCheckoutError("");
+                        }}
+                      />
+                      <strong>Утасны дугаар</strong>
+                      <input
+                        autoComplete="new-password"
+                        inputMode="tel"
+                        name="deliverhub-contact-call-target"
+                        placeholder="99112233"
+                        type="text"
+                        value={checkoutPhone}
+                        onChange={(event) => {
+                          setCheckoutPhone(event.target.value);
+                          if (checkoutError.includes("утас")) setCheckoutError("");
+                        }}
+                      />
+                    </section>
+
+                    <h2>Хүргэлтийн хаяг</h2>
                     <section className={`landing-checkout-address ${addressError ? "has-error" : ""}`} aria-label="Хүргэлтийн хаяг">
                       <div>
-                        <strong>Хүргэлтийн хаяг</strong>
+                        <strong>GPS байршил</strong>
                         <button onClick={useCurrentLocation} type="button" disabled={loading}>
                           {location ? "GPS шинэчлэх" : "Одоогийн байршил авах"}
                         </button>
                       </div>
                       <span>
                         {location
-                          ? `${location.latitude.toFixed(5)}, ${location.longitude.toFixed(5)}`
+                          ? addressLabel || "GPS байршил авсан"
                           : "GPS байршил аваагүй байна"}
                       </span>
-                      <label>
-                        Хаягийн нэр
-                        <input
-                          value={addressLabel}
-                          onChange={(event) => setAddressLabel(event.target.value)}
-                          placeholder="Гэр, ажил, хотхон..."
-                        />
-                      </label>
-                      <label>
-                        Дэлгэрэнгүй хаяг
-                        <input
-                          value={addressText}
-                          onChange={(event) => {
-                            setAddressText(event.target.value);
-                            if (event.target.value.trim()) setAddressError("");
-                          }}
-                          placeholder="Байр, орц, давхар, тоот..."
-                        />
-                      </label>
+                      {addressLookupLoading ? (
+                        <div className="landing-address-loading" role="status">
+                          <span aria-hidden="true" />
+                          <strong>Таны байршлыг тогтоож байна</strong>
+                        </div>
+                      ) : null}
+                      {!addressLookupLoading ? (
+                        <>
+                          <label>
+                            Дэлгэрэнгүй хаяг
+                            <input
+                              value={addressText}
+                              onChange={(event) => {
+                                setAddressText(event.target.value);
+                                if (event.target.value.trim()) setAddressError("");
+                              }}
+                              placeholder="Дүүрэг, хороо, гудамж"
+                            />
+                          </label>
+                          <label>
+                            Байр, орц, тоот
+                            <input
+                              value={addressUnit}
+                              onChange={(event) => setAddressUnit(event.target.value)}
+                              placeholder="12-р байр, 3-р орц, 45 тоот"
+                            />
+                          </label>
+                        </>
+                      ) : null}
                       {addressError ? <p role="alert">{addressError}</p> : null}
                     </section>
 
-                    <strong className="landing-payment-title">Төлбөрийн аргууд</strong>
-                    <div className="landing-payment-methods" aria-label="Төлбөрийн арга">
-                      {paymentMethods.map((method) => (
-                        <button className={paymentMethod === method.id ? "active" : ""} key={method.id} onClick={() => setPaymentMethod(method.id)} type="button">
-                          <span className={`payment-mark payment-${method.id}`}>{method.mark}</span>
-                          <strong>{method.label}</strong>
-                        </button>
-                      ))}
-                    </div>
-
-                    {paymentMethod === "qpay" ? (
+                    {paymentMethod === "qpay" && qpayPayment ? (
                       <section className={`landing-qpay-panel${qpayPayment ? " is-ready" : ""}`} aria-label="QPay төлбөр" ref={qpayPanelRef}>
-                        <header>
-                          <strong>{qpayPayment ? "QPay invoice" : "QPay төлбөр"}</strong>
-                          <span>{qpayPayment ? "ТӨЛБӨР ХҮЛЭЭЖ БАЙНА" : "INVOICE ҮҮСГЭХ"}</span>
-                        </header>
-                        <div className="landing-qpay-bank-picker" aria-label="Төлөх банк">
-                          {qpayBankOptions.map((bank) => (
-                            <button
-                              className={selectedQpayBank === bank.id ? "active" : ""}
-                              key={bank.id}
-                              onClick={() => setSelectedQpayBank(bank.id)}
-                              type="button"
-                            >
-                              <span>{bank.mark}</span>
-                              <strong>{bank.label}</strong>
-                            </button>
-                          ))}
-                        </div>
-                        {qpayPayment ? (
-                          <a
-                            className={`landing-qpay-primary-bank${qpayPrimaryLink ? "" : " is-disabled"}`}
-                            href={qpayPrimaryLink || undefined}
-                            onClick={(event) => {
-                              if (!qpayPrimaryLink) event.preventDefault();
-                            }}
-                            rel="noreferrer"
-                            target="_blank"
-                          >
-                            <span>{selectedQpayBankOption.mark}</span>
-                            <strong>{selectedQpayBankOption.label}-аар төлөх</strong>
-                            <small>{qpayPrimaryLink ? "Банкны app нээх" : "Энэ банкны link QPay-аас ирсэнгүй"}</small>
-                          </a>
-                        ) : null}
+                        <h2>Төлбөр</h2>
+                        <button className="landing-qpay-popup-trigger" onClick={() => setQpayAppsOpen(true)} type="button">
+                          <span className="landing-qpay-logo-mark">
+                            <img alt="QPay" src={qpayLogoUrl} />
+                          </span>
+                          <strong>{selectedQpayBankOption.label}-аар төлөх</strong>
+                          <small>Банкны app-ууд popup дотор</small>
+                        </button>
+                        <a
+                          className={`landing-qpay-primary-bank${qpayPrimaryLink ? "" : " is-disabled"}`}
+                          href={qpayPrimaryLink || undefined}
+                          onClick={(event) => {
+                            if (!qpayPrimaryLink) event.preventDefault();
+                          }}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          <span>{selectedQpayBankOption.mark}</span>
+                          <strong>{selectedQpayBankOption.label}-аар төлөх</strong>
+                          <small>{qpayPrimaryLink ? "Банкны app нээх" : "Энэ банкны link QPay-аас ирсэнгүй"}</small>
+                        </a>
                         <div className="landing-qpay-body">
                           <div className="landing-qpay-meta">
                             <span>Invoice</span>
-                            <strong>{qpayPayment?.invoiceId ?? "Төлбөр төлөхөд үүснэ"}</strong>
+                            <strong>{qpayPayment.invoiceId}</strong>
                             <span>Merchant</span>
                             <strong>{qpayMerchantName}</strong>
-                            <span>Дүн</span>
-                            <strong>{formatMnt(qpayAmountMnt)}</strong>
                           </div>
-                          {qpayPayment ? (
-                            <div className={`landing-qpay-qr${qpayQrSrc ? "" : " is-empty"}`}>
-                              {qpayQrSrc ? (
-                                <img alt="QPay invoice QR" src={qpayQrSrc} />
-                              ) : (
-                                <strong>QR ирсэнгүй</strong>
-                              )}
-                            </div>
-                          ) : null}
+                          <div className={`landing-qpay-qr${qpayQrSrc ? "" : " is-empty"}`}>
+                            {qpayQrSrc ? (
+                              <img alt="QPay invoice QR" src={qpayQrSrc} />
+                            ) : (
+                              <strong>QR ирсэнгүй</strong>
+                            )}
+                          </div>
                         </div>
                         {qpayVisibleBankLinks.length ? (
-                          <div className="landing-qpay-apps" aria-label="QPay банкны апп">
-                            {qpayVisibleBankLinks.map((url) => (
-                              <a href={url.link} key={`${url.name ?? url.description}-${url.link}`} rel="noreferrer" target="_blank">
-                                {url.logo ? <img alt="" src={url.logo} /> : null}
-                                <span>{url.name || url.description || "Банкны app"}</span>
-                              </a>
-                            ))}
+                          <button className="landing-qpay-more-apps" onClick={() => setQpayAppsOpen(true)} type="button">
+                            Бусад банкны app харах
+                          </button>
+                        ) : null}
+                        {qpayAppsOpen ? (
+                          <div className="landing-qpay-popup" role="dialog" aria-modal="true" aria-label="QPay банкны апп сонгох">
+                            <div className="landing-qpay-popup-card">
+                              <header>
+                                <strong>QPay банк сонгох</strong>
+                                <button onClick={() => setQpayAppsOpen(false)} type="button" aria-label="Хаах">×</button>
+                              </header>
+                              <div className="landing-qpay-bank-picker" aria-label="Төлөх банк">
+                                {qpayBankOptions.map((bank) => (
+                                  <button
+                                    className={selectedQpayBank === bank.id ? "active" : ""}
+                                    key={bank.id}
+                                    onClick={() => setSelectedQpayBank(bank.id)}
+                                    type="button"
+                                  >
+                                    <span>
+                                      <img
+                                        alt=""
+                                        onError={(event) => {
+                                          event.currentTarget.style.display = "none";
+                                        }}
+                                        src={bank.logoUrl}
+                                      />
+                                      <b>{bank.mark}</b>
+                                    </span>
+                                    <strong>{bank.label}</strong>
+                                  </button>
+                                ))}
+                              </div>
+                              {qpayPayment ? (
+                                <div className="landing-qpay-apps" aria-label="QPay банкны апп">
+                                  {qpayPopupBankLinks.map((url) => (
+                                    <a href={url.link} key={`${url.name ?? url.description}-${url.link}`} rel="noreferrer" target="_blank">
+                                      {url.logo ? <img alt="" src={url.logo} /> : null}
+                                      <span>{url.name || url.description || "Банкны app"}</span>
+                                    </a>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
                           </div>
                         ) : null}
-                        <footer>
-                          <span>{qpayPayment ? "QPay invoice 15 минут хүчинтэй" : "Төлбөр төлөх дарж бодит invoice авна"}</span>
-                          {qpayPrimaryLink ? (
-                            <a href={qpayPrimaryLink} rel="noreferrer" target="_blank">{qpayPrimaryLink}</a>
-                          ) : (
-                            <code>{qpayInvoiceText || "Захиалга баталгаажуулахад QPay-аас invoice авна"}</code>
-                          )}
-                        </footer>
                       </section>
-                    ) : (
-                      <section className="landing-card-sandbox" aria-label="Bank card sandbox">
-                        <label>
-                          Картын дугаар
-                          <input inputMode="numeric" placeholder="4242 4242 4242 4242" />
-                        </label>
-                        <div>
-                          <label>
-                            Хүчинтэй
-                            <input inputMode="numeric" placeholder="12/30" />
-                          </label>
-                          <label>
-                            CVC
-                            <input inputMode="numeric" placeholder="123" />
-                          </label>
-                        </div>
-                        <small>Sandbox test card. Бодит мөнгө шилжихгүй.</small>
-                      </section>
-                    )}
+                    ) : null}
 
-                    <p>Энд харагдаж байгаа нь урьдчилсан тооцоо. Захиалга баталгаажих үед эцсийн төлбөр тооцогдоно.</p>
                     {checkoutError ? <p className="landing-checkout-error" role="alert">{checkoutError}</p> : null}
-                    <footer>
-                      <button onClick={qpayPayment ? checkQpayPaymentStatus : checkoutOrder} type="button" disabled={checkoutSubmitting}>
-                        {checkoutSubmitting ? "Шалгаж байна..." : qpayPayment ? "Төлбөр шалгах" : paymentMethod === "qpay" ? "QPay invoice үүсгэх" : "Төлбөр төлөх"}
+                    <footer className="landing-checkout-form-footer">
+                      <button className="landing-checkout-submit" onClick={qpayPayment ? checkQpayPaymentStatus : checkoutOrder} type="button" disabled={checkoutSubmitting}>
+                        <span>{checkoutSubmitting ? "Шалгаж байна..." : qpayPayment ? "Төлбөр шалгах" : "Төлбөр төлөх"}</span>
+                        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                          <path d="M5 12H19" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+                          <path d="M13 6L19 12L13 18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+                        </svg>
                       </button>
-                      <button onClick={() => setCart({})} type="button">Буцах</button>
+                      <button className="landing-checkout-cancel" onClick={() => setCart({})} type="button">Буцах</button>
                     </footer>
+                  </div>
+
+                  <aside className="landing-checkout-summary">
+                    <h2>Захиалгын нэгтгэл</h2>
+                    <div className="landing-checkout-summary-items">
+                      {selectedItems.map((item) => (
+                        <article key={item.id}>
+                          <img alt={item.name} src={productImageFor(item)} />
+                          <div>
+                            <strong>{item.name}</strong>
+                            <small>{formatMnt(item.priceMnt)}</small>
+                          </div>
+                          <div className="landing-cart-stepper">
+                            <button onClick={() => updateCart(item.id, -1)} type="button" aria-label="Хасах">−</button>
+                            <b>{item.quantity}</b>
+                            <button onClick={() => updateCart(item.id, 1)} type="button" aria-label="Нэмэх">+</button>
+                          </div>
+                          <button className="landing-cart-remove" onClick={() => updateCart(item.id, -item.quantity)} type="button">Устгах</button>
+                        </article>
+                      ))}
+                    </div>
+                    <div className="landing-cart-totals">
+                      <span><em>Нийт бүтээгдэхүүний үнэ</em><strong>{formatMnt(subtotal)}</strong></span>
+                      <span><em>Хүргэлт</em><strong>{formatMnt(deliveryFee)}</strong></span>
+                      <span><em>Хөнгөлөлт</em><strong>-{formatMnt(0)}</strong></span>
+                      <span><em>Нийт дүн</em><strong>{formatMnt(subtotal + deliveryFee)}</strong></span>
+                    </div>
+                    <div className="landing-checkout-trust">
+                      <div>
+                        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                          <path d="M12 3L19 6V11C19 15.4 16 19.2 12 21C8 19.2 5 15.4 5 11V6L12 3Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.6" />
+                          <path d="M9 12L11.2 14.2L15.5 9.8" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.6" />
+                        </svg>
+                        <strong>Найдвартай төлбөр</strong>
+                      </div>
+                      <div>
+                        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                          <path d="M3 7H14V16H3V7Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.6" />
+                          <path d="M14 10H17.5L20 13V16H14V10Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.6" />
+                          <circle cx="7" cy="18" r="1.6" stroke="currentColor" strokeWidth="1.4" />
+                          <circle cx="17" cy="18" r="1.6" stroke="currentColor" strokeWidth="1.4" />
+                        </svg>
+                        <strong>Хурдан хүргэлт</strong>
+                      </div>
+                      <div>
+                        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                          <path d="M4 13V11C4 6.6 7.6 3 12 3C16.4 3 20 6.6 20 11V13" stroke="currentColor" strokeLinecap="round" strokeWidth="1.6" />
+                          <path d="M4 13V17C4 18.1 4.9 19 6 19H7V13H4Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.6" />
+                          <path d="M20 13V17C20 18.1 19.1 19 18 19H17V13H20Z" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.6" />
+                          <path d="M17 19V20C17 20.6 16.6 21 16 21H12.5" stroke="currentColor" strokeLinecap="round" strokeWidth="1.6" />
+                        </svg>
+                        <strong>24/7 Дэмжлэг</strong>
+                      </div>
+                    </div>
                   </aside>
                 </div>
               </>
@@ -2049,21 +2664,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                   value={storeSearch}
                 />
               </label>
-              <header className="market-store-filter-head">
-                <div>
-                  <span>Сонгосон төрөл</span>
-                  <strong>{storeFilter}</strong>
-                </div>
-                <small>{filteredStores.length} дэлгүүр</small>
-              </header>
               <div className="landing-store-cards">
                 {filteredStores.map((store) => {
-                  const brand = storeBrandFor(store.name);
+                  const brand = storeBrandFor(store.name, store.categories[0]);
                   const isActive = selectedStore?.id === store.id;
                   return (
-                    <button className={isActive ? "active" : ""} key={store.id} onClick={() => setSelectedStoreId(store.id)} type="button">
+                    <button className={isActive ? "active" : ""} key={store.id} onClick={() => selectMarketStore(store.id)} type="button">
                       <span className="landing-store-logo">
-                        {brand.logoUrl ? <img alt={`${store.name} logo`} src={brand.logoUrl} /> : <b>{brand.initials}</b>}
+                        <img alt={`${store.name} logo`} src={brand.logoUrl} />
                       </span>
                       <span className="landing-store-card-copy">
                         <strong>{store.name}</strong>
@@ -2078,17 +2686,15 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             <section className="market-store-feed">
               {!selectedStore ? (
                 <p className="market-empty">Дээрээс төрөл сонгоод, дэлгүүрийн card дээр дарахад бараанууд нь энд гарна.</p>
-              ) : pagedStoreProductGroups.length ? pagedStoreProductGroups.map(({ store, storeIndex, products }) => {
-                const brand = storeBrandFor(store.name);
-                const displayIndex = storeIndex + 1;
+              ) : pagedStoreProductGroups.length ? pagedStoreProductGroups.map(({ store, products }) => {
+                const brand = storeBrandFor(store.name, store.categories[0]);
                 return (
                   <section className="market-store-section" key={store.id}>
                     <header>
                       <span className="landing-store-logo">
-                        {brand.logoUrl ? <img alt={`${store.name} logo`} src={brand.logoUrl} /> : <b>{brand.initials}</b>}
+                        <img alt={`${store.name} logo`} src={brand.logoUrl} />
                       </span>
                       <div>
-                        <span>#{String(displayIndex).padStart(2, "0")} · {store.categories.join(", ")}</span>
                         <strong>{store.name}</strong>
                         <small>{store.address}</small>
                       </div>
@@ -2395,6 +3001,59 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         </div>
       </section>
 
+      {section === "home" ? (
+        <section className="landing-flow-bridge" aria-label="DeliverHub платформын урсгал">
+          <div className="landing-flow-sticky">
+            <div className="landing-flow-copy">
+              <span>DELIVERHUB FLOW</span>
+              <h2>Дэлгүүр ба хэрэглэгчийн хоорондох ухаалаг гүүр</h2>
+              <p>Бараа, төлбөр, хүргэлт, мэдэгдлийг нэг урсгалд холбож онлайн худалдааг илүү ойр, хурдан, ойлгомжтой болгоно.</p>
+            </div>
+            <div className="landing-flow-scene" aria-hidden="true">
+              <div className="landing-flow-orbit">
+                <span />
+                <span />
+                <span />
+              </div>
+              <div className="landing-flow-card is-store">
+                <img alt="" src={heroMacbookImage} />
+                <strong>Дэлгүүр</strong>
+                <small>Бараа · нөөц · dashboard</small>
+              </div>
+              <div className="landing-flow-card is-customer">
+                <img alt="" src={heroIphoneImage} />
+                <strong>Хэрэглэгч</strong>
+                <small>Хайлт · QPay · захиалга</small>
+              </div>
+              <div className="landing-flow-hub">
+                <b>DH</b>
+                <span>live bridge</span>
+              </div>
+              <div className="landing-flow-ribbon is-one" />
+              <div className="landing-flow-ribbon is-two" />
+            </div>
+          </div>
+
+          <div className="landing-flow-panels">
+            <article>
+              <span>01</span>
+              <h3>Дэлгүүр бүтээгдэхүүнээ оруулна</h3>
+              <p>Үнэ, үлдэгдэл, зураг, ангилал бүр шууд маркет дээр харагдаж хэрэглэгчийн хайлттай холбогдоно.</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h3>Хэрэглэгч сонгоод төлнө</h3>
+              <p>Сагс, хүргэлтийн хаяг, QPay invoice нэг checkout дотор шийдэгдэнэ.</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h3>Хүргэлт бодит хугацаанд хөдөлнө</h3>
+              <p>Ойр хүргэлтийн ажилтан, pickup код, live status бүгд нэг самбарт шинэчлэгдэнэ.</p>
+            </article>
+          </div>
+        </section>
+      ) : null}
+
       {section === "contact" ? (
       <section className="landing-contact-dashboard" aria-label="Холбоо барих">
         <div className="landing-contact-head">
@@ -2516,4 +3175,3 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     </main>
   );
 }
-

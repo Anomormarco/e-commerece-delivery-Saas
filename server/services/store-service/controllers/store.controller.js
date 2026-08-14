@@ -1,9 +1,30 @@
 import { tenantIdFromRequest } from "@deliverhub/server-platform/http/request-context";
 import { storeEventBus } from "../messaging.js";
-import { acceptStoreOrder, getStoreDashboard, markStoreOrderPrepared, requestStoreDelivery, verifyStorePickup } from "../services/store.service.js";
+import {
+  acceptStoreOrder,
+  checkStoreSubscriptionPayment,
+  createStoreSubscriptionInvoice,
+  getStoreDashboard,
+  getStoreSubscription,
+  markStoreOrderPrepared,
+  requestStoreDelivery,
+  verifyStorePickup,
+} from "../services/store.service.js";
 
 export async function showStoreDashboard(request, response) {
   response.json(await getStoreDashboard(tenantIdFromRequest(request)));
+}
+
+export async function showStoreSubscription(request, response) {
+  response.json(await getStoreSubscription(tenantIdFromRequest(request)));
+}
+
+export async function createSubscriptionInvoice(request, response) {
+  response.status(201).json(await createStoreSubscriptionInvoice(tenantIdFromRequest(request)));
+}
+
+export async function checkSubscriptionPayment(request, response) {
+  response.json(await checkStoreSubscriptionPayment(tenantIdFromRequest(request), request.body));
 }
 
 export async function createStoreDeliveryRequest(request, response) {

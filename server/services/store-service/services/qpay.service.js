@@ -56,9 +56,8 @@ export async function qpayAccessToken() {
     return qpayTokenCache.accessToken;
   }
 
-  const config = qpayConfig();
   if (!isQpayConfigured()) {
-    const error = new Error("QPay тохиргоо дутуу байна. Render customer-service env-ээ шалгана уу.");
+    const error = new Error("QPay тохиргоо дутуу байна. Store service env-ээ шалгана уу.");
     error.statusCode = 500;
     error.code = "QPAY_NOT_CONFIGURED";
     throw error;
@@ -79,35 +78,13 @@ export async function qpayAccessToken() {
   return token;
 }
 
-export async function createQpayInvoice({ orderId, amountMnt, description, customerCode }) {
+export async function createQpayInvoice({ invoiceNo, amountMnt, description, receiverCode }) {
   const config = qpayConfig();
-  if (!isQpayConfigured()) {
-    const invoiceId = `DEMO-QPAY-${orderId}`;
-    const demoPayload = {
-      invoice_id: invoiceId,
-      sender_invoice_no: orderId,
-      amount: Number(amountMnt),
-      description,
-      customerCode,
-      mode: "local-demo",
-    };
-
-    return {
-      providerInvoiceId: invoiceId,
-      senderInvoiceNo: orderId,
-      qrText: `deliverhub-demo-qpay:${orderId}:${amountMnt}`,
-      qrImage: "",
-      shortUrl: "",
-      urls: [],
-      raw: demoPayload,
-    };
-  }
-
   const payload = await qpayRequest("/v2/invoice", {
     body: {
       invoice_code: config.invoiceCode,
-      sender_invoice_no: orderId,
-      invoice_receiver_code: customerCode || orderId,
+      sender_invoice_no: invoiceNo,
+      invoice_receiver_code: receiverCode || invoiceNo,
       invoice_description: description,
       amount: Number(amountMnt),
       callback_url: config.callbackUrl,
@@ -124,7 +101,7 @@ export async function createQpayInvoice({ orderId, amountMnt, description, custo
 
   return {
     providerInvoiceId: payload.invoice_id,
-    senderInvoiceNo: orderId,
+    invoiceNo,
     qrText: payload.qr_text ?? "",
     qrImage: payload.qr_image ?? "",
     shortUrl: payload.qPay_shortUrl ?? payload.qpay_shorturl ?? payload.short_url ?? "",
@@ -134,15 +111,6 @@ export async function createQpayInvoice({ orderId, amountMnt, description, custo
 }
 
 export async function checkQpayInvoice(providerInvoiceId) {
-  if (String(providerInvoiceId ?? "").startsWith("DEMO-QPAY-")) {
-    return {
-      paid: true,
-      paidAmount: 0,
-      rows: [{ payment_status: "PAID", payment_amount: 0, mode: "local-demo" }],
-      raw: { mode: "local-demo", invoice_id: providerInvoiceId },
-    };
-  }
-
   const payload = await qpayRequest("/v2/payment/check", {
     body: {
       object_type: "INVOICE",

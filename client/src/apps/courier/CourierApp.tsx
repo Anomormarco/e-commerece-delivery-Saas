@@ -60,13 +60,13 @@ const text = {
   heroCopy: "Баталгаажуулалт, ажлын төлөв, тээврийн хэрэгслийн тохиргоо болон хүргэлтийн дуудлагыг нэг дор удирдана.",
   loginTitle: "Хүргэлтийн ажилтан нэвтрэх",
   registerTitle: "Хүргэлтийн ажилтнаар бүртгүүлэх",
-  loginLead: "Утас болон нууц үгээрээ нэвтэрч хүргэлтийн дуудлагаа удирдана.",
+  loginLead: "Мэйл эсвэл утас, нууц үгээрээ нэвтрэх мэдээллээ шалгана.",
   registerLead: "Ажилтны бүртгэл үүсгээд хүргэлтийн төрлөө сонгон баталгаажуулалтаа дуусгана.",
   login: "Нэвтрэх",
   register: "Бүртгүүлэх",
   fullName: "Бүтэн нэр",
   phone: "Утас эсвэл Gmail",
-  phoneNumber: "Утасны дугаар",
+  phoneNumber: "Мэйл эсвэл утас",
   phoneVerified: "Утасны дугаар баталгаажсан",
   firstName: "Нэр",
   lastName: "Овог",
@@ -76,6 +76,7 @@ const text = {
   homeAddress: "Гэрийн хаяг",
   emergencyPhones: "Яаралтай үед холбогдох утаснууд",
   password: "Нууц үг",
+  confirmPassword: "Нууц үг давтах",
   plate: "Улсын дугаар",
   plateOptional: "Улсын дугаар (заавал биш)",
   start: "Үргэлжлүүлэх",
@@ -105,6 +106,7 @@ const text = {
   namePlaceholder: "Бүтэн нэрээ оруулна уу",
   phonePlaceholder: "Утасны дугаар эсвэл name@gmail.com",
   passwordPlaceholder: "Нууц үг",
+  confirmPasswordPlaceholder: "Нууц үгээ дахин оруулна уу",
   verificationFlow: "Баталгаажуулалтын явц",
   documentCheck: "Бичиг баримтын шалгалт",
   faceMatch: "Царай тааруулалт",
@@ -136,6 +138,7 @@ const text = {
   encryption: "Шифрлэлт: AES-256 олон tenant vault",
   invalidLoginId: "Нэвтрэх мэдээлэл утасны дугаар эсвэл Gmail хаяг байх ёстой.",
   strongPassword: "Нууц үг 8+ тэмдэгттэй, том үсэг, жижиг үсэг, тоо, тусгай тэмдэгт агуулсан байх ёстой.",
+  passwordMismatch: "Нууц үг хоорондоо таарахгүй байна.",
 };
 
 type SelectedDocumentFile = {
@@ -258,7 +261,6 @@ function FaceCameraCheck({
   help,
   matched,
   singleUse = false,
-  showMismatchAction = true,
   onResult,
 }: {
   mode: "login" | "register";
@@ -266,7 +268,6 @@ function FaceCameraCheck({
   help: string;
   matched: boolean;
   singleUse?: boolean;
-  showMismatchAction?: boolean;
   onResult: (matched: boolean, audit: FaceAudit) => void;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -386,20 +387,17 @@ function FaceCameraCheck({
       <div className="employee-camera-copy">
         <strong>{title}</strong>
         <p>{help}</p>
-        <span className={matched ? "face-status matched" : capturedAt ? "face-status declined" : "face-status"}>
-          {matched ? text.cameraMatched : capturedAt ? text.cameraDeclined : text.livenessAnalyzing}
-        </span>
+        {capturedAt ? (
+          <span className={matched ? "face-status matched" : "face-status declined"}>
+            {matched ? text.cameraMatched : text.cameraDeclined}
+          </span>
+        ) : null}
         {capturedAt ? <small>Log: {new Date(capturedAt).toLocaleString("mn-MN")}</small> : null}
         {cameraError ? <small className="camera-error">{cameraError}</small> : null}
         <div className="employee-camera-actions">
           <button disabled={!cameraReady || (singleUse && Boolean(capturedAt))} onClick={() => void completeCheck("MATCHED")} type="button">
             {text.cameraCapture}
           </button>
-          {showMismatchAction ? (
-            <button disabled={!cameraReady || (singleUse && Boolean(capturedAt))} onClick={() => void completeCheck("DECLINED")} type="button">
-              {text.simulateMismatch}
-            </button>
-          ) : null}
         </div>
       </div>
     </div>
@@ -469,6 +467,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
     const queryMode = new URLSearchParams(window.location.search).get("mode");
     return queryMode === "register" ? "register" : "login";
   });
+  const [loginStep, setLoginStep] = useState<1 | 2>(1);
   const [registerStep, setRegisterStep] = useState<RegisterStep>(1);
   const [profileForm, setProfileForm] = useState<EmployeeProfileForm>({
     firstName: "",
@@ -483,6 +482,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
   const [phone, setPhone] = useState("");
   const [phoneVerified, setPhoneVerified] = useState(false);
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [vehicleType, setVehicleType] = useState<VehicleType>("MOPED");
   const [vehiclePlate, setVehiclePlate] = useState("");
   const [documentType, setDocumentType] = useState<DocumentType>("ID_CARD");
@@ -494,7 +494,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
   const [documentFaceMatched, setDocumentFaceMatched] = useState(false);
   const [faceAudit, setFaceAudit] = useState<FaceAudit | null>(null);
   const [loginFaceConfirmed, setLoginFaceConfirmed] = useState(false);
-  const [loginFaceAudit, setLoginFaceAudit] = useState<FaceAudit | null>(null);
+  const [, setLoginFaceAudit] = useState<FaceAudit | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -528,12 +528,55 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
   function switchMode(nextMode: AuthMode) {
     setMode(nextMode);
     setError(null);
+    setLoginStep(1);
     setRegisterStep(1);
+    setConfirmPassword("");
+  }
+
+  async function submitLogin(faceAuditOverride: FaceAudit) {
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await postJson<CourierAuthResponse>("/auth/login", {
+        phone,
+        password,
+        faceLoginConfirmed: true,
+        faceAudit: faceAuditOverride,
+      });
+
+      saveSession(response.userId, response.accessToken);
+      onAuthenticated(response.userId, response.dashboard.verificationStatus);
+    } catch (submitError) {
+      setError(normalizeErrorMessage(submitError, text.required));
+      setLoginStep(1);
+      setLoginFaceConfirmed(false);
+      setLoginFaceAudit(null);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+
+    if (mode === "login") {
+      if (!phone.trim() || !password.trim()) {
+        setError(text.required);
+        return;
+      }
+
+      if (!isCourierLoginId(phone)) {
+        setError(text.invalidLoginId);
+        return;
+      }
+
+      setLoginFaceConfirmed(false);
+      setLoginFaceAudit(null);
+      setLoginStep(2);
+      return;
+    }
 
     if (mode === "register" && registerStep === 1) {
       if (
@@ -547,6 +590,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
         || !profileForm.homeAddress.trim()
         || !profileForm.emergencyPhones.trim()
         || !password.trim()
+        || !confirmPassword.trim()
       ) {
         setError(text.required);
         return;
@@ -577,6 +621,11 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
         return;
       }
 
+      if (password !== confirmPassword) {
+        setError(text.passwordMismatch);
+        return;
+      }
+
       setRegisterStep(2);
       return;
     }
@@ -584,14 +633,6 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
     setSubmitting(true);
 
     try {
-      if (mode === "login" && (!phone.trim() || !password.trim() || !loginFaceConfirmed)) {
-        throw new Error(text.required);
-      }
-
-      if (mode === "login" && !isCourierLoginId(phone)) {
-        throw new Error(text.invalidLoginId);
-      }
-
       if (
         mode === "register"
         && (!documentFront || !documentBack || !documentReviewedAt || !selfieWithDocument || !faceLiveness || !documentFaceMatched)
@@ -607,14 +648,16 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
         throw new Error(text.strongPassword);
       }
 
+      if (mode === "register" && password !== confirmPassword) {
+        throw new Error(text.passwordMismatch);
+      }
+
       const frontDocumentMeta = documentFileMeta(documentFront);
       const backDocumentMeta = documentFileMeta(documentBack);
-      const documentProfileImage = mode === "register" ? await documentProfileImageDataUrl(documentFront) : null;
+      const documentProfileImage = await documentProfileImageDataUrl(documentFront);
       const response = await postJson<CourierAuthResponse>(
-        mode === "login" ? "/auth/login" : "/auth/register",
-        mode === "login"
-          ? { phone, password, faceLoginConfirmed: loginFaceConfirmed, faceAudit: loginFaceAudit }
-          : {
+        "/auth/register",
+        {
               fullName: registerFullName,
               firstName: profileForm.firstName,
               lastName: profileForm.lastName,
@@ -647,7 +690,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
               livenessConfirmed: faceLiveness,
               documentFaceMatched,
               faceAudit,
-            },
+        },
       );
 
       saveSession(response.userId, response.accessToken);
@@ -666,7 +709,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
   }
 
   return (
-    <main className={`admin-auth-page employee-auth-page employee-auth-${mode}`}>
+    <main className={`admin-auth-page employee-auth-page employee-auth-${mode} ${mode === "login" && loginStep === 2 ? "employee-login-face" : ""}`}>
       <nav className="auth-floating-nav">
         <BrandLogo showText size={32} />
         <button className={mode === "login" ? "active" : ""} onClick={() => switchMode("login")} type="button">{text.login}</button>
@@ -681,6 +724,41 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
         </div>
       </section>
 
+      {mode === "login" && loginStep === 2 ? (
+      <section className="auth-panel employee-auth-panel employee-face-login-panel">
+        <div className="auth-copy">
+          <h1>{text.faceStep}</h1>
+          <p>Нэвтрэлтийн мэдээлэл шалгагдлаа. Үргэлжлүүлэхийн тулд царайгаа баталгаажуулна уу.</p>
+        </div>
+
+        <FaceCameraCheck
+          help={text.loginFaceHelp}
+          matched={loginFaceConfirmed}
+          mode="login"
+          onResult={(matched, audit) => {
+            setLoginFaceConfirmed(matched);
+            setLoginFaceAudit(audit);
+            if (matched) void submitLogin(audit);
+          }}
+          singleUse
+          title={text.faceStep}
+        />
+        {error && <div className="auth-error">{error}</div>}
+        <button
+          className="auth-secondary-action"
+          disabled={submitting}
+          onClick={() => {
+            setLoginStep(1);
+            setLoginFaceConfirmed(false);
+            setLoginFaceAudit(null);
+            setError(null);
+          }}
+          type="button"
+        >
+          Нэвтрэх мэдээлэл засах
+        </button>
+      </section>
+      ) : (
       <section className="auth-panel employee-auth-panel">
         <div className="auth-copy">
           <h1>{mode === "login" ? text.loginTitle : text.registerTitle}</h1>
@@ -766,6 +844,13 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
                   <input autoComplete="new-password" minLength={8} onChange={(event) => setPassword(event.target.value)} placeholder={text.passwordPlaceholder} required type="password" value={password} />
                 </span>
               </label>
+              <label className="employee-wide-field">
+                {text.confirmPassword}
+                <span className="auth-input-wrap">
+                  <AuthIcon type="lock" />
+                  <input autoComplete="new-password" minLength={8} onChange={(event) => setConfirmPassword(event.target.value)} placeholder={text.confirmPasswordPlaceholder} required type="password" value={confirmPassword} />
+                </span>
+              </label>
               <label className="courier-check employee-wide-field">
                 <input checked={phoneVerified} onChange={(event) => setPhoneVerified(event.target.checked)} type="checkbox" />
                 {text.phoneVerified}
@@ -789,16 +874,6 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
                   <input autoComplete="current-password" minLength={8} onChange={(event) => setPassword(event.target.value)} placeholder={text.passwordPlaceholder} required type="password" value={password} />
                 </span>
               </label>
-              <FaceCameraCheck
-                help={text.loginFaceHelp}
-                matched={loginFaceConfirmed}
-                mode="login"
-                onResult={(matched, audit) => {
-                  setLoginFaceConfirmed(matched);
-                  setLoginFaceAudit(audit);
-                }}
-                title={text.faceStep}
-              />
             </>
           ) : null}
 
@@ -851,7 +926,6 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
                       setDocumentFaceMatched(matched);
                       setFaceAudit(audit);
                     }}
-                    showMismatchAction={false}
                     singleUse
                     title={text.faceStep}
                   />
@@ -904,7 +978,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
             {submitting
               ? text.wait
               : mode === "login"
-                ? text.login
+                ? "Царай баталгаажуулах"
                 : registerStep === 1
                   ? "Баталгаажуулах шат руу"
                   : "Бүртгэл үүсгэх"}
@@ -914,6 +988,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
           </button>
         </form>
       </section>
+      )}
     </main>
   );
 }

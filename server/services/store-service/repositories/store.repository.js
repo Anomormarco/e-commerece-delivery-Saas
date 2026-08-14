@@ -193,7 +193,7 @@ export async function updateOrderStatus(tenantId, orderId, status, note) {
       return {
         id: orderId,
         status,
-        store: { name: "Номин Маркет" },
+        store: { name: "Номин Супермаркет" },
       };
     }
 
