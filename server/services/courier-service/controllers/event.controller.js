@@ -6,6 +6,7 @@ const jobEvents = new Set([
   "delivery.job.accepted",
   "delivery.job.arrived_store",
   "delivery.job.pickup_verified",
+  "delivery.job.arrived_dropoff",
   "delivery.job.dropoff_verified",
 ]);
 

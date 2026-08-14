@@ -357,6 +357,17 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   }, [dashboard.error, onLogout]);
 
   useEffect(() => {
+    // `jobs` starts as optimistic local state after actions (accept/reject/...)
+    // so those feel instant, but without this it never gets reconciled with
+    // fresh server data again - new offers arriving via the 2s poll or the
+    // realtime websocket silently updated `dashboard.data` while the stale
+    // `jobs` snapshot kept shadowing it, so nothing showed up until a full
+    // page reload reset the state. Every fresh dashboard fetch now wins.
+    if (!dashboard.data) return;
+    setJobs(dashboard.data.jobs);
+  }, [dashboard.data]);
+
+  useEffect(() => {
     if (!dashboard.data || profileEditing) return;
     setProfileForm(profileFromDashboard(dashboard.data));
   }, [dashboard.data, profileEditing]);
