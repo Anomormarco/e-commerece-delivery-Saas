@@ -287,8 +287,6 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [position, setPosition] = useState<GeoPoint | null>(null);
   const lastLocationPostRef = useRef<{ point: GeoPoint; sentAt: number } | null>(null);
-  const workModeDragStartRef = useRef<number | null>(null);
-  const workModeDraggedRef = useRef(false);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [otpByJob, setOtpByJob] = useState<Record<string, string>>({});
   const [acceptedRouteJobIds, setAcceptedRouteJobIds] = useState<Set<string>>(() => new Set());
@@ -440,29 +438,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     }
   }
 
-  function beginWorkModeDrag(clientX: number) {
-    workModeDragStartRef.current = clientX;
-    workModeDraggedRef.current = false;
-  }
-
-  function finishWorkModeDrag(clientX: number) {
-    const startX = workModeDragStartRef.current;
-    workModeDragStartRef.current = null;
-    if (startX == null) return;
-
-    const deltaX = clientX - startX;
-    if (Math.abs(deltaX) < 22) return;
-
-    workModeDraggedRef.current = true;
-    void setWorkMode(deltaX > 0);
-  }
-
   function toggleWorkMode() {
-    if (workModeDraggedRef.current) {
-      workModeDraggedRef.current = false;
-      return;
-    }
-
     void setWorkMode(!isOnline);
   }
 
@@ -573,34 +549,17 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
             <span />
             <span />
           </button>
-          <button className="employee-header-profile" onClick={() => setActiveTab("profile")} type="button" aria-label={text.profile}>
-            <span aria-hidden="true">{(dashboard.data?.employeeName ?? text.title).slice(0, 1)}</span>
-            <div>
-              <strong>{dashboard.data?.employeeName ?? text.title}</strong>
-              <small>{dashboard.data?.vehicleLabel ?? text.vehicle}</small>
-            </div>
-          </button>
-          <div className="employee-header-actions">
+          <div className="employee-header-work-toggle">
             <button
-              aria-label={isOnline ? text.stopWork : text.startWork}
               aria-pressed={isOnline}
-              className={`courier-work-mode ${isOnline ? "is-working" : "is-off-work"}`}
+              className={`courier-order-work-button ${isOnline ? "is-working" : "is-off-work"}`}
               onClick={toggleWorkMode}
-              onPointerCancel={() => {
-                workModeDragStartRef.current = null;
-                workModeDraggedRef.current = false;
-              }}
-              onPointerDown={(event) => beginWorkModeDrag(event.clientX)}
-              onPointerUp={(event) => finishWorkModeDrag(event.clientX)}
               type="button"
             >
-              <span aria-hidden="true" className="courier-work-mode-track" />
-              <span aria-hidden="true" className="courier-work-mode-labels">
-                <span>{text.stopWork}</span>
-                <span>{text.startWork}</span>
-              </span>
-              <span className="courier-work-mode-thumb">{isOnline ? text.stopWork : text.startWork}</span>
+              {isOnline ? text.stopWork : text.startWork}
             </button>
+          </div>
+          <div className="employee-header-actions">
             <NotificationBell className="employee-header-notifications" />
           </div>
         </header>
@@ -608,7 +567,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
           {dashboard.data && (
             <>
               <div className="employee-app-scroll">
-              {/*
+              {activeTab === "home" && (
                 <InteractiveRouteMap
                   className="employee-live-map"
                   initialZoom={14}
@@ -672,95 +631,41 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                 </InteractiveRouteMap>
               )}
 
-              {false && routeMapJob && activePickupStates.includes(routeMapJob.state) && (
-                <article className="employee-map-offer-card employee-map-route-card">
-                  <div className="courier-map-request-head">
-                    <div>
-                      <span>{text.pickup}</span>
-                      <strong>{routeMapJob.pickupAddress ?? routeMapJob.name}</strong>
-                    </div>
-                    <b>{storeDistanceKm == null ? routeMapJob.distance : `${storeDistanceKm.toFixed(2)} км`}</b>
-                  </div>
-                  <div className="employee-route-contact">
-                    <span>{routeMapJob.pickupAddress ?? routeMapJob.name}</span>
-                    {routeMapJob.customerPhone && <a href={`tel:${routeMapJob.customerPhone}`}>{routeMapJob.customerPhone}</a>}
-                  </div>
-                  <div className="courier-map-request-meta">
-                    <span>Дэлгүүр хүртэл шууд зай</span>
-                    <span>Ирэх хугацаа {storeEtaMinutes ?? routeMapJob.routePlan?.etaMinutes ?? 1} мин</span>
-                    <span>{position ? "Бодит GPS" : text.locating}</span>
-                  </div>
-                  <div className="employee-route-preview">
-                    <strong>Ажилтан → Дэлгүүр чиглэл</strong>
-                    <span>{routeMapJob.routePlan?.label ?? "Дэлгүүр рүү хамгийн ойр зам"}</span>
-                  </div>
-                  {routeMapJob.state === "ACCEPTED" && (
-                    <button className="employee-full-action" onClick={() => postJobAction(routeMapJob.id, "arrive-store")} type="button">
-                      Хүргэлт авах газар ирлээ
-                    </button>
-                  )}
-                </article>
-              )}
-
-              {false && offerJob && (
-                <article className="employee-map-offer-card">
-                  <div className="courier-map-request-head">
-                    <div>
-                      <span>{text.newRequest}</span>
-                      <strong>{typeof offerRemainingSeconds(offerJob, offerClock) === "number" ? `${offerRemainingSeconds(offerJob, offerClock)}s` : text.urgent}</strong>
-                    </div>
-                    <b>{offerJob.payoutMnt ?? "0"} MNT</b>
-                  </div>
-                  <div className="courier-map-route">
-                    <p><span aria-hidden="true">{"\u25A0"}</span>{offerJob.pickupAddress ?? offerJob.name}</p>
-                    <i aria-hidden="true" />
-                    <p><span aria-hidden="true">{"\u25C6"}</span>{offerJob.dropoffAddress ?? text.dropoff}</p>
-                  </div>
-                  <div className="courier-map-request-meta">
-                    <span>{offerJob.distance}</span>
-                    <span>{text.approximate} {text.eta}</span>
-                    {typeof offerRemainingSeconds(offerJob, offerClock) === "number" && <span>{offerRemainingSeconds(offerJob, offerClock)}s</span>}
-                  </div>
-                  <div className="courier-map-request-actions">
-                    <button onClick={() => rejectJob(offerJob.id)} type="button">{text.reject}</button>
-                    <button disabled={offerJob.canAccept === false} onClick={() => acceptJob(offerJob.id)} type="button">{text.acceptOrder}</button>
-                  </div>
-                </article>
-              )}
-              */}
               {actionError && <p className="courier-rule-note danger">{actionError}</p>}
+
+              {activeTab === "deliveries" && (
+                <section className="courier-order-experience" aria-label={text.myOrders}>
+                  <div className="courier-order-search">
+                    <h2>{text.myOrders}</h2>
+                    <label>
+                      <span aria-hidden="true">{"⌕"}</span>
+                      <input
+                        onChange={(event) => setOrderSearch(event.target.value)}
+                        placeholder={text.searchOrders}
+                        value={orderSearch}
+                      />
+                    </label>
+                  </div>
+                  <div className="courier-order-filters">
+                    {[
+                      { key: "active", label: "ИДЭВХТЭЙ", count: newJobs.length + deliveringJobs.length },
+                      { key: "completed", label: "ДУУССАН", count: deliveredJobs.length },
+                    ].map((filter) => (
+                      <button
+                        className={orderFilter === filter.key ? "active" : ""}
+                        key={filter.key}
+                        onClick={() => setOrderFilter(filter.key as typeof orderFilter)}
+                        type="button"
+                      >
+                        {filter.label}{filter.count ? ` (${filter.count})` : ""}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {(activeTab === "home" || activeTab === "deliveries") && (
                 <>
-              <section className="courier-order-experience" aria-label={text.myOrders}>
-                <div className="courier-order-search">
-                  <h2>{text.myOrders}</h2>
-                  <label>
-                    <span aria-hidden="true">{"\u2315"}</span>
-                    <input
-                      onChange={(event) => setOrderSearch(event.target.value)}
-                      placeholder={text.searchOrders}
-                      value={orderSearch}
-                    />
-                  </label>
-                </div>
-                <div className="courier-order-filters">
-                  {[
-                    { key: "active", label: "ИДЭВХТЭЙ", count: newJobs.length + deliveringJobs.length },
-                    { key: "completed", label: "ДУУССАН", count: deliveredJobs.length },
-                  ].map((filter) => (
-                    <button
-                      className={orderFilter === filter.key ? "active" : ""}
-                      key={filter.key}
-                      onClick={() => setOrderFilter(filter.key as typeof orderFilter)}
-                      type="button"
-                    >
-                      {filter.label}{filter.count ? ` (${filter.count})` : ""}
-                    </button>
-                  ))}
-                </div>
-              </section>
-
               {filteredJobs.map((job, index) => (
                 <article className="employee-request-card" key={job.id}>
                   <div className="employee-request-title">
@@ -1169,7 +1074,14 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                     onClick={() => setActiveTab(item.key)}
                     type="button"
                   >
-                    <span aria-hidden="true">{item.icon}</span>
+                    <span aria-hidden="true">
+                      {item.key === "profile" ? (
+                        <svg fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" viewBox="0 0 24 24">
+                          <circle cx="12" cy="8" r="4" />
+                          <path d="M4 20c0-4.4 3.6-7 8-7s8 2.6 8 7" />
+                        </svg>
+                      ) : item.icon}
+                    </span>
                     {item.label}
                   </button>
                 ))}

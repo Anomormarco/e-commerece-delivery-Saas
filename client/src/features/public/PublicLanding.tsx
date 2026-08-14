@@ -58,6 +58,7 @@ type CustomerSession = {
     fullName: string;
     email?: string;
     phone: string;
+    avatarDataUrl?: string;
   };
 };
 
@@ -224,6 +225,37 @@ const landingHeroImages = [
   heroIphoneImage,
   heroNoteImage,
   heroAppleeImage,
+];
+
+const landingShowcaseSlides = [
+  {
+    tag: "ДЭЛГҮҮРТ ЗОРИУЛСАН",
+    title: "Бизнесээ цахим болго",
+    body: "Дэлгүүрээ DeliverHub платформ дээр бүртгүүлж, бараагаа онлайнаар борлуулж эхэл — захиалга, орлого, нөөцөө нэг dashboard-аас удирдаарай.",
+    image: "https://tse4.mm.bing.net/th?q=small%20business%20owner%20managing%20online%20store%20dashboard%20on%20laptop&w=900&h=650&c=7&rs=1&p=0",
+  },
+  {
+    tag: "ХҮРГЭЛТИЙН АЖИЛТАНД ЗОРИУЛСАН",
+    title: "Өөрийн цагаараа ажилла",
+    body: "Мопед, машин, явган — дуртай хэлбэрээрээ, дуртай цагтаа хүргэлт хийж тогтмол орлого олоорой.",
+    image: "https://tse4.mm.bing.net/th?q=delivery%20courier%20riding%20moped%20with%20package%20city%20street&w=900&h=650&c=7&rs=1&p=0",
+  },
+  {
+    tag: "ХЭРЭГЛЭГЧДЭД ЗОРИУЛСАН",
+    title: "Цаг хэмнэ, итгэлтэй байгаарай",
+    body: "Хамгийн ойрхон байгаа найдвартай хүргэлтээр хүссэн бараагаа түргэн шуурхай гарт хүлээн аваарай.",
+    image: "https://tse4.mm.bing.net/th?q=happy%20customer%20receiving%20delivery%20package%20at%20doorstep&w=900&h=650&c=7&rs=1&p=0",
+  },
+];
+
+const partnerRegisterSteps = ["Дэлгүүр", "Данс & зөвшөөрөл", "Иргэний бичиг баримт", "Царай баталгаажуулалт", "Нэвтрэх мэдээлэл", "Гэрээ"];
+
+const partnerAgreementClauses = [
+  "Та энэхүү платформ дээр зөвхөн хууль ёсны, жинхэнэ бараа бүтээгдэхүүн, үнэн зөв мэдээллээр бүртгүүлж байгааг баталгаажуулж байна.",
+  "Хуурамч бичиг баримт, зөвшөөрөлгүй бараа, хуулбарласан бренд/загвар (contraband, хуурамч бараа) зарж борлуулсан нь илэрсэн тохиолдолд бүртгэл шууд цуцлагдаж, төлбөрийн эрх түдгэлзэнэ.",
+  "Монгол Улсын хууль тогтоомж (Иргэний хууль, Татварын хууль, Хэрэглэгчийн эрхийг хамгаалах тухай хууль зэрэг)-ийг зөрчсөн үйл ажиллагаа явуулсан тохиолдолд Эрүүгийн хуулийн дагуу эрүүгийн хариуцлага хүлээлгэх өргөдөл/мэдээллийг холбогдох байгууллагад шилжүүлж болно.",
+  "Хуурамч данс, бусдын нэр/бичиг баримт ашигласан нь тогтоогдвол таны бүх орлого царцаагдаж, хохирогчид нөхөн төлбөр гаргуулах эрх DeliverHub-д хадгалагдана.",
+  "Царай баталгаажуулалт болон бичиг баримт нь зөвхөн таны эзэмшигчийн эрхийг баталгаажуулах зорилготой бөгөөд аюулгүй байдлын дагуу хадгалагдана.",
 ];
 
 function brandLogoDataUrl(label: string, from: string, to: string, accent = "#ffffff") {
@@ -972,8 +1004,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const cartReturnRef = useRef<{ section: LandingSection; scrollY: number }>({ section: page, scrollY: 0 });
   const paymentSuccessTimerRef = useRef<number | null>(null);
   const qpayPanelRef = useRef<HTMLElement | null>(null);
+  const customerAvatarInputRef = useRef<HTMLInputElement | null>(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
+  const showcaseRef = useRef<HTMLElement | null>(null);
+  const [showcaseProgress, setShowcaseProgress] = useState(0);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", phone: "", login: "", password: "" });
   const [partnerAuthOpen, setPartnerAuthOpen] = useState(false);
   const [partnerAuthMode, setPartnerAuthMode] = useState<PartnerAuthMode>("register");
@@ -989,6 +1024,22 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     storeType: "",
     searchableFeature: "",
   });
+  const [partnerFormStep, setPartnerFormStep] = useState(0);
+  const [partnerVerification, setPartnerVerification] = useState({
+    bankId: "" as QpayBankId | "",
+    bankAccountNumber: "",
+    businessLicenseFile: null as File | null,
+    idType: "civil" as "civil" | "passport",
+    idFrontFile: null as File | null,
+    idBackFile: null as File | null,
+    livePhotoDataUrl: "",
+  });
+  const [partnerCameraActive, setPartnerCameraActive] = useState(false);
+  const [partnerCameraError, setPartnerCameraError] = useState("");
+  const [partnerAgreementAccepted, setPartnerAgreementAccepted] = useState(false);
+  const partnerVideoRef = useRef<HTMLVideoElement | null>(null);
+  const partnerCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const partnerStreamRef = useRef<MediaStream | null>(null);
   const [session, setSession] = useState<CustomerSession | null>(() => {
     const token = localStorage.getItem(tokenStorageKey);
     const customer = localStorage.getItem(customerStorageKey);
@@ -1060,6 +1111,26 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }, [page]);
 
   useEffect(() => {
+    if (!partnerAuthOpen) {
+      setPartnerFormStep(0);
+      setPartnerVerification({
+        bankId: "",
+        bankAccountNumber: "",
+        businessLicenseFile: null,
+        idType: "civil",
+        idFrontFile: null,
+        idBackFile: null,
+        livePhotoDataUrl: "",
+      });
+      setPartnerCameraError("");
+      setPartnerAgreementAccepted(false);
+      stopPartnerCamera();
+    }
+
+    return () => stopPartnerCamera();
+  }, [partnerAuthOpen]);
+
+  useEffect(() => {
     if (!session) {
       setProfileEditing(false);
       setProfileDraft({ fullName: "", email: "", phone: "" });
@@ -1105,6 +1176,29 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     const customerKey = `${orderSeenStorageKey}:${session.customer.id}`;
     setSeenOrderKey(localStorage.getItem(customerKey) ?? "");
   }, [session?.customer.id]);
+
+  function changeCustomerAvatar(file: File | null) {
+    if (!session || !file) return;
+
+    if (file.size > 600 * 1024) {
+      setNotice("Зураг 600KB-аас бага байх хэрэгтэй.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const avatarDataUrl = String(reader.result ?? "");
+      if (!avatarDataUrl) return;
+
+      setSession((current) => {
+        if (!current) return current;
+        const nextSession: CustomerSession = { ...current, customer: { ...current.customer, avatarDataUrl } };
+        localStorage.setItem(customerStorageKey, JSON.stringify(nextSession.customer));
+        return nextSession;
+      });
+    };
+    reader.readAsDataURL(file);
+  }
 
   function saveCustomerProfile() {
     if (!session) return;
@@ -1219,6 +1313,32 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       window.cancelAnimationFrame(frameId);
       window.removeEventListener("scroll", updateScrollProgress);
       window.removeEventListener("resize", updateScrollProgress);
+    };
+  }, [section]);
+
+  useEffect(() => {
+    if (section !== "home") return undefined;
+    let frameId = 0;
+
+    function updateShowcaseProgress() {
+      window.cancelAnimationFrame(frameId);
+      frameId = window.requestAnimationFrame(() => {
+        const node = showcaseRef.current;
+        if (!node) return;
+        const rect = node.getBoundingClientRect();
+        const travel = rect.height - window.innerHeight;
+        const nextProgress = travel > 0 ? -rect.top / travel : 0;
+        setShowcaseProgress(Math.min(1, Math.max(0, nextProgress)));
+      });
+    }
+
+    updateShowcaseProgress();
+    window.addEventListener("scroll", updateShowcaseProgress, { passive: true });
+    window.addEventListener("resize", updateShowcaseProgress);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("scroll", updateShowcaseProgress);
+      window.removeEventListener("resize", updateShowcaseProgress);
     };
   }, [section]);
 
@@ -1893,9 +2013,83 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     }
   }
 
+  function stopPartnerCamera() {
+    partnerStreamRef.current?.getTracks().forEach((track) => track.stop());
+    partnerStreamRef.current = null;
+    setPartnerCameraActive(false);
+  }
+
+  async function startPartnerCamera() {
+    setPartnerCameraError("");
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" }, audio: false });
+      partnerStreamRef.current = stream;
+      if (partnerVideoRef.current) {
+        partnerVideoRef.current.srcObject = stream;
+        await partnerVideoRef.current.play().catch(() => {});
+      }
+      setPartnerCameraActive(true);
+    } catch {
+      setPartnerCameraError("Камерт хандах эрх олгогдоогүй байна. Зөвшөөрөл олгоод дахин оролдоно уу.");
+    }
+  }
+
+  function capturePartnerPhoto() {
+    const video = partnerVideoRef.current;
+    const canvas = partnerCanvasRef.current;
+    if (!video || !canvas || !video.videoWidth) return;
+
+    canvas.width = 480;
+    canvas.height = Math.round((video.videoHeight / video.videoWidth) * 480) || 360;
+    const context = canvas.getContext("2d");
+    if (!context) return;
+
+    context.translate(canvas.width, 0);
+    context.scale(-1, 1);
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+    setPartnerVerification((verification) => ({ ...verification, livePhotoDataUrl: dataUrl }));
+    stopPartnerCamera();
+  }
+
+  function retakePartnerPhoto() {
+    setPartnerVerification((verification) => ({ ...verification, livePhotoDataUrl: "" }));
+    startPartnerCamera();
+  }
+
+  function switchPartnerAuthMode(mode: PartnerAuthMode) {
+    setPartnerAuthMode(mode);
+    setPartnerFormStep(0);
+    setNotice("");
+  }
+
+  const partnerBankAccountDigits = partnerVerification.bankAccountNumber.replace(/\D/g, "");
+  const partnerStepValid = [
+    Boolean(partnerForm.storeName.trim() && partnerForm.ownerName.trim() && partnerForm.address.trim() && partnerForm.phone.trim() && partnerForm.storeType.trim() && partnerForm.searchableFeature.trim()),
+    Boolean(partnerVerification.bankId && partnerBankAccountDigits.length >= 8 && partnerVerification.businessLicenseFile),
+    Boolean(partnerVerification.idFrontFile && partnerVerification.idBackFile),
+    Boolean(partnerVerification.livePhotoDataUrl),
+    Boolean(partnerForm.username.trim() && partnerForm.password.trim() && partnerForm.confirmPassword.trim()),
+    partnerAgreementAccepted,
+  ];
+
+  function goPartnerStep(direction: 1 | -1) {
+    setNotice("");
+    if (direction === 1 && !partnerStepValid[partnerFormStep]) {
+      setNotice("Энэ алхмын мэдээллийг бүрэн бөглөж, баримтуудаа хавсаргана уу.");
+      return;
+    }
+    setPartnerFormStep((step) => Math.min(partnerRegisterSteps.length - 1, Math.max(0, step + direction)));
+  }
+
   function submitPartnerAuth(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setNotice("");
+
+    if (partnerAuthMode === "register" && partnerFormStep < partnerRegisterSteps.length - 1) {
+      goPartnerStep(1);
+      return;
+    }
 
     try {
       const username = partnerForm.username.trim();
@@ -1921,6 +2115,26 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         throw new Error("Утасны дугаараа 8-15 оронтой зөв оруулна уу.");
       }
 
+      if (!partnerVerification.bankId || partnerBankAccountDigits.length < 8) {
+        throw new Error("Дансны банк болон дугаараа зөв бөглөнө үү.");
+      }
+
+      if (!partnerVerification.businessLicenseFile) {
+        throw new Error("Үйл ажиллагаа явуулж буй зөвшөөрлийн бичгээ хавсаргана уу.");
+      }
+
+      if (!partnerVerification.idFrontFile || !partnerVerification.idBackFile) {
+        throw new Error("Иргэний үнэмлэх/паспортын урд ба ард талын зургийг хоёуланг нь хавсаргана уу.");
+      }
+
+      if (!partnerVerification.livePhotoDataUrl) {
+        throw new Error("Царайгаа камераар бодит цагт баталгаажуулна уу.");
+      }
+
+      if (!partnerAgreementAccepted) {
+        throw new Error("Гэрээний нөхцөлийг зөвшөөрч тэмдэглэнэ үү.");
+      }
+
       if (!isStrongPassword(password)) {
         throw new Error("Нууц үг 8+ тэмдэгттэй, том/жижиг үсэг, тоо, тусгай тэмдэгттэй байх ёстой.");
       }
@@ -1942,6 +2156,15 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         phone: partnerForm.phone.trim(),
         storeType: partnerForm.storeType.trim(),
         searchableFeature: partnerForm.searchableFeature.trim(),
+        bankId: partnerVerification.bankId,
+        bankAccountNumber: partnerBankAccountDigits,
+        businessLicenseFileName: partnerVerification.businessLicenseFile.name,
+        idType: partnerVerification.idType,
+        idFrontFileName: partnerVerification.idFrontFile.name,
+        idBackFileName: partnerVerification.idBackFile.name,
+        livePhotoDataUrl: partnerVerification.livePhotoDataUrl,
+        agreementAcceptedAt: new Date().toISOString(),
+        verifiedAt: new Date().toISOString(),
       };
 
       localStorage.setItem(storeUsersStorageKey, JSON.stringify([...users, nextUser]));
@@ -2114,8 +2337,18 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     );
   }
 
+  const showcaseActiveIndex = Math.min(
+    landingShowcaseSlides.length - 1,
+    Math.floor(showcaseProgress * landingShowcaseSlides.length),
+  );
+
   return (
     <main className={`nomad-scroll-page ${section === "market" ? "is-market-route" : ""} ${section === "contact" ? "is-contact-route" : ""} ${section === "courier" ? "is-courier-route" : ""} ${section === "partner" ? "is-partner-route" : ""} ${cartOpen ? "is-cart-open" : ""}`} id="hero">
+      <div
+        className="landing-scroll-progress-bar"
+        style={{ "--nav-scroll-progress": scrollProgress } as CSSProperties}
+        aria-hidden="true"
+      />
       {paymentSuccess ? <div className="landing-payment-success" role="status">{paymentSuccess}</div> : null}
       <nav
         className={`landing-commerce-nav ${menuHidden && !cartOpen ? "is-hidden" : ""}`}
@@ -2183,14 +2416,37 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         {session ? (
           <div className="landing-profile-menu">
             <button className="landing-profile-button" onClick={() => setProfileOpen((open) => !open)} type="button" aria-label="Профайл">
-              <span aria-hidden="true">{session.customer.fullName.slice(0, 1).toUpperCase()}</span>
+              {session.customer.avatarDataUrl ? (
+                <img alt="" src={session.customer.avatarDataUrl} />
+              ) : (
+                <span aria-hidden="true">{session.customer.fullName.slice(0, 1).toUpperCase()}</span>
+              )}
             </button>
             {profileOpen ? (
               <section className={`landing-profile-panel ${profileSettings.compactProfile ? "is-compact" : ""}`}>
                 <div className="landing-profile-head">
-                  <div className="landing-profile-avatar" aria-hidden="true">
-                    {session.customer.fullName.slice(0, 1).toUpperCase()}
-                  </div>
+                  <button
+                    className="landing-profile-avatar"
+                    onClick={() => customerAvatarInputRef.current?.click()}
+                    type="button"
+                    aria-label="Профайл зураг солих"
+                  >
+                    {session.customer.avatarDataUrl ? (
+                      <img alt="" src={session.customer.avatarDataUrl} />
+                    ) : (
+                      session.customer.fullName.slice(0, 1).toUpperCase()
+                    )}
+                  </button>
+                  <input
+                    accept="image/*"
+                    className="landing-profile-avatar-input"
+                    onChange={(event) => {
+                      changeCustomerAvatar(event.target.files?.[0] ?? null);
+                      event.target.value = "";
+                    }}
+                    ref={customerAvatarInputRef}
+                    type="file"
+                  />
                   <div>
                     <strong>{session.customer.fullName}</strong>
                     <span>{session.customer.email || session.customer.phone}</span>
@@ -2521,10 +2777,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     <footer className="landing-checkout-form-footer">
                       <button className="landing-checkout-submit" onClick={qpayPayment ? checkQpayPaymentStatus : checkoutOrder} type="button" disabled={checkoutSubmitting}>
                         <span>{checkoutSubmitting ? "Шалгаж байна..." : qpayPayment ? "Төлбөр шалгах" : "Төлбөр төлөх"}</span>
-                        <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-                          <path d="M5 12H19" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
-                          <path d="M13 6L19 12L13 18" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-                        </svg>
                       </button>
                       <button className="landing-checkout-cancel" onClick={() => setCart({})} type="button">Буцах</button>
                     </footer>
@@ -2869,41 +3121,17 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             <div>
               <h3>Хамтын ажиллагаагаа эхлүүлье</h3>
               <p>Дэлгүүрээ бүртгүүлээд захиалга, хүргэлт, орлогоо нэг dashboard дээр удирдаарай.</p>
+              <button
+                className="landing-partner-cta"
+                onClick={() => {
+                  setPartnerAuthMode("register");
+                  setPartnerAuthOpen(true);
+                }}
+                type="button"
+              >
+                Бүртгэл үүсгэх
+              </button>
             </div>
-            <aside className="landing-partner-auth">
-              <header>
-                <div>
-                  <span>Түншийн эрх</span>
-                  <strong>{partnerAuthMode === "login" ? "Борлуулалтаа үргэлжлүүлэх" : "Дэлгүүрээ эхлүүлэх"}</strong>
-                </div>
-                <div>
-                  <button className={partnerAuthMode === "login" ? "active" : ""} onClick={() => setPartnerAuthMode("login")} type="button">Нэвтрэх</button>
-                  <button className={partnerAuthMode === "register" ? "active" : ""} onClick={() => setPartnerAuthMode("register")} type="button">Бүртгүүлэх</button>
-                </div>
-              </header>
-              <form className="landing-partner-form" onSubmit={submitPartnerAuth}>
-                {partnerAuthMode === "register" ? (
-                  <div className="landing-partner-form-grid">
-                    <input value={partnerForm.storeName} onChange={(event) => setPartnerForm({ ...partnerForm, storeName: event.target.value })} placeholder="Дэлгүүрийн нэр" />
-                    <input value={partnerForm.logoUrl} onChange={(event) => setPartnerForm({ ...partnerForm, logoUrl: event.target.value })} placeholder="Logo URL" />
-                    <input value={partnerForm.address} onChange={(event) => setPartnerForm({ ...partnerForm, address: event.target.value })} placeholder="Хаяг" />
-                    <input value={partnerForm.phone} onChange={(event) => setPartnerForm({ ...partnerForm, phone: event.target.value })} placeholder="Утасны дугаар" />
-                    <input value={partnerForm.storeType} onChange={(event) => setPartnerForm({ ...partnerForm, storeType: event.target.value })} placeholder="Дэлгүүрийн төрөл" />
-                    <input value={partnerForm.searchableFeature} onChange={(event) => setPartnerForm({ ...partnerForm, searchableFeature: event.target.value })} placeholder="Хайгдах онцлог" />
-                    <input value={partnerForm.ownerName} onChange={(event) => setPartnerForm({ ...partnerForm, ownerName: event.target.value })} placeholder="Хариуцсан хүний нэр" />
-                  </div>
-                ) : null}
-                <input value={partnerForm.username} onChange={(event) => setPartnerForm({ ...partnerForm, username: event.target.value })} placeholder="Нэвтрэх ID эсвэл Gmail" />
-                <input value={partnerForm.password} onChange={(event) => setPartnerForm({ ...partnerForm, password: event.target.value })} placeholder="Нууц үг" type="password" />
-                {partnerAuthMode === "register" ? (
-                  <input value={partnerForm.confirmPassword} onChange={(event) => setPartnerForm({ ...partnerForm, confirmPassword: event.target.value })} placeholder="Нууц үг давтах" type="password" />
-                ) : null}
-                <button className="landing-auth-submit" type="submit">
-                  {partnerAuthMode === "login" ? "Портал руу орох" : "Бизнесээ нэмэх"}
-                </button>
-                {notice ? <p>{notice}</p> : null}
-              </form>
-            </aside>
           </section>
 
           <footer className="landing-partner-footer">
@@ -2918,34 +3146,183 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
 
       {partnerAuthOpen ? (
         <div className="landing-auth-modal landing-partner-modal" role="dialog" aria-modal="true">
-          <form onSubmit={submitPartnerAuth}>
+          <form className={partnerAuthMode === "register" ? "is-wizard" : ""} onSubmit={submitPartnerAuth}>
             <header>
               <h2>{partnerAuthMode === "login" ? "Дэлгүүр нэвтрэх" : "Дэлгүүр бүртгүүлэх"}</h2>
               <button onClick={() => setPartnerAuthOpen(false)} type="button">×</button>
             </header>
             <div className="landing-auth-tabs">
-              <button className={partnerAuthMode === "login" ? "active" : ""} onClick={() => setPartnerAuthMode("login")} type="button">Нэвтрэх</button>
-              <button className={partnerAuthMode === "register" ? "active" : ""} onClick={() => setPartnerAuthMode("register")} type="button">Бүртгүүлэх</button>
+              <button className={partnerAuthMode === "login" ? "active" : ""} onClick={() => switchPartnerAuthMode("login")} type="button">Нэвтрэх</button>
+              <button className={partnerAuthMode === "register" ? "active" : ""} onClick={() => switchPartnerAuthMode("register")} type="button">Бүртгүүлэх</button>
             </div>
+
             {partnerAuthMode === "register" ? (
               <>
-                <input value={partnerForm.storeName} onChange={(event) => setPartnerForm({ ...partnerForm, storeName: event.target.value })} placeholder="Дэлгүүрийн нэр" />
-                <input value={partnerForm.logoUrl} onChange={(event) => setPartnerForm({ ...partnerForm, logoUrl: event.target.value })} placeholder="Logo URL" />
-                <input value={partnerForm.address} onChange={(event) => setPartnerForm({ ...partnerForm, address: event.target.value })} placeholder="Хаяг" />
-                <input value={partnerForm.phone} onChange={(event) => setPartnerForm({ ...partnerForm, phone: event.target.value })} placeholder="Утасны дугаар" />
-                <input value={partnerForm.storeType} onChange={(event) => setPartnerForm({ ...partnerForm, storeType: event.target.value })} placeholder="Дэлгүүрийн төрөл" />
-                <input value={partnerForm.searchableFeature} onChange={(event) => setPartnerForm({ ...partnerForm, searchableFeature: event.target.value })} placeholder="Filter-ээр хайгдах онцлог" />
-                <input value={partnerForm.ownerName} onChange={(event) => setPartnerForm({ ...partnerForm, ownerName: event.target.value })} placeholder="Хариуцсан хүний нэр" />
+                <div className="landing-partner-steps">
+                  {partnerRegisterSteps.map((label, index) => (
+                    <div className={`landing-partner-step ${index === partnerFormStep ? "is-active" : index < partnerFormStep ? "is-done" : ""}`} key={label}>
+                      <b>{index < partnerFormStep ? "✓" : index + 1}</b>
+                      <span>{label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {partnerFormStep === 0 ? (
+                  <div className="landing-partner-step-body">
+                    <div className="landing-partner-field-grid">
+                      <input value={partnerForm.storeName} onChange={(event) => setPartnerForm({ ...partnerForm, storeName: event.target.value })} placeholder="Дэлгүүрийн нэр" />
+                      <input value={partnerForm.ownerName} onChange={(event) => setPartnerForm({ ...partnerForm, ownerName: event.target.value })} placeholder="Хариуцсан хүний нэр" />
+                      <input value={partnerForm.phone} onChange={(event) => setPartnerForm({ ...partnerForm, phone: event.target.value })} placeholder="Утасны дугаар" />
+                      <input value={partnerForm.storeType} onChange={(event) => setPartnerForm({ ...partnerForm, storeType: event.target.value })} placeholder="Дэлгүүрийн төрөл" />
+                      <input value={partnerForm.searchableFeature} onChange={(event) => setPartnerForm({ ...partnerForm, searchableFeature: event.target.value })} placeholder="Filter-ээр хайгдах онцлог" />
+                      <input value={partnerForm.logoUrl} onChange={(event) => setPartnerForm({ ...partnerForm, logoUrl: event.target.value })} placeholder="Logo URL (заавал биш)" />
+                    </div>
+                    <input value={partnerForm.address} onChange={(event) => setPartnerForm({ ...partnerForm, address: event.target.value })} placeholder="Дэлгүүрийн хаяг" />
+                  </div>
+                ) : null}
+
+                {partnerFormStep === 1 ? (
+                  <div className="landing-partner-step-body">
+                    <p className="landing-partner-step-hint">Захиалгын орлогоо хүлээн авах данс болон бизнесийн зөвшөөрлийн бичгээ баталгаажуулна уу.</p>
+                    <div className="landing-partner-field-grid">
+                      <select value={partnerVerification.bankId} onChange={(event) => setPartnerVerification({ ...partnerVerification, bankId: event.target.value })}>
+                        <option value="">Дансны банк сонгох</option>
+                        {qpayBankOptions.map((bank) => (
+                          <option key={bank.id} value={bank.id}>{bank.label}</option>
+                        ))}
+                      </select>
+                      <input
+                        inputMode="numeric"
+                        onChange={(event) => setPartnerVerification({ ...partnerVerification, bankAccountNumber: event.target.value })}
+                        placeholder="Дансны дугаар"
+                        value={partnerVerification.bankAccountNumber}
+                      />
+                    </div>
+                    <label className="landing-partner-upload">
+                      <input
+                        accept="image/*,application/pdf"
+                        onChange={(event) => setPartnerVerification({ ...partnerVerification, businessLicenseFile: event.target.files?.[0] ?? null })}
+                        type="file"
+                      />
+                      <span>📄</span>
+                      <div>
+                        <strong>Үйл ажиллагаа явуулж буй зөвшөөрлийн бичиг</strong>
+                        <small>{partnerVerification.businessLicenseFile?.name ?? "Файл хавсаргах (зураг эсвэл PDF)"}</small>
+                      </div>
+                    </label>
+                  </div>
+                ) : null}
+
+                {partnerFormStep === 2 ? (
+                  <div className="landing-partner-step-body">
+                    <p className="landing-partner-step-hint">Иргэний үнэмлэх эсвэл гадаад паспортын урд, ард хоёр талыг тод харагдахуйц зургаар хавсаргана уу.</p>
+                    <div className="landing-auth-tabs landing-partner-id-type">
+                      <button className={partnerVerification.idType === "civil" ? "active" : ""} onClick={() => setPartnerVerification({ ...partnerVerification, idType: "civil" })} type="button">Иргэний үнэмлэх</button>
+                      <button className={partnerVerification.idType === "passport" ? "active" : ""} onClick={() => setPartnerVerification({ ...partnerVerification, idType: "passport" })} type="button">Гадаад паспорт</button>
+                    </div>
+                    <div className="landing-partner-field-grid">
+                      <label className="landing-partner-upload">
+                        <input
+                          accept="image/*"
+                          onChange={(event) => setPartnerVerification({ ...partnerVerification, idFrontFile: event.target.files?.[0] ?? null })}
+                          type="file"
+                        />
+                        <span>🪪</span>
+                        <div>
+                          <strong>Урд тал</strong>
+                          <small>{partnerVerification.idFrontFile?.name ?? "Файл хавсаргах"}</small>
+                        </div>
+                      </label>
+                      <label className="landing-partner-upload">
+                        <input
+                          accept="image/*"
+                          onChange={(event) => setPartnerVerification({ ...partnerVerification, idBackFile: event.target.files?.[0] ?? null })}
+                          type="file"
+                        />
+                        <span>🪪</span>
+                        <div>
+                          <strong>Ард тал</strong>
+                          <small>{partnerVerification.idBackFile?.name ?? "Файл хавсаргах"}</small>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+                ) : null}
+
+                {partnerFormStep === 3 ? (
+                  <div className="landing-partner-step-body">
+                    <p className="landing-partner-step-hint">Царайгаа тод гэрэлтэй газар камерын өмнө байрлуулж, бодит цагт зураг аваарай.</p>
+                    <div className="landing-partner-camera-preview">
+                      {partnerVerification.livePhotoDataUrl ? (
+                        <img alt="Баталгаажуулах зураг" src={partnerVerification.livePhotoDataUrl} />
+                      ) : (
+                        <video autoPlay muted playsInline ref={partnerVideoRef} />
+                      )}
+                      {!partnerVerification.livePhotoDataUrl && !partnerCameraActive ? (
+                        <button className="landing-partner-camera-cta" onClick={startPartnerCamera} type="button">Камер асаах</button>
+                      ) : null}
+                    </div>
+                    <canvas className="landing-partner-camera-canvas" ref={partnerCanvasRef} />
+                    <div className="landing-partner-camera-actions">
+                      {partnerCameraActive && !partnerVerification.livePhotoDataUrl ? (
+                        <button onClick={capturePartnerPhoto} type="button">Зураг авах</button>
+                      ) : null}
+                      {partnerVerification.livePhotoDataUrl ? (
+                        <button onClick={retakePartnerPhoto} type="button">Дахин авах</button>
+                      ) : null}
+                    </div>
+                    {partnerCameraError ? <small className="landing-partner-camera-error">{partnerCameraError}</small> : null}
+                  </div>
+                ) : null}
+
+                {partnerFormStep === 4 ? (
+                  <div className="landing-partner-step-body">
+                    <input value={partnerForm.username} onChange={(event) => setPartnerForm({ ...partnerForm, username: event.target.value })} placeholder="Нэвтрэх ID эсвэл Gmail" />
+                    <input value={partnerForm.password} onChange={(event) => setPartnerForm({ ...partnerForm, password: event.target.value })} placeholder="Нууц үг" type="password" />
+                    <input value={partnerForm.confirmPassword} onChange={(event) => setPartnerForm({ ...partnerForm, confirmPassword: event.target.value })} placeholder="Нууц үг давтах" type="password" />
+                    <small className="landing-auth-hint">8+ тэмдэгт, том/жижиг үсэг, тоо, тусгай тэмдэгт орно.</small>
+                  </div>
+                ) : null}
+
+                {partnerFormStep === 5 ? (
+                  <div className="landing-partner-step-body">
+                    <p className="landing-partner-step-hint">Бүртгэлээ баталгаажуулахын өмнө дараах гэрээний нөхцөлийг анхааралтай уншина уу.</p>
+                    <div className="landing-partner-agreement">
+                      <ol>
+                        {partnerAgreementClauses.map((clause) => (
+                          <li key={clause}>{clause}</li>
+                        ))}
+                      </ol>
+                    </div>
+                    <label className="landing-partner-agreement-check">
+                      <input
+                        checked={partnerAgreementAccepted}
+                        onChange={(event) => setPartnerAgreementAccepted(event.target.checked)}
+                        type="checkbox"
+                      />
+                      <span>Дээрх гэрээний нөхцөл, хариуцлагыг бүрэн ойлгож, зөвшөөрч байна.</span>
+                    </label>
+                  </div>
+                ) : null}
+
+                <div className="landing-partner-step-actions">
+                  {partnerFormStep > 0 ? (
+                    <button onClick={() => goPartnerStep(-1)} type="button">Буцах</button>
+                  ) : <span />}
+                  {partnerFormStep < partnerRegisterSteps.length - 1 ? (
+                    <button className="landing-auth-submit" onClick={() => goPartnerStep(1)} type="button">Үргэлжлүүлэх</button>
+                  ) : (
+                    <button className="landing-auth-submit" type="submit">Бизнесээ нэмэх</button>
+                  )}
+                </div>
               </>
-            ) : null}
-            <input value={partnerForm.username} onChange={(event) => setPartnerForm({ ...partnerForm, username: event.target.value })} placeholder="Нэвтрэх ID эсвэл Gmail" />
-            <input value={partnerForm.password} onChange={(event) => setPartnerForm({ ...partnerForm, password: event.target.value })} placeholder="Нууц үг" type="password" />
-            {partnerAuthMode === "register" ? (
-              <input value={partnerForm.confirmPassword} onChange={(event) => setPartnerForm({ ...partnerForm, confirmPassword: event.target.value })} placeholder="Нууц үг давтах" type="password" />
-            ) : null}
-            <button className="landing-auth-submit" type="submit">
-              {partnerAuthMode === "login" ? "Нэвтрэх" : "Бүртгэл үүсгэх"}
-            </button>
+            ) : (
+              <>
+                <input value={partnerForm.username} onChange={(event) => setPartnerForm({ ...partnerForm, username: event.target.value })} placeholder="Нэвтрэх ID эсвэл Gmail" />
+                <input value={partnerForm.password} onChange={(event) => setPartnerForm({ ...partnerForm, password: event.target.value })} placeholder="Нууц үг" type="password" />
+                <button className="landing-auth-submit" type="submit">Нэвтрэх</button>
+              </>
+            )}
             {notice ? <p>{notice}</p> : null}
           </form>
         </div>
@@ -3002,54 +3379,57 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       </section>
 
       {section === "home" ? (
-        <section className="landing-flow-bridge" aria-label="DeliverHub платформын урсгал">
-          <div className="landing-flow-sticky">
-            <div className="landing-flow-copy">
-              <span>DELIVERHUB FLOW</span>
-              <h2>Дэлгүүр ба хэрэглэгчийн хоорондох ухаалаг гүүр</h2>
-              <p>Бараа, төлбөр, хүргэлт, мэдэгдлийг нэг урсгалд холбож онлайн худалдааг илүү ойр, хурдан, ойлгомжтой болгоно.</p>
+        <section
+          className="landing-showcase"
+          aria-label="DeliverHub платформын танилцуулга"
+          ref={showcaseRef}
+          style={{
+            "--showcase-progress": showcaseProgress,
+            "--slide-count": landingShowcaseSlides.length,
+          } as CSSProperties}
+        >
+          <div className="landing-showcase-sticky">
+            <div className="landing-showcase-model" aria-hidden="true">
+              <div className="landing-showcase-ring" />
+              <div className="landing-showcase-hero">
+                <img alt="" src={heroPromaxImage} />
+              </div>
+              {landingShowcaseSlides.map((slide, index) => {
+                const angle = (index / landingShowcaseSlides.length) * Math.PI * 2 - Math.PI / 2;
+                return (
+                  <div
+                    className={`landing-showcase-card ${index === showcaseActiveIndex ? "is-active" : ""}`}
+                    key={slide.title}
+                    style={{
+                      "--card-index": index,
+                      "--fly-x": Math.cos(angle).toFixed(3),
+                      "--fly-y": Math.sin(angle).toFixed(3),
+                    } as CSSProperties}
+                  >
+                    <img alt="" src={slide.image} />
+                  </div>
+                );
+              })}
             </div>
-            <div className="landing-flow-scene" aria-hidden="true">
-              <div className="landing-flow-orbit">
-                <span />
-                <span />
-                <span />
-              </div>
-              <div className="landing-flow-card is-store">
-                <img alt="" src={heroMacbookImage} />
-                <strong>Дэлгүүр</strong>
-                <small>Бараа · нөөц · dashboard</small>
-              </div>
-              <div className="landing-flow-card is-customer">
-                <img alt="" src={heroIphoneImage} />
-                <strong>Хэрэглэгч</strong>
-                <small>Хайлт · QPay · захиалга</small>
-              </div>
-              <div className="landing-flow-hub">
-                <b>DH</b>
-                <span>live bridge</span>
-              </div>
-              <div className="landing-flow-ribbon is-one" />
-              <div className="landing-flow-ribbon is-two" />
+
+            <div className="landing-showcase-copy">
+              {landingShowcaseSlides.map((slide, index) => (
+                <div
+                  className={`landing-showcase-line ${index === showcaseActiveIndex ? "is-active" : index < showcaseActiveIndex ? "is-passed" : ""}`}
+                  key={slide.title}
+                >
+                  <span>{slide.tag}</span>
+                  <h2>{slide.title}</h2>
+                  <p>{slide.body}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="landing-flow-panels">
-            <article>
-              <span>01</span>
-              <h3>Дэлгүүр бүтээгдэхүүнээ оруулна</h3>
-              <p>Үнэ, үлдэгдэл, зураг, ангилал бүр шууд маркет дээр харагдаж хэрэглэгчийн хайлттай холбогдоно.</p>
-            </article>
-            <article>
-              <span>02</span>
-              <h3>Хэрэглэгч сонгоод төлнө</h3>
-              <p>Сагс, хүргэлтийн хаяг, QPay invoice нэг checkout дотор шийдэгдэнэ.</p>
-            </article>
-            <article>
-              <span>03</span>
-              <h3>Хүргэлт бодит хугацаанд хөдөлнө</h3>
-              <p>Ойр хүргэлтийн ажилтан, pickup код, live status бүгд нэг самбарт шинэчлэгдэнэ.</p>
-            </article>
+          <div className="landing-showcase-progress" aria-hidden="true">
+            {landingShowcaseSlides.map((slide, index) => (
+              <i className={index <= showcaseActiveIndex ? "is-active" : ""} key={slide.title} />
+            ))}
           </div>
         </section>
       ) : null}

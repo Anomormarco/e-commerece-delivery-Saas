@@ -471,6 +471,10 @@ export async function registerCourier(payload = {}) {
     throw createHttpError(400, "OTP авах Gmail хаяг заавал шаардлагатай.");
   }
 
+  if (payload.agreementAccepted !== true) {
+    throw createHttpError(400, "Гэрээний нөхцөлийг зөвшөөрч тэмдэглэнэ үү.");
+  }
+
   if (!applicationProfile.firstName || !applicationProfile.lastName || !applicationProfile.age || !applicationProfile.gender || !applicationProfile.homeAddress || !applicationProfile.emergencyPhones) {
     throw createHttpError(400, "\u0410\u0436\u0438\u043B\u0442\u043D\u044B \u0445\u0443\u0432\u0438\u0439\u043D \u043C\u044D\u0434\u044D\u044D\u043B\u044D\u043B \u0434\u0443\u0442\u0443\u0443 \u0431\u0430\u0439\u043D\u0430.");
   }

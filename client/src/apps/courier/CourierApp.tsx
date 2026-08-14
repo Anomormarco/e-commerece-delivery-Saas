@@ -8,7 +8,7 @@ import { isCourierLoginId, isGmailAddress, isMongolianText, isStrongPassword } f
 type VehicleType = "WALK" | "MOPED" | "CAR";
 type AuthMode = "login" | "register";
 type DocumentType = "ID_CARD" | "PASSPORT";
-type RegisterStep = 1 | 2;
+type RegisterStep = 1 | 2 | 3;
 
 type FaceAudit = {
   capturedAt: string;
@@ -46,6 +46,14 @@ type CourierAuthResponse = {
 
 const sessionStorageKey = "deliverhub-courier-user-id";
 const tokenStorageKey = "deliverhub-courier-access-token";
+
+const courierAgreementClauses = [
+  "Та энэхүү платформ дээр хүргэлтийн ажилтнаар ажиллахдаа үнэн зөв, өөрийн бодит мэдээлэл, бичиг баримтаар бүртгүүлж байгааг баталгаажуулж байна.",
+  "Хүлээлгэн өгсөн бараа, илгээмжийг зам дундаа алдах, эзэмшигчид мэдэгдэлгүйгээр өөр хаяг руу чиглүүлэх, задлах, орлуулах зэрэг үйлдэл нь гэмт хэргийн шинж чанартай гэж үзэгдэж, эрүүгийн хариуцлага хүлээлгэх үндэслэл болно.",
+  "Бараа, илгээмж алга болсон, гэмтсэн тохиолдолд шууд DeliverHub болон холбогдох дэлгүүрт мэдэгдэх үүрэгтэй бөгөөд нуун дарагдуулсан нь илэрвэл хохирлыг бүрэн хариуцна.",
+  "Монгол Улсын хууль тогтоомж (Эрүүгийн хууль, Иргэний хууль, Хөдөлмөрийн тухай хууль зэрэг)-ийг зөрчсөн үйл ажиллагаа явуулсан тохиолдолд эрхийг нь түдгэлзүүлж, холбогдох байгууллагад мэдээлэл шилжүүлж болно.",
+  "Царай баталгаажуулалт болон бичиг баримтын мэдээлэл нь зөвхөн таны эзэмшигчийн эрхийг баталгаажуулах зорилготой бөгөөд аюулгүй байдлын дагуу хадгалагдана.",
+];
 
 const vehicleOptions: Array<{ value: VehicleType; label: string; note: string }> = [
   { value: "WALK", label: "Явган хүргэлт", note: "Ойр зайд 4 кг хүртэл" },
@@ -131,7 +139,13 @@ const text = {
   cameraStarting: "Камер нээгдэж байна...",
   simulateMismatch: "Зөрсөн гэж шалгах",
   registerStepOne: "1. Хувийн мэдээлэл",
-  registerStepTwo: "2. Баталгаажуулалт",
+  registerStepTwo: "2. Гэрээ",
+  registerStepThree: "3. Баталгаажуулалт",
+  agreementTitle: "Ажилтны үйлчилгээний гэрээ",
+  agreementLead: "Бүртгэлээ баталгаажуулахын өмнө дараах нөхцөл, хариуцлагыг анхааралтай уншиж зөвшөөрнө үү.",
+  agreementCheckboxLabel: "Дээрх гэрээний нөхцөл, хариуцлагыг бүрэн ойлгож, зөвшөөрч байна.",
+  agreementRequired: "Гэрээний нөхцөлийг зөвшөөрч тэмдэглэнэ үү.",
+  finishRegister: "Бүртгэл дуусгах",
   identityProvider: "Таних үйлчилгээ",
   faceDetected: "Царай илэрсэн",
   proximityOk: "Зай тохирсон",
@@ -495,6 +509,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
   const [faceAudit, setFaceAudit] = useState<FaceAudit | null>(null);
   const [loginFaceConfirmed, setLoginFaceConfirmed] = useState(false);
   const [, setLoginFaceAudit] = useState<FaceAudit | null>(null);
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -531,6 +546,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
     setLoginStep(1);
     setRegisterStep(1);
     setConfirmPassword("");
+    setAgreementAccepted(false);
   }
 
   async function submitLogin(faceAuditOverride: FaceAudit) {
@@ -630,6 +646,16 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
       return;
     }
 
+    if (mode === "register" && registerStep === 2) {
+      if (!agreementAccepted) {
+        setError(text.agreementRequired);
+        return;
+      }
+
+      setRegisterStep(3);
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -642,6 +668,10 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
 
       if (mode === "register" && vehiclePlate.trim() && !isMongolianText(vehiclePlate)) {
         throw new Error(text.mongolianRequired);
+      }
+
+      if (mode === "register" && !agreementAccepted) {
+        throw new Error(text.agreementRequired);
       }
 
       if (mode === "register" && !isStrongPassword(password)) {
@@ -690,6 +720,8 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
               livenessConfirmed: faceLiveness,
               documentFaceMatched,
               faceAudit,
+              agreementAccepted,
+              agreementAcceptedAt: agreementAccepted ? new Date().toISOString() : null,
         },
       );
 
@@ -771,6 +803,8 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
               <span className={registerStep === 1 ? "active" : ""}>{text.registerStepOne}</span>
               <i />
               <span className={registerStep === 2 ? "active" : ""}>{text.registerStepTwo}</span>
+              <i />
+              <span className={registerStep === 3 ? "active" : ""}>{text.registerStepThree}</span>
             </div>
           ) : null}
 
@@ -877,7 +911,7 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
             </>
           ) : null}
 
-          {mode === "register" && registerStep === 2 ? (
+          {mode === "register" && registerStep === 3 ? (
             <div className="employee-file-grid">
               <div className="courier-auth-tabs employee-wide-field">
                 <button className={documentType === "ID_CARD" ? "active" : ""} onClick={() => {
@@ -966,13 +1000,27 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
             </div>
           ) : null}
 
-          {mode === "register" && (
-            registerStep === 2 ? (
-              <button className="auth-secondary-action" onClick={() => setRegisterStep(1)} type="button">
-                Өмнөх шат руу буцах
-              </button>
-            ) : null
-          )}
+          {mode === "register" && registerStep === 2 ? (
+            <div className="employee-agreement">
+              <h2>{text.agreementTitle}</h2>
+              <p>{text.agreementLead}</p>
+              <ol>
+                {courierAgreementClauses.map((clause) => (
+                  <li key={clause}>{clause}</li>
+                ))}
+              </ol>
+              <label className="courier-check employee-wide-field">
+                <input checked={agreementAccepted} onChange={(event) => setAgreementAccepted(event.target.checked)} type="checkbox" />
+                {text.agreementCheckboxLabel}
+              </label>
+            </div>
+          ) : null}
+
+          {mode === "register" && registerStep > 1 ? (
+            <button className="auth-secondary-action" onClick={() => setRegisterStep((step) => (step - 1) as RegisterStep)} type="button">
+              Өмнөх шат руу буцах
+            </button>
+          ) : null}
           {error && <div className="auth-error">{error}</div>}
           <button className="auth-submit" disabled={submitting} type="submit">
             {submitting
@@ -980,8 +1028,10 @@ function CourierAuthPage({ onAuthenticated }: { onAuthenticated: (userId: string
               : mode === "login"
                 ? "Царай баталгаажуулах"
                 : registerStep === 1
-                  ? "Баталгаажуулах шат руу"
-                  : "Бүртгэл үүсгэх"}
+                  ? "Гэрээ рүү үргэлжлүүлэх"
+                  : registerStep === 2
+                    ? "Баталгаажуулах шат руу"
+                    : text.finishRegister}
           </button>
           <button className="auth-secondary-action" onClick={() => switchMode(mode === "login" ? "register" : "login")} type="button">
             {mode === "login" ? `${text.noAccount} ${text.register}` : `${text.hasAccount} ${text.login}`}

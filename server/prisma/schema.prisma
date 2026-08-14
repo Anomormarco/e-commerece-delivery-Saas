@@ -137,7 +137,7 @@ model Tenant {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   members             TenantMember[]
-  stores               Store[]
+  stores              Store[]
   branches            Branch[]
   warehouses          Warehouse[]
   products            Product[]
@@ -265,7 +265,7 @@ model SubscriptionPlan {
   name             String
   monthlyPriceMnt  BigInt
   maxShopUsers     Int?
-  maxStoreUsers     Int?
+  maxStoreUsers    Int?
   maxCouriers      Int?
   maxMonthlyOrders Int?
   features         Json
@@ -370,13 +370,13 @@ model Store {
 model Branch {
   id         String      @id @default(cuid())
   tenantId   String
-  storeId     String
+  storeId    String
   name       String
   address    String
   latitude   Decimal?    @db.Decimal(10, 7)
   longitude  Decimal?    @db.Decimal(10, 7)
   tenant     Tenant      @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  store       Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store      Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
   warehouses Warehouse[]
   orders     Order[]
 
@@ -411,7 +411,7 @@ model Category {
 model Product {
   id          String           @id @default(cuid())
   tenantId    String
-  storeId      String
+  storeId     String
   categoryId  String?
   name        String
   description String?
@@ -419,7 +419,7 @@ model Product {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  store        Store             @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store       Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
   category    Category?        @relation(fields: [categoryId], references: [id])
   variants    ProductVariant[]
   media       ProductMedia[]
@@ -483,18 +483,19 @@ model InventoryMovement {
 }
 
 model Customer {
-  id        String            @id @default(cuid())
-  tenantId  String
-  userId    String?           @unique
-  fullName  String
-  phone     String
-  email     String?
-  createdAt DateTime          @default(now())
-  tenant    Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  user      User?             @relation(fields: [userId], references: [id])
-  addresses CustomerAddress[]
-  carts     Cart[]
-  orders    Order[]
+  id            String            @id @default(cuid())
+  tenantId      String
+  userId        String?           @unique
+  fullName      String
+  phone         String
+  email         String?
+  avatarDataUrl String?
+  createdAt     DateTime          @default(now())
+  tenant        Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user          User?             @relation(fields: [userId], references: [id])
+  addresses     CustomerAddress[]
+  carts         Cart[]
+  orders        Order[]
 
   @@index([tenantId])
   @@map("customers")
@@ -540,7 +541,7 @@ model CartItem {
 model Order {
   id                  String               @id @default(cuid())
   tenantId            String
-  storeId              String
+  storeId             String
   branchId            String?
   customerId          String
   customerAddressId   String?
@@ -553,7 +554,7 @@ model Order {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   tenant              Tenant               @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  store                Store                 @relation(fields: [storeId], references: [id])
+  store               Store                @relation(fields: [storeId], references: [id])
   branch              Branch?              @relation(fields: [branchId], references: [id])
   customer            Customer             @relation(fields: [customerId], references: [id])
   customerAddress     CustomerAddress?     @relation(fields: [customerAddressId], references: [id])
