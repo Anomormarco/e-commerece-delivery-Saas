@@ -293,6 +293,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
   const [locationError, setLocationError] = useState<string | null>(null);
   const [otpByJob, setOtpByJob] = useState<Record<string, string>>({});
   const [acceptedRouteJobIds, setAcceptedRouteJobIds] = useState<Set<string>>(() => new Set());
+  const profilePhotoInputRef = useRef<HTMLInputElement | null>(null);
   const [zoom, setZoom] = useState(13);
   const [offerClock, setOfferClock] = useState(Date.now());
   const isOnline = localOnline ?? dashboard.data?.online ?? false;
@@ -515,30 +516,24 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     setProfileForm((current) => ({ ...current, [field]: value }));
   }
 
-  function changeProfilePhoto(file: File | null) {
-    if (!file) return;
-    if (file.size > employeeProfileImageMaxBytes) {
-      setProfileMessage("Зураг 600KB-аас бага байх хэрэгтэй.");
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setProfileForm((current) => ({ ...current, avatarDataUrl: String(reader.result ?? "") }));
-    };
-    reader.readAsDataURL(file);
+  function readProfilePhoto(file: File) {
+    return new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result ?? ""));
+      reader.onerror = () => reject(reader.error ?? new Error("Profile photo read failed"));
+      reader.readAsDataURL(file);
+    });
   }
 
-  async function saveProfile(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function saveProfileData(nextProfile: EmployeeProfile, closeEditor = false) {
     setProfileSaving(true);
     setProfileMessage(null);
     setActionError(null);
 
     try {
-      const nextDashboard = await postJson<CourierDashboard>("/profile", profileForm);
+      const nextDashboard = await postJson<CourierDashboard>("/profile", nextProfile);
       setProfileForm(profileFromDashboard(nextDashboard));
-      setProfileEditing(false);
+      if (closeEditor) setProfileEditing(false);
       setProfileMessage(text.profileSaved);
       await refreshDashboard({ silent: true });
     } catch (error) {
@@ -546,6 +541,28 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
     } finally {
       setProfileSaving(false);
     }
+  }
+
+  async function changeProfilePhoto(file: File | null) {
+    if (!file) return;
+    if (file.size > employeeProfileImageMaxBytes) {
+      setProfileMessage("Зураг 600KB-аас бага байх хэрэгтэй.");
+      return;
+    }
+
+    try {
+      const avatarDataUrl = await readProfilePhoto(file);
+      const nextProfile = { ...profileForm, avatarDataUrl };
+      setProfileForm(nextProfile);
+      await saveProfileData(nextProfile);
+    } catch (error) {
+      setActionError(error instanceof Error ? error.message : text.actionError);
+    }
+  }
+
+  async function saveProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await saveProfileData(profileForm, true);
   }
 
   return (
@@ -947,9 +964,25 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                 <section className="employee-profile-page" aria-label={text.profileTab}>
                   <header className="employee-profile-top">
                     <div className="employee-profile-avatar-wrap">
-                      <span className="employee-profile-avatar">
+                      <button
+                        className="employee-profile-avatar"
+                        disabled={profileSaving}
+                        onClick={() => profilePhotoInputRef.current?.click()}
+                        type="button"
+                        aria-label={text.choosePhoto}
+                      >
                         {profileForm.avatarDataUrl ? <img alt="" src={profileForm.avatarDataUrl} /> : (dashboard.data.employeeName ?? text.title).slice(0, 1)}
-                      </span>
+                      </button>
+                      <input
+                        ref={profilePhotoInputRef}
+                        accept="image/*"
+                        className="employee-profile-avatar-input"
+                        onChange={(event) => {
+                          void changeProfilePhoto(event.target.files?.[0] ?? null);
+                          event.target.value = "";
+                        }}
+                        type="file"
+                      />
                       <em>{dashboard.data.employeeName}</em>
                       <b>4.9 ★</b>
                     </div>

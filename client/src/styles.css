@@ -14677,9 +14677,17 @@ h3 {
   border-radius: 999px;
   background: #131b2e;
   color: white;
+  cursor: pointer;
   font-size: 28px;
   font-weight: 950;
+  overflow: hidden;
+  padding: 0;
   text-transform: uppercase;
+}
+
+.employee-profile-avatar:disabled {
+  cursor: wait;
+  opacity: 0.72;
 }
 
 .employee-profile-avatar img {
@@ -14687,6 +14695,10 @@ h3 {
   height: 100%;
   border-radius: inherit;
   object-fit: cover;
+}
+
+.employee-profile-avatar-input {
+  display: none;
 }
 
 .employee-profile-edit-toggle {
