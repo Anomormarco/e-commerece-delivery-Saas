@@ -41,7 +41,7 @@ type AdminUser = {
   role: string;
 };
 
-type SectionKey = "overview" | "stores" | "employees" | "access" | "delivery" | "reports" | "settings" | "support";
+type SectionKey = "overview" | "stores" | "employees" | "access" | "reports" | "settings" | "support";
 type ThemeMode = "night" | "light";
 
 type AdminPageProps = {
@@ -146,7 +146,6 @@ const navItems: Array<{ key: SectionKey; label: string }> = [
   { key: "stores", label: text.stores },
   { key: "employees", label: text.employees },
   { key: "access", label: text.access },
-  { key: "delivery", label: text.delivery },
   { key: "reports", label: text.reports },
 ];
 
@@ -351,13 +350,13 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
           </article>
         </div>
 
-        <section className="admin-mobile-experience" aria-label={text.recentDeliveries}>
+        {false && <section className="admin-mobile-experience" aria-label={text.recentDeliveries}>
           <div className="admin-mobile-urgent">
             <div>
               <span>{text.urgentPending}</span>
               <strong>{pendingCount} {text.orders}</strong>
             </div>
-            <button onClick={() => goTo("delivery")} type="button">{text.assign}</button>
+            <button onClick={() => goTo("stores")} type="button">{text.stores}</button>
           </div>
 
           <article className="platform-card admin-mobile-recent">
@@ -383,7 +382,7 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
               ))}
             </div>
           </article>
-        </section>
+        </section>}
 
         <div className="dashboard-feature-grid">
           <article className="dashboard-welcome">
@@ -391,7 +390,7 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
               <span>{text.welcomeBack}</span>
               <h2>{profileName || user.fullName}</h2>
               <p>{text.welcomeCopy}</p>
-              <button onClick={() => goTo("delivery")} type="button">{text.quickRecord}</button>
+              <button onClick={() => goTo("stores")} type="button">{text.stores}</button>
             </div>
             <div className="dashboard-layer-art" aria-hidden="true">
               <span />
@@ -690,7 +689,6 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
     if (activeSection === "stores") return <section className="platform-grid platform-grid-full">{renderStores(dashboard.data?.stores ?? [])}</section>;
     if (activeSection === "employees") return <section className="platform-grid platform-grid-full">{renderEmployees(dashboard.data?.employees ?? [])}</section>;
     if (activeSection === "access") return <section className="platform-grid platform-grid-full">{renderAccess()}</section>;
-    if (activeSection === "delivery" && dashboard.data) return renderDispatch(dashboard.data);
     if (activeSection === "reports") return renderSimpleSection(text.reports);
     if (activeSection === "settings") return renderSimpleSection(text.settings);
     return renderSimpleSection(text.support);
@@ -705,9 +703,6 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
             <strong>Админ</strong>
           </div>
         </div>
-        <button className="platform-new-button" onClick={() => goTo("delivery")} type="button">
-          <span className="platform-nav-label">{text.newDelivery}</span>
-        </button>
         <nav aria-label={text.brandAdmin}>
           {navItems.map((item) => (
             <button className={activeSection === item.key ? "active" : ""} key={item.key} onClick={() => goTo(item.key)} type="button">
@@ -793,9 +788,6 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
         </div>
 
       </section>
-      <button className="platform-mobile-fab" onClick={() => goTo("delivery")} type="button" aria-label={text.newDelivery}>
-        +
-      </button>
       <nav className="platform-mobile-nav" aria-label={text.brandAdmin}>
         <button className={activeSection === "overview" ? "active" : ""} onClick={() => goTo("overview")} type="button">
           <span aria-hidden="true">{"\u25A1"}</span>
@@ -804,10 +796,6 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
         <button className={activeSection === "stores" ? "active" : ""} onClick={() => goTo("stores")} type="button">
           <span aria-hidden="true">{"\u25A4"}</span>
           {text.mobileOrders}
-        </button>
-        <button className={activeSection === "delivery" ? "active" : ""} onClick={() => goTo("delivery")} type="button">
-          <span aria-hidden="true">{"\u25C7"}</span>
-          {text.mobileDeliveries}
         </button>
         <button className={activeSection === "settings" ? "active" : ""} onClick={() => goTo("settings")} type="button">
           <span aria-hidden="true">{"\u25CB"}</span>
