@@ -2644,14 +2644,15 @@ h3 {
 }
 
 .landing-qpay-panel.is-ready .landing-qpay-body {
-  grid-template-columns: 164px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 190px;
+  align-items: start;
 }
 
 .landing-qpay-qr {
   display: grid;
   place-items: center;
-  width: 164px;
-  height: 164px;
+  width: 190px;
+  height: 190px;
   border: 8px solid white;
   border-radius: 14px;
   padding: 6px;
@@ -2685,6 +2686,95 @@ h3 {
   font-size: 13px;
   font-weight: 950;
   text-align: center;
+}
+
+.landing-qpay-bank-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.landing-qpay-bank-picker button {
+  display: flex;
+  min-width: 0;
+  min-height: 38px;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 11px;
+  padding: 6px 8px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #0f172a;
+  cursor: pointer;
+}
+
+.landing-qpay-bank-picker button.active {
+  border-color: rgba(20, 184, 166, 0.58);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
+}
+
+.landing-qpay-bank-picker span,
+.landing-qpay-primary-bank span {
+  display: grid;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 8px;
+  background: #ff7a1a;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 950;
+}
+
+.landing-qpay-bank-picker strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 10px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.landing-qpay-primary-bank {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 2px 10px;
+  align-items: center;
+  border: 1px solid rgba(20, 184, 166, 0.36);
+  border-radius: 14px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(20, 184, 166, 0.14), rgba(255, 122, 26, 0.12)), #ffffff;
+  color: #0f172a;
+  text-decoration: none;
+}
+
+.landing-qpay-primary-bank.is-disabled {
+  opacity: 0.68;
+  cursor: not-allowed;
+}
+
+.landing-qpay-primary-bank span {
+  grid-row: span 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  font-size: 12px;
+}
+
+.landing-qpay-primary-bank strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 950;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.landing-qpay-primary-bank small {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 850;
 }
 
 .landing-qpay-meta {
@@ -2766,6 +2856,24 @@ h3 {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .landing-qpay-panel.is-ready .landing-qpay-body,
+  .landing-qpay-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .landing-qpay-qr {
+    width: min(100%, 260px);
+    height: auto;
+    aspect-ratio: 1;
+    justify-self: center;
+  }
+
+  .landing-qpay-bank-picker {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .landing-card-sandbox {

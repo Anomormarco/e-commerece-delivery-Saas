@@ -16,6 +16,7 @@ type PartnerAuthMode = "login" | "register";
 type DeliveryType = "bike" | "car" | "foot";
 type PaymentMethod = "qpay" | "card";
 type LandingSection = "home" | "market" | "contact" | "courier" | "partner";
+type QpayBankId = "khanbank" | "xacbank" | "golomt" | "tdbbank" | "statebank" | "most";
 
 type QpayPaymentState = {
   orderNo: string;
@@ -177,6 +178,14 @@ const marketCardsPerRow = 3;
 const paymentMethods: Array<{ id: PaymentMethod; label: string; mark: string }> = [
   { id: "qpay", label: "QPay", mark: "QP" },
   { id: "card", label: "Bank Card", mark: "CC" },
+];
+const qpayBankOptions: Array<{ id: QpayBankId; label: string; mark: string; aliases: string[] }> = [
+  { id: "khanbank", label: "ХААН Банк", mark: "ХА", aliases: ["khan", "haan", "хаан"] },
+  { id: "xacbank", label: "Хас Банк", mark: "ХС", aliases: ["xac", "has", "xas", "хас"] },
+  { id: "golomt", label: "Голомт", mark: "Г", aliases: ["golomt", "голомт"] },
+  { id: "tdbbank", label: "TDB", mark: "T", aliases: ["tdb", "trade", "development", "худалдаа"] },
+  { id: "statebank", label: "Төрийн банк", mark: "ТБ", aliases: ["state", "төрийн", "turiin"] },
+  { id: "most", label: "MOST Money", mark: "M", aliases: ["most"] },
 ];
 const productsPerMarketPage = marketRowsPerPage * marketCardsPerRow;
 const marketCategoryFilters = ["Бүгд", "Хүнс", "Гэр ахуй", "Хоол захиалга", "Цахилгаан бараа", "Хувцас", "Гар утас, дагалдах", "Гоо сайхан", "Бусад"] as const;
@@ -484,6 +493,20 @@ function qpayQrImageSource(qrImage?: string) {
   return `data:image/png;base64,${value}`;
 }
 
+function normalizeQpayBankText(value?: string) {
+  return (value ?? "").toLowerCase().replace(/\s|_|-|\.|банк|bank/g, "");
+}
+
+function qpayBankLinkFor(
+  urls: QpayPaymentState["urls"] = [],
+  bank: { aliases: string[] },
+) {
+  return urls.find((url) => {
+    const text = normalizeQpayBankText([url.name, url.description, url.link].filter(Boolean).join(" "));
+    return bank.aliases.some((alias) => text.includes(normalizeQpayBankText(alias)));
+  });
+}
+
 function fixMojibake(value: string) {
   if (!/[ÃÐÑÒÓ]/.test(value)) return value;
 
@@ -656,6 +679,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     }
   });
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("qpay");
+  const [selectedQpayBank, setSelectedQpayBank] = useState<QpayBankId>("khanbank");
   const [stores, setStores] = useState<StoreDirectoryItem[]>([]);
   const [storeSearch, setStoreSearch] = useState("");
   const [storeFilter, setStoreFilter] = useState("Хүнс");
@@ -955,8 +979,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const qpayMerchantName = selectedItems[0]?.storeName ?? selectedStore?.name ?? "DeliverHub market";
   const qpayAmountMnt = qpayPayment?.amountMnt ?? subtotal + deliveryFee;
   const qpayQrSrc = qpayQrImageSource(qpayPayment?.qrImage);
-  const qpayBankLinks = (qpayPayment?.urls ?? []).filter((url) => Boolean(url.link)).slice(0, 4);
-  const qpayPrimaryLink = qpayPayment?.shortUrl || qpayBankLinks[0]?.link || "";
+  const selectedQpayBankOption = qpayBankOptions.find((bank) => bank.id === selectedQpayBank) ?? qpayBankOptions[0];
+  const qpaySelectedBankLink = qpayPayment ? qpayBankLinkFor(qpayPayment.urls, selectedQpayBankOption) : undefined;
+  const qpayBankLinks = (qpayPayment?.urls ?? []).filter((url) => Boolean(url.link));
+  const qpayVisibleBankLinks = [
+    ...(qpaySelectedBankLink ? [qpaySelectedBankLink] : []),
+    ...qpayBankLinks.filter((url) => url.link !== qpaySelectedBankLink?.link),
+  ].slice(0, 4);
+  const qpayPrimaryLink = qpaySelectedBankLink?.link || qpayPayment?.shortUrl || qpayBankLinks[0]?.link || "";
   const qpayInvoiceText = qpayPayment?.shortUrl || qpayPayment?.qrText || "";
   const qpayDraftKey = [
     paymentMethod,
@@ -1843,7 +1873,43 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           <strong>{qpayPayment ? "QPay invoice" : "QPay төлбөр"}</strong>
                           <span>{qpayPayment ? "ТӨЛБӨР ХҮЛЭЭЖ БАЙНА" : "INVOICE ҮҮСГЭХ"}</span>
                         </header>
+                        <div className="landing-qpay-bank-picker" aria-label="Төлөх банк">
+                          {qpayBankOptions.map((bank) => (
+                            <button
+                              className={selectedQpayBank === bank.id ? "active" : ""}
+                              key={bank.id}
+                              onClick={() => setSelectedQpayBank(bank.id)}
+                              type="button"
+                            >
+                              <span>{bank.mark}</span>
+                              <strong>{bank.label}</strong>
+                            </button>
+                          ))}
+                        </div>
+                        {qpayPayment ? (
+                          <a
+                            className={`landing-qpay-primary-bank${qpayPrimaryLink ? "" : " is-disabled"}`}
+                            href={qpayPrimaryLink || undefined}
+                            onClick={(event) => {
+                              if (!qpayPrimaryLink) event.preventDefault();
+                            }}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            <span>{selectedQpayBankOption.mark}</span>
+                            <strong>{selectedQpayBankOption.label}-аар төлөх</strong>
+                            <small>{qpayPrimaryLink ? "Банкны app нээх" : "Энэ банкны link QPay-аас ирсэнгүй"}</small>
+                          </a>
+                        ) : null}
                         <div className="landing-qpay-body">
+                          <div className="landing-qpay-meta">
+                            <span>Invoice</span>
+                            <strong>{qpayPayment?.invoiceId ?? "Төлбөр төлөхөд үүснэ"}</strong>
+                            <span>Merchant</span>
+                            <strong>{qpayMerchantName}</strong>
+                            <span>Дүн</span>
+                            <strong>{formatMnt(qpayAmountMnt)}</strong>
+                          </div>
                           {qpayPayment ? (
                             <div className={`landing-qpay-qr${qpayQrSrc ? "" : " is-empty"}`}>
                               {qpayQrSrc ? (
@@ -1853,18 +1919,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                               )}
                             </div>
                           ) : null}
-                          <div className="landing-qpay-meta">
-                            <span>Invoice</span>
-                            <strong>{qpayPayment?.invoiceId ?? "Төлбөр төлөхөд үүснэ"}</strong>
-                            <span>Merchant</span>
-                            <strong>{qpayMerchantName}</strong>
-                            <span>Дүн</span>
-                            <strong>{formatMnt(qpayAmountMnt)}</strong>
-                          </div>
                         </div>
-                        {qpayBankLinks.length ? (
+                        {qpayVisibleBankLinks.length ? (
                           <div className="landing-qpay-apps" aria-label="QPay банкны апп">
-                            {qpayBankLinks.map((url) => (
+                            {qpayVisibleBankLinks.map((url) => (
                               <a href={url.link} key={`${url.name ?? url.description}-${url.link}`} rel="noreferrer" target="_blank">
                                 {url.logo ? <img alt="" src={url.logo} /> : null}
                                 <span>{url.name || url.description || "Банкны app"}</span>
