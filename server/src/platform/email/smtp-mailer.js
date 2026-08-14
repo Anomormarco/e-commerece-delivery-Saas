@@ -86,7 +86,50 @@ export function isSmtpConfigured() {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
 }
 
+export function isResendConfigured() {
+  return Boolean(process.env.RESEND_API_KEY);
+}
+
+async function sendViaResend({ to, subject, text }) {
+  const from = process.env.RESEND_FROM ?? process.env.SMTP_FROM ?? "DeliverHub <onboarding@resend.dev>";
+
+  try {
+    const response = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: sanitizeHeader(from),
+        to: [envelopeAddress(to)],
+        subject: sanitizeHeader(subject),
+        text: String(text ?? ""),
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      logger.error("resend_send_failed", { status: response.status, body, to: envelopeAddress(to) });
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    logger.error("resend_send_failed", { message: error.message, to: envelopeAddress(to) });
+    return false;
+  }
+}
+
+// Resend (HTTP API) is preferred when configured: it's sent from Render's own
+// servers with proper DKIM/SPF on a dedicated domain, so it lands in the inbox
+// far more reliably than raw Gmail SMTP. Falls back to Gmail SMTP if
+// RESEND_API_KEY isn't set, so existing deployments keep working unchanged.
 export async function sendMail({ to, subject, text }) {
+  if (isResendConfigured()) {
+    return sendViaResend({ to, subject, text });
+  }
+
   if (!isSmtpConfigured()) {
     logger.warn("smtp_not_configured", { to: envelopeAddress(to) });
     return false;
