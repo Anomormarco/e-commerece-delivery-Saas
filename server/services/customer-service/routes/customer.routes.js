@@ -14,7 +14,8 @@ import { listCustomerNotifications, markCustomerNotificationsRead } from "../con
 export function registerCustomerRoutes(app, { basePath = "/api/customer" } = {}) {
   app.post(`${basePath}/auth/register`, asyncHandler(register));
   app.post(`${basePath}/auth/login`, asyncHandler(login));
-  app.get(`${basePath}/stores`, requireAuth, asyncHandler(listStores));
+  // Public: browsing the market never requires login. Only checkout does.
+  app.get(`${basePath}/stores`, asyncHandler(listStores));
   app.post(`${basePath}/orders`, requireAuth, asyncHandler(createOrder));
   app.post(`${basePath}/payments/qpay/callback`, asyncHandler(checkQpayPayment));
   app.post(`${basePath}/payments/qpay/check`, requireAuth, asyncHandler(checkQpayPayment));

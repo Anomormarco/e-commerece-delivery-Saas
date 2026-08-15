@@ -621,10 +621,8 @@ export async function createCustomerOrder(userId, input) {
 }
 
 export async function listCustomerStores(userId, input = {}) {
-  if (!userId) {
-    throw createHttpError(401, "Маркет харахын тулд эхлээд нэвтэрнэ үү.", "UNAUTHENTICATED");
-  }
-
+  // Intentionally no auth requirement here - browsing the market is public;
+  // only checkout (createOrder) requires a logged-in customer.
   await ensureDemoStore();
 
   const search = String(input.search ?? "").trim();

@@ -1254,13 +1254,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }, [cartOpen]);
 
   useEffect(() => {
-    if (section === "market" && !session) {
-      setAuthMode("login");
-      setAuthOpen(true);
-    }
-  }, [section, session]);
-
-  useEffect(() => {
     if (section !== "home") return undefined;
 
     const intervalId = window.setInterval(() => {
@@ -1387,8 +1380,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }, [session?.token]);
 
   useEffect(() => {
-    if (!session?.token || section !== "market") return;
-    const token = session.token;
+    if (section !== "market") return;
+    const token = session?.token ?? "";
     let closed = false;
 
     async function loadStores() {
@@ -1579,12 +1572,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }
 
   function openMarket() {
-    if (!session) {
-      setAuthMode("login");
-      setAuthOpen(true);
-      return;
-    }
-
     setSection("market");
     setCartOpen(false);
     setWishlistOpen(false);
@@ -1638,6 +1625,12 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }
 
   function addSelectedQuantityToCart(productId: string) {
+    if (!session) {
+      setAuthMode("login");
+      setAuthOpen(true);
+      return;
+    }
+
     setCart((current) => {
       const product = allMarketProducts.find((item) => item.id === productId);
       const maxQuantity = product?.stockCount ?? 0;
