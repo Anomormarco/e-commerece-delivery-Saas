@@ -422,6 +422,13 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
       if (previousState === "PICKUP_VERIFICATION" && job.state === "PICKED_UP") {
         showSuccessNotice("Захиалга хүргэлтэнд гарлаа.");
       }
+      // Belt-and-suspenders: postJobAction's own verify-dropoff handler
+      // already fires this toast on success, but this state-transition
+      // watch guarantees it fires every time the job reaches DELIVERED,
+      // even if that specific code path is ever missed.
+      if (previousState && previousState !== "DELIVERED" && job.state === "DELIVERED") {
+        showSuccessNotice(text.delivered);
+      }
     }
     previousJobStatesRef.current = Object.fromEntries(dashboard.data.jobs.map((job) => [job.id, job.state]));
   }, [dashboard.data]);
