@@ -27,18 +27,11 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   render() {
+    // Renders blank on a crash instead of a visible error card - the crash
+    // is still fully logged to the console (componentDidCatch above) for
+    // debugging, this only changes what the user sees.
     if (this.state.error) {
-      return (
-        <div className="app-crash-screen">
-          <div className="app-crash-card">
-            <strong>Алдаа гарлаа</strong>
-            <p>Дэлгэц ачаалахад алдаа гарлаа. Дахин ачаалж үзнэ үү.</p>
-            <button onClick={() => window.location.reload()} type="button">
-              Дахин ачаалах
-            </button>
-          </div>
-        </div>
-      );
+      return null;
     }
 
     return this.props.children;
