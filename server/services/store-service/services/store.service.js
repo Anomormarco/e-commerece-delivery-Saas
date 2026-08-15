@@ -1,6 +1,7 @@
 import { appCache } from "@deliverhub/server-platform/cache/memory-cache";
 import { prisma } from "@deliverhub/server-platform/database/prisma";
 import { signJwt } from "@deliverhub/server-platform/http/jwt";
+import { bfsRouteKm } from "@deliverhub/server-platform/routing/grid-bfs";
 import {
   hashPassword,
   isPhoneNumber,
@@ -256,7 +257,10 @@ function routeProfileForVehicle(vehicleType) {
 
 function estimateRouteSegment(from, to, profile) {
   const directKm = haversineKm(from, to);
-  const routeKm = directKm * profile.networkFactor;
+  // BFS shortest-path search over a synthetic street grid between the two
+  // points, instead of just scaling the straight-line distance by a flat
+  // constant - see grid-bfs.js.
+  const routeKm = bfsRouteKm(from, to);
   const minutes = Math.max(1, Math.round((routeKm / profile.speedKmh) * 60 + profile.turnPenaltyMinutes));
   return {
     directKm,
