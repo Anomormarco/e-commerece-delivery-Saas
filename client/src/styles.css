@@ -11138,6 +11138,10 @@ h3 {
   gap: 8px 12px;
   align-items: end;
   margin-top: 10px;
+  border: 1px solid rgba(249, 115, 22, 0.42);
+  border-radius: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(249, 115, 22, 0.18), rgba(37, 99, 235, 0.1));
 }
 
 .store-pickup-otp span {
@@ -16218,10 +16222,12 @@ h3 {
 .employee-otp-panel button {
   min-height: 44px;
   border: 0;
-  border-radius: 12px;
-  background: #2563eb;
+  border-radius: 999px;
+  padding: 0 22px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
   color: white;
   font-weight: 950;
+  white-space: nowrap;
 }
 
 .employee-otp-panel {
@@ -16229,10 +16235,10 @@ h3 {
   grid-template-columns: 1fr auto;
   gap: 10px;
   align-items: end;
-  border: 1px solid #dbeafe;
-  border-radius: 14px;
-  padding: 12px;
-  background: #eff6ff;
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  border-radius: 16px;
+  padding: 16px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(59, 130, 246, 0.04));
 }
 
 .employee-otp-panel label {
@@ -16246,10 +16252,10 @@ h3 {
 
 .employee-otp-panel input {
   width: 100%;
-  min-height: 42px;
-  border: 1px solid #bfdbfe;
-  border-radius: 10px;
-  padding: 0 12px;
+  min-height: 44px;
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  border-radius: 12px;
+  padding: 0 14px;
   background: white;
   color: #0f172a;
   font-size: 18px;
@@ -17748,9 +17754,7 @@ h3 {
   justify-content: flex-end;
 }
 
-.employee-mobile-shell .courier-actions button,
-.employee-mobile-shell .employee-full-action,
-.employee-mobile-shell .employee-otp-panel button {
+.employee-mobile-shell .courier-actions button {
   border-radius: 8px;
 }
 
