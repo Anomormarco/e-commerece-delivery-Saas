@@ -2765,11 +2765,16 @@ h3 {
 .landing-profile-logout:hover {
   border-color: rgba(239, 68, 68, 0.4);
   background: #ef4444;
+  color: white;
   transform: translateY(-1px);
 }
 
 .landing-profile-logout:hover strong,
 .landing-profile-logout:hover small {
+  color: white;
+}
+
+.landing-profile-logout:hover svg {
   color: white;
 }
 
