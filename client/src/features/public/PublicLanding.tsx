@@ -25,6 +25,8 @@ type QpayPaymentState = {
   qrText?: string;
   qrImage?: string;
   shortUrl?: string;
+  mode?: string;
+  warning?: string;
   urls?: Array<{ name?: string; description?: string; link?: string; logo?: string }>;
 };
 
@@ -1781,9 +1783,14 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         qrText: orderResult.payment.qrText,
         qrImage: orderResult.payment.qrImage,
         shortUrl: orderResult.payment.shortUrl,
+        mode: orderResult.payment.mode,
+        warning: orderResult.payment.warning,
         urls: orderResult.payment.urls,
       });
-      setNotice("QPay invoice үүслээ. QR уншуулаад эсвэл банкны app-аар төлөөд дараа нь шалгана уу.");
+      setNotice(
+        orderResult.payment.warning
+          || "QPay invoice үүслээ. QR уншуулаад эсвэл банкны app-аар төлөөд дараа нь шалгана уу.",
+      );
       return;
     }
 
@@ -2722,11 +2729,19 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                           <div className={`landing-qpay-qr${qpayQrSrc ? "" : " is-empty"}`}>
                             {qpayQrSrc ? (
                               <img alt="QPay invoice QR" src={qpayQrSrc} />
+                            ) : qpayPayment.qrText ? (
+                              <code className="landing-qpay-qr-text">{qpayPayment.qrText}</code>
                             ) : (
                               <strong>QR ирсэнгүй</strong>
                             )}
                           </div>
                         </div>
+                        {qpayPayment.mode === "demo" ? (
+                          <p className="landing-qpay-demo-note" role="status">
+                            {qpayPayment.warning
+                              || "Демо горим: QPay түр боломжгүй байна. “Төлбөр шалгах” дарж захиалгаа үргэлжлүүлнэ үү."}
+                          </p>
+                        ) : null}
                         {qpayVisibleBankLinks.length ? (
                           <button className="landing-qpay-more-apps" onClick={() => setQpayAppsOpen(true)} type="button">
                             Бусад банкны app харах

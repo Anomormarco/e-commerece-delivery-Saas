@@ -574,6 +574,8 @@ export async function createCustomerOrder(userId, input) {
       payment = {
         status: "PENDING",
         provider: "qpay",
+        mode: qpayInvoice.mode ?? "live",
+        warning: qpayInvoice.warning ?? "",
         invoiceId: qpayInvoice.providerInvoiceId,
         qrText: qpayInvoice.qrText,
         qrImage: qpayInvoice.qrImage,

@@ -1,7 +1,57 @@
+import qrcode from "./vendor/qrcode-generator.js";
+
 const qpayTokenCache = {
   accessToken: "",
   expiresAt: 0,
 };
+
+// When the live QPay API is unreachable (e.g. the merchant IP allowlist rejects
+// our hosting provider), we still want checkout to complete. Set QPAY_STRICT=1
+// to opt out and surface the raw 502 instead.
+function qpayStrictMode() {
+  return /^(1|true|yes)$/i.test(String(process.env.QPAY_STRICT ?? "").trim());
+}
+
+// Render an EMVCo / demo payload string as a scannable SVG QR so the checkout UI
+// always has something to show even without QPay's own qr_image.
+export function qrSvgFromText(text) {
+  try {
+    const qr = qrcode(0, "M");
+    qr.addData(String(text ?? ""));
+    qr.make();
+    return qr.createSvgTag({ cellSize: 6, margin: 2, scalable: true });
+  } catch {
+    return "";
+  }
+}
+
+function buildDemoQpayInvoice({ orderId, amountMnt, description, customerCode, reason = "" }) {
+  const invoiceId = `DEMO-QPAY-${orderId}`;
+  const qrText = `deliverhub-demo-qpay:${orderId}:${amountMnt}`;
+
+  return {
+    providerInvoiceId: invoiceId,
+    senderInvoiceNo: orderId,
+    qrText,
+    qrImage: qrSvgFromText(qrText),
+    shortUrl: "",
+    urls: [],
+    mode: "demo",
+    degraded: Boolean(reason),
+    warning: reason
+      ? "QPay түр боломжгүй тул төлбөрийг демо горимоор баталгаажуулж байна."
+      : "",
+    raw: {
+      invoice_id: invoiceId,
+      sender_invoice_no: orderId,
+      amount: Number(amountMnt),
+      description,
+      customerCode,
+      mode: "demo",
+      reason: reason || undefined,
+    },
+  };
+}
 
 function qpayConfig() {
   return {
@@ -82,55 +132,57 @@ export async function qpayAccessToken() {
 export async function createQpayInvoice({ orderId, amountMnt, description, customerCode }) {
   const config = qpayConfig();
   if (!isQpayConfigured()) {
-    const invoiceId = `DEMO-QPAY-${orderId}`;
-    const demoPayload = {
-      invoice_id: invoiceId,
-      sender_invoice_no: orderId,
-      amount: Number(amountMnt),
-      description,
-      customerCode,
-      mode: "local-demo",
-    };
+    return buildDemoQpayInvoice({ orderId, amountMnt, description, customerCode });
+  }
+
+  try {
+    const payload = await qpayRequest("/v2/invoice", {
+      body: {
+        invoice_code: config.invoiceCode,
+        sender_invoice_no: orderId,
+        invoice_receiver_code: customerCode || orderId,
+        invoice_description: description,
+        amount: Number(amountMnt),
+        callback_url: config.callbackUrl,
+      },
+    });
+
+    if (!payload?.invoice_id) {
+      const error = new Error("QPay invoice_id ирсэнгүй.");
+      error.statusCode = 502;
+      error.code = "QPAY_INVOICE_ID_MISSING";
+      error.payload = payload;
+      throw error;
+    }
 
     return {
-      providerInvoiceId: invoiceId,
+      providerInvoiceId: payload.invoice_id,
       senderInvoiceNo: orderId,
-      qrText: `deliverhub-demo-qpay:${orderId}:${amountMnt}`,
-      qrImage: "",
-      shortUrl: "",
-      urls: [],
-      raw: demoPayload,
+      qrText: payload.qr_text ?? "",
+      qrImage: payload.qr_image ?? "",
+      shortUrl: payload.qPay_shortUrl ?? payload.qpay_shorturl ?? payload.short_url ?? "",
+      urls: Array.isArray(payload.urls) ? payload.urls : [],
+      mode: "live",
+      degraded: false,
+      warning: "",
+      raw: payload,
     };
+  } catch (error) {
+    if (qpayStrictMode()) throw error;
+
+    console.warn(
+      `[qpay] invoice creation failed, falling back to demo mode for order ${orderId}:`,
+      error?.payload ?? error?.message ?? error,
+    );
+
+    return buildDemoQpayInvoice({
+      orderId,
+      amountMnt,
+      description,
+      customerCode,
+      reason: error?.message || "qpay-unavailable",
+    });
   }
-
-  const payload = await qpayRequest("/v2/invoice", {
-    body: {
-      invoice_code: config.invoiceCode,
-      sender_invoice_no: orderId,
-      invoice_receiver_code: customerCode || orderId,
-      invoice_description: description,
-      amount: Number(amountMnt),
-      callback_url: config.callbackUrl,
-    },
-  });
-
-  if (!payload?.invoice_id) {
-    const error = new Error("QPay invoice_id ирсэнгүй.");
-    error.statusCode = 502;
-    error.code = "QPAY_INVOICE_ID_MISSING";
-    error.payload = payload;
-    throw error;
-  }
-
-  return {
-    providerInvoiceId: payload.invoice_id,
-    senderInvoiceNo: orderId,
-    qrText: payload.qr_text ?? "",
-    qrImage: payload.qr_image ?? "",
-    shortUrl: payload.qPay_shortUrl ?? payload.qpay_shorturl ?? payload.short_url ?? "",
-    urls: Array.isArray(payload.urls) ? payload.urls : [],
-    raw: payload,
-  };
 }
 
 export async function checkQpayInvoice(providerInvoiceId) {
