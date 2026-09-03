@@ -157,8 +157,8 @@ export async function extendAdminStoreSubscription(storeId, months) {
   return result;
 }
 
-export async function activateAllAdminSubscriptions(months) {
-  const result = await activateAllStoreSubscriptions(months);
+export async function activateAllAdminSubscriptions(options) {
+  const result = await activateAllStoreSubscriptions(options ?? {});
   await bust();
   return result;
 }

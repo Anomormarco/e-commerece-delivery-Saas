@@ -236,11 +236,20 @@ export async function deletePlatformStore(storeId) {
   return { id: storeId };
 }
 
-export async function activateAllStoreSubscriptions(months = 6) {
-  const step = Math.min(60, Math.max(1, Number(months) || 6));
+export async function activateAllStoreSubscriptions({ days, months } = {}) {
   const now = new Date();
-  const endsAt = new Date(now);
-  endsAt.setMonth(endsAt.getMonth() + step);
+  let endsAt;
+  let label;
+  if (Number(days) > 0) {
+    const step = Math.min(3650, Math.max(1, Number(days)));
+    endsAt = new Date(now.getTime() + step * 24 * 60 * 60 * 1000);
+    label = `${step} days`;
+  } else {
+    const step = Math.min(120, Math.max(1, Number(months) || 6));
+    endsAt = new Date(now);
+    endsAt.setMonth(endsAt.getMonth() + step);
+    label = `${step} months`;
+  }
 
   const tenants = await prisma.tenant.findMany({
     where: { stores: { some: {} } },
@@ -260,7 +269,7 @@ export async function activateAllStoreSubscriptions(months = 6) {
     }
   });
 
-  return { activated, endsAt: endsAt.toISOString(), months: step };
+  return { activated, endsAt: endsAt.toISOString(), duration: label };
 }
 
 export async function extendPlatformStoreSubscription(storeId, months = 1) {

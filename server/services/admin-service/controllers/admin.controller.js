@@ -80,7 +80,10 @@ export async function extendStoreSubscription(request, response) {
 }
 
 export async function activateAllSubscriptions(request, response) {
-  const result = await activateAllAdminSubscriptions(request.body?.months ?? 6);
+  const result = await activateAllAdminSubscriptions({
+    days: request.body?.days,
+    months: request.body?.months,
+  });
   adminEventBus.publishSoon("admin.dashboard.refresh", {});
   response.json({ ok: true, ...result });
 }

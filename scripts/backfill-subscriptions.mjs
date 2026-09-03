@@ -1,6 +1,6 @@
-// One-off: mark every store's tenant as a paying customer with an ACTIVE
-// 6-month subscription so the store dashboard + admin dashboard show "paid".
-// Usage: node scripts/backfill-subscriptions.mjs [months]
+// One-off: give every store's tenant an ACTIVE subscription that ends exactly
+// N days from now (default 300), so the store + admin dashboards show "paid".
+// Usage: node scripts/backfill-subscriptions.mjs [days]
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -8,7 +8,7 @@ import pg from "pg";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
-const MONTHS = Number(process.argv[2] || 6);
+const DAYS = Math.max(1, Number(process.argv[2] || 300));
 
 function databaseUrl() {
   if (process.env.DATABASE_URL) return process.env.DATABASE_URL;
@@ -42,7 +42,6 @@ function cuid(prefix) {
 try {
   await client.connect();
 
-  // 1. ensure the plan exists
   const planRes = await client.query(`SELECT id FROM "subscription_plans" WHERE code = $1`, [PLAN_CODE]);
   let planId = planRes.rows[0]?.id;
   if (!planId) {
@@ -55,15 +54,13 @@ try {
     console.log(`created plan ${PLAN_CODE}`);
   }
 
-  // 2. every tenant that owns at least one store
   const tenants = await client.query(
     `SELECT DISTINCT t.id, t.name FROM "tenants" t JOIN "stores" s ON s."tenantId" = t.id ORDER BY t.name`,
   );
-  console.log(`${tenants.rows.length} store tenants to activate (${MONTHS} months)`);
+  console.log(`${tenants.rows.length} store tenants -> ${DAYS} days remaining`);
 
   const now = new Date();
-  const endsAt = new Date(now);
-  endsAt.setMonth(endsAt.getMonth() + MONTHS);
+  const endsAt = new Date(now.getTime() + DAYS * 24 * 60 * 60 * 1000);
 
   let done = 0;
   for (const t of tenants.rows) {
@@ -85,7 +82,7 @@ try {
     }
   }
 
-  console.log(`\nDone. ${done}/${tenants.rows.length} tenants now ACTIVE until ${endsAt.toISOString().slice(0, 10)}.`);
+  console.log(`\nDone. ${done}/${tenants.rows.length} tenants ACTIVE until ${endsAt.toISOString().slice(0, 10)} (${DAYS} days).`);
 } catch (err) {
   console.error("FAILED:", err);
   process.exitCode = 1;

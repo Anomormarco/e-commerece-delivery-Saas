@@ -185,6 +185,8 @@ const text = {
   deletedStatus: "\u0423\u0441\u0442\u0433\u0430\u0441\u0430\u043D",
   hardDelete: "\u0411\u04AF\u0440\u043C\u04E9\u0441\u04E9\u043D \u0443\u0441\u0442\u0433\u0430\u0445",
   activateAll: "\u0411\u04AF\u0433\u0434\u0438\u0439\u0433 \u0442\u04E9\u043B\u0431\u04E9\u0440\u0442\u044D\u0439 \u0431\u043E\u043B\u0433\u043E\u0445",
+  activateAllDays: "\u0425\u044D\u0434\u044D\u043D \u04E9\u0434\u0440\u0438\u0439\u043D \u044D\u0440\u0445\u0442\u044D\u0439 \u0431\u043E\u043B\u0433\u043E\u0445 \u0432\u044D?",
+  daysWord: "\u04E9\u0434\u04E9\u0440",
   seniorCourier: "\u0410\u0445\u043B\u0430\u0445 \u0445\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0430\u0436\u0438\u043B\u0442\u0430\u043D",
   dispatcher: "\u0414\u0438\u0441\u043F\u0435\u0442\u0447\u0435\u0440",
   actionDone: "\u04AE\u0439\u043B\u0434\u044D\u043B \u0430\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439",
@@ -633,12 +635,12 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
   }
 
   async function activateAllStores() {
-    const raw = window.prompt(text.extendMonths, "6");
+    const raw = window.prompt(text.activateAllDays, "300");
     if (raw === null) return;
-    const months = Math.max(1, Math.min(60, Number(raw) || 6));
-    if (!window.confirm(`${text.activateAll} — ${months} ${text.months}?`)) return;
+    const days = Math.max(1, Math.min(3650, Number(raw) || 300));
+    if (!window.confirm(`${text.activateAll} — ${days} ${text.daysWord}?`)) return;
     try {
-      const result = await postJson<{ activated: number }>("/stores/activate-all", { months });
+      const result = await postJson<{ activated: number }>("/stores/activate-all", { days });
       await dashboard.refetch();
       setNotice(`${text.activateAll}: ${result.activated} - ${text.actionDone}`);
     } catch (error) {
