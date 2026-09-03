@@ -1528,6 +1528,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const customerLocation = location ?? { latitude: 47.9212, longitude: 106.9186 };
   const km = distanceKm(storeLocation, customerLocation);
   const deliveryFee = Math.round(activeDelivery.base + km * activeDelivery.perKm + weightKg * activeDelivery.perKg);
+  // Must match serviceFeeMnt in customer-service createCustomerOrder, otherwise
+  // the QPay invoice bills more than this summary shows.
+  const serviceFeeMnt = 500;
+  const checkoutTotal = subtotal + deliveryFee + serviceFeeMnt;
   const etaMinutes = Math.max(12, Math.round((km / activeDelivery.speedKmh) * 60 + 10));
   const qpayMerchantName = selectedItems[0]?.storeName ?? selectedStore?.name ?? "DeliverHub market";
   const qpayQrSrc = qpayQrImageSource(qpayPayment?.qrImage);
@@ -2840,8 +2844,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     <div className="landing-cart-totals">
                       <span><em>Нийт бүтээгдэхүүний үнэ</em><strong>{formatMnt(subtotal)}</strong></span>
                       <span><em>Хүргэлт</em><strong>{formatMnt(deliveryFee)}</strong></span>
+                      <span><em>Үйлчилгээний хураамж</em><strong>{formatMnt(serviceFeeMnt)}</strong></span>
                       <span><em>Хөнгөлөлт</em><strong>-{formatMnt(0)}</strong></span>
-                      <span><em>Нийт дүн</em><strong>{formatMnt(subtotal + deliveryFee)}</strong></span>
+                      <span><em>Нийт дүн</em><strong>{formatMnt(checkoutTotal)}</strong></span>
                     </div>
                     <div className="landing-checkout-trust">
                       <div>
