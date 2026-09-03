@@ -7,6 +7,7 @@ import {
   listCustomerStores,
   loginCustomer,
   registerCustomer,
+  updateCustomerProfile,
 } from "../services/customer.service.js";
 
 export async function register(request, response) {
@@ -15,6 +16,10 @@ export async function register(request, response) {
 
 export async function login(request, response) {
   response.json(await loginCustomer(request.body));
+}
+
+export async function updateProfile(request, response) {
+  response.json(await updateCustomerProfile(userIdFromRequest(request), request.body));
 }
 
 export async function createOrder(request, response) {

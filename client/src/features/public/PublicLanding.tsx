@@ -1206,23 +1206,37 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     reader.readAsDataURL(file);
   }
 
-  function saveCustomerProfile() {
+  async function saveCustomerProfile() {
     if (!session) return;
 
-    const nextSession: CustomerSession = {
-      ...session,
-      customer: {
-        ...session.customer,
-        fullName: profileDraft.fullName.trim() || session.customer.fullName,
-        email: profileDraft.email.trim() || undefined,
-        phone: profileDraft.phone.trim() || session.customer.phone,
-      },
-    };
+    try {
+      const result = await apiPost<{ success: boolean; customer: { id: string; fullName: string; email?: string | null; phone: string } }>(
+        "/customer/profile",
+        {
+          fullName: profileDraft.fullName.trim() || session.customer.fullName,
+          email: profileDraft.email.trim(),
+          phone: profileDraft.phone.trim() || session.customer.phone,
+        },
+        session.token,
+      );
 
-    setSession(nextSession);
-    localStorage.setItem(customerStorageKey, JSON.stringify(nextSession.customer));
-    setProfileEditing(false);
-    setNotice("Профайл шинэчлэгдлээ.");
+      const nextSession: CustomerSession = {
+        ...session,
+        customer: {
+          ...session.customer,
+          fullName: result.customer.fullName,
+          email: result.customer.email ?? undefined,
+          phone: result.customer.phone,
+        },
+      };
+
+      setSession(nextSession);
+      localStorage.setItem(customerStorageKey, JSON.stringify(nextSession.customer));
+      setProfileEditing(false);
+      setNotice("Профайл шинэчлэгдлээ.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Профайл хадгалахад алдаа гарлаа.");
+    }
   }
 
   function openProfileOrders() {
@@ -2500,7 +2514,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
                     <form
                       onSubmit={(event) => {
                         event.preventDefault();
-                        saveCustomerProfile();
+                        void saveCustomerProfile();
                       }}
                     >
                       <label>

@@ -8,12 +8,14 @@ import {
   login,
   register,
   showCurrentCustomerTracking,
+  updateProfile,
 } from "../controllers/customer.controller.js";
 import { listCustomerNotifications, markCustomerNotificationsRead } from "../controllers/notification.controller.js";
 
 export function registerCustomerRoutes(app, { basePath = "/api/customer" } = {}) {
   app.post(`${basePath}/auth/register`, asyncHandler(register));
   app.post(`${basePath}/auth/login`, asyncHandler(login));
+  app.post(`${basePath}/profile`, requireAuth, asyncHandler(updateProfile));
   // Public: browsing the market never requires login. Only checkout does.
   app.get(`${basePath}/stores`, asyncHandler(listStores));
   app.post(`${basePath}/orders`, requireAuth, asyncHandler(createOrder));

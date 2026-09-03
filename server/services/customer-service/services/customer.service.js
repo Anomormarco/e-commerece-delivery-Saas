@@ -410,6 +410,74 @@ export async function loginCustomer({ login, password }) {
   };
 }
 
+export async function updateCustomerProfile(userId, input = {}) {
+  if (!userId) {
+    throw createHttpError(401, "Профайл засахын тулд нэвтэрнэ үү.", "UNAUTHENTICATED");
+  }
+
+  const customer = await prisma.customer.findUnique({ where: { userId } });
+  if (!customer) throw createHttpError(404, "Хэрэглэгч олдсонгүй.", "NOT_FOUND");
+
+  const patch = {};
+
+  if (input.fullName !== undefined) {
+    const fullName = String(input.fullName).trim();
+    if (!fullName) throw createHttpError(400, "Нэрээ хоосон орхиж болохгүй.");
+    patch.fullName = fullName;
+  }
+
+  if (input.phone !== undefined) {
+    const rawPhone = String(input.phone).trim();
+    if (!rawPhone) throw createHttpError(400, "Утасны дугаараа хоосон орхиж болохгүй.");
+    const phone = normalizePhone(rawPhone);
+    if (!/^\+?\d{8,15}$/.test(phone.replace(/[^\d+]/g, ""))) {
+      throw createHttpError(400, "Утасны дугаараа зөв оруулна уу.");
+    }
+    patch.phone = phone;
+  }
+
+  if (input.email !== undefined) {
+    const rawEmail = String(input.email).trim();
+    if (!rawEmail) {
+      patch.email = null;
+    } else {
+      try {
+        patch.email = validateGmailAddress(rawEmail);
+      } catch {
+        throw createHttpError(400, "Gmail хаягаа зөв оруулна уу.");
+      }
+    }
+  }
+
+  if (patch.email) {
+    const clash = await prisma.user.findFirst({
+      where: { email: patch.email, NOT: { id: userId } },
+      select: { id: true },
+    });
+    if (clash) throw createHttpError(409, "Энэ Gmail хаяг өөр бүртгэлд ашиглагдсан байна.", "CONFLICT");
+  }
+  if (patch.phone) {
+    const clash = await prisma.user.findFirst({
+      where: { phone: patch.phone, NOT: { id: userId } },
+      select: { id: true },
+    });
+    if (clash) throw createHttpError(409, "Энэ утасны дугаар өөр бүртгэлд ашиглагдсан байна.", "CONFLICT");
+  }
+
+  if (!Object.keys(patch).length) {
+    return { success: true, customer: publicCustomer(customer) };
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    await tx.user.update({ where: { id: userId }, data: patch });
+    return tx.customer.update({ where: { id: customer.id }, data: patch });
+  });
+
+  appCache.forget?.(`customer:tracking:${userId}`);
+
+  return { success: true, customer: publicCustomer(updated) };
+}
+
 export async function createCustomerOrder(userId, input) {
   if (!userId) {
     throw createHttpError(401, "Захиалга хийхийн тулд нэвтэрнэ үү.", "UNAUTHENTICATED");
