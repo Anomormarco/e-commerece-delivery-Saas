@@ -56,11 +56,14 @@ export function clearAccessToken() {
   sessionStorage.removeItem(storageKey);
 }
 
-// Fired once when an authenticated request is rejected because the session is no
-// longer valid (expired / tampered token). App shells listen for this and drop
-// the user back to the login screen instead of leaving them on a dead dashboard.
+// Fired once when an authenticated request is rejected because the session token
+// itself is dead (expired or tampered). App shells listen for this and drop the
+// user back to the login screen instead of leaving them on a dead dashboard.
+// NB: only these two unambiguous codes trigger it — a bare 401 or a generic
+// UNAUTHENTICATED can come from a single stale request (a rejected job id, a
+// notification poll racing a logout) and must NOT tear down a live session.
 export const AUTH_EXPIRED_EVENT = "deliverhub:auth-expired";
-const authFailureCodes = new Set(["TOKEN_EXPIRED", "INVALID_TOKEN", "UNAUTHENTICATED"]);
+const authFailureCodes = new Set(["TOKEN_EXPIRED", "INVALID_TOKEN"]);
 
 function notifyAuthExpired(code: string) {
   if (typeof window === "undefined") return;
@@ -89,11 +92,10 @@ async function requestJson<T>(path: string, options: RequestInit = {}): Promise<
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
-    const isAuthFailure = response.status === 401
-      || (typeof body?.code === "string" && authFailureCodes.has(body.code));
-    if (isAuthFailure && accessToken) {
+    const isDeadToken = typeof body?.code === "string" && authFailureCodes.has(body.code);
+    if (isDeadToken && accessToken) {
       clearAccessToken();
-      notifyAuthExpired(typeof body?.code === "string" ? body.code : "TOKEN_EXPIRED");
+      notifyAuthExpired(body.code);
     }
     throw new Error(apiErrorMessage(body, response.status));
   }
