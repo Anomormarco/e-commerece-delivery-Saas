@@ -22172,8 +22172,11 @@ h2 {
 }
 
 .employee-mobile-shell .employee-app-scroll.is-home-tab .employee-live-map {
-  flex: 1;
-  min-height: 0;
+  flex: 1 1 auto;
+  /* Floor so the map can never collapse to nothing when the flex parent has no
+     resolved height (some mobile browsers) - the home tab is the map, it must
+     stay visible. */
+  min-height: 60vh;
   height: 100%;
 }
 

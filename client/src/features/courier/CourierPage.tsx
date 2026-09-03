@@ -513,6 +513,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
         setAcceptedRouteJobIds(new Set());
       }
     } catch (error) {
+      console.error("[courier] action failed", error);
       setActionError(error instanceof Error ? error.message : text.actionError);
     }
   }
@@ -532,6 +533,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
         (currentJobs ?? visibleJobs).map((job) => (job.id === acceptedJob.id ? acceptedJob : job)),
       );
     } catch (error) {
+      console.error("[courier] action failed", error);
       setActionError(error instanceof Error ? error.message : text.actionError);
     }
   }
@@ -556,6 +558,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
       setOtpByJob((current) => ({ ...current, [jobId]: "" }));
       if (path === "verify-dropoff") showSuccessNotice(text.delivered);
     } catch (error) {
+      console.error("[courier] action failed", error);
       setActionError(error instanceof Error ? error.message : text.actionError);
     }
   }
@@ -568,6 +571,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
       setLocalOnline(nextDashboard.online);
       setJobs(nextDashboard.jobs);
     } catch (error) {
+      console.error("[courier] action failed", error);
       setActionError(error instanceof Error ? error.message : text.actionError);
     }
   }
@@ -597,6 +601,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
       setProfileMessage(text.profileSaved);
       await refreshDashboard({ silent: true });
     } catch (error) {
+      console.error("[courier] action failed", error);
       setActionError(error instanceof Error ? error.message : text.actionError);
     } finally {
       setProfileSaving(false);
@@ -616,6 +621,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
       setProfileForm(nextProfile);
       await saveProfileData(nextProfile);
     } catch (error) {
+      console.error("[courier] action failed", error);
       setActionError(error instanceof Error ? error.message : text.actionError);
     }
   }
@@ -723,8 +729,6 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                 </InteractiveRouteMap>
               )}
 
-              {actionError && <p className="courier-rule-note danger">{actionError}</p>}
-
               {activeTab === "deliveries" && (
                 <section className="courier-order-experience" aria-label={text.myOrders}>
                   <div className="courier-order-search">
@@ -756,7 +760,7 @@ export function CourierPage({ onLogout }: { onLogout?: () => void }) {
                 </section>
               )}
 
-              {(activeTab === "home" || activeTab === "deliveries") && (
+              {activeTab === "deliveries" && (
                 <>
               {filteredJobs.map((job, index) => (
                 <article className="employee-request-card" key={job.id}>
