@@ -1,7 +1,11 @@
 import { adminEventBus } from "../messaging.js";
 import {
+  activateAllAdminSubscriptions,
+  createAdminEmployee,
+  createAdminStore,
   deleteAdminEmployee,
   deleteAdminStore,
+  extendAdminStoreSubscription,
   getAdminDashboard,
   updateAdminEmployee,
   updateAdminStore,
@@ -57,16 +61,41 @@ export async function updateAdminProfile(request, response) {
   response.json({ user });
 }
 
+export async function createStore(request, response) {
+  const store = await createAdminStore(request.body);
+  adminEventBus.publishSoon("admin.dashboard.refresh", { storeId: store.id });
+  response.status(201).json({ ok: true, store });
+}
+
 export async function updateStore(request, response) {
   await updateAdminStore(request.params.storeId, request.body);
   adminEventBus.publishSoon("admin.dashboard.refresh", { storeId: request.params.storeId });
   response.json({ ok: true });
 }
 
+export async function extendStoreSubscription(request, response) {
+  const result = await extendAdminStoreSubscription(request.params.storeId, request.body?.months ?? 1);
+  adminEventBus.publishSoon("admin.dashboard.refresh", { storeId: request.params.storeId });
+  response.json({ ok: true, subscription: result });
+}
+
+export async function activateAllSubscriptions(request, response) {
+  const result = await activateAllAdminSubscriptions(request.body?.months ?? 6);
+  adminEventBus.publishSoon("admin.dashboard.refresh", {});
+  response.json({ ok: true, ...result });
+}
+
 export async function deleteStore(request, response) {
-  await deleteAdminStore(request.params.storeId);
+  const hard = request.body?.hard === true || request.query?.hard === "true";
+  await deleteAdminStore(request.params.storeId, { hard });
   adminEventBus.publishSoon("admin.dashboard.refresh", { storeId: request.params.storeId });
   response.json({ ok: true });
+}
+
+export async function createEmployee(request, response) {
+  const employee = await createAdminEmployee(request.body);
+  adminEventBus.publishSoon("admin.dashboard.refresh", { userId: employee.id });
+  response.status(201).json({ ok: true, employee });
 }
 
 export async function updateEmployee(request, response) {
@@ -76,7 +105,8 @@ export async function updateEmployee(request, response) {
 }
 
 export async function deleteEmployee(request, response) {
-  await deleteAdminEmployee(request.params.userId);
+  const hard = request.body?.hard === true || request.query?.hard === "true";
+  await deleteAdminEmployee(request.params.userId, { hard });
   adminEventBus.publishSoon("admin.dashboard.refresh", { userId: request.params.userId });
   response.json({ ok: true });
 }

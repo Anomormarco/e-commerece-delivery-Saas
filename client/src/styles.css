@@ -24715,3 +24715,206 @@ h2 {
   color: #ffffff;
   font-size: 12px;
 }
+
+/* ---- Admin: store/employee CRUD tables + modal ---- */
+.admin-card-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-add-button {
+  padding: 6px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #2563eb;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-add-button:hover {
+  background: #1d4ed8;
+}
+
+.admin-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.admin-subrow {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.admin-row-actions {
+  display: inline-flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.platform-card td button.admin-pill-button {
+  width: auto;
+  height: auto;
+  margin: 0;
+  padding: 3px 10px;
+  border: 0;
+}
+
+.admin-pill.admin-pill-button {
+  cursor: pointer;
+}
+
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.admin-modal {
+  width: min(460px, 100%);
+  max-height: 90vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+}
+
+.theme-night .admin-modal {
+  background: #0f172a;
+  color: #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.admin-modal > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.admin-modal > header button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.admin-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-modal-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.admin-modal-field input,
+.admin-modal-field select {
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.theme-night .admin-modal-field input,
+.theme-night .admin-modal-field select {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+.admin-modal-hint {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.admin-modal-error {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: rgba(220, 38, 38, 0.12);
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.admin-modal > footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.admin-modal-spacer {
+  flex: 1;
+}
+
+.admin-modal > footer button {
+  padding: 8px 14px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.admin-modal-cancel {
+  border: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+}
+
+.admin-modal-submit {
+  border: 0;
+  background: #2563eb;
+  color: #fff;
+}
+
+.admin-modal-submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.admin-modal-danger {
+  border: 1px solid rgba(220, 38, 38, 0.5);
+  background: transparent;
+  color: #dc2626;
+}
+
+.admin-add-button-ghost {
+  background: transparent;
+  color: #2563eb;
+  border-color: #2563eb;
+}
+
+.admin-add-button-ghost:hover {
+  background: rgba(37, 99, 235, 0.1);
+}

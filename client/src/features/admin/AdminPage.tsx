@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 import { NotificationBell } from "../../components/NotificationBell";
 import { StateBlock } from "../../components/StateBlock";
@@ -14,24 +15,52 @@ type AdminDashboard = {
   alerts: string[];
 };
 
+type AdminSubscription = {
+  paid: boolean;
+  status: string;
+  statusLabel: string;
+  planName: string;
+  amountMnt: string;
+  startsAt: string | null;
+  endsAt: string | null;
+  daysLeft: number | null;
+};
+
 type AdminStoreRow = {
   id: string;
   name: string;
+  slug?: string;
+  description?: string;
   status: string;
   statusLabel: string;
+  tenantId?: string;
   tenantName: string;
   tenantStatus: string;
+  address?: string;
   productCount: number;
   orderCount: number;
+  createdAt?: string | null;
+  subscription: AdminSubscription;
 };
 
 type AdminEmployeeRow = {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   status: string;
   statusLabel: string;
+  createdAt?: string | null;
   roles: Array<{ code: string; name: string }>;
+  tenantName?: string;
+  tenantRole?: string;
+  courier?: {
+    vehicleType: string;
+    vehiclePlate: string;
+    online: boolean;
+    rating: number | null;
+    verificationStatus: string;
+  } | null;
 };
 
 type AdminUser = {
@@ -129,6 +158,33 @@ const text = {
   delete: "\u0423\u0441\u0442\u0433\u0430\u0445",
   invoice: "\u041D\u044D\u0445\u044D\u043C\u0436\u043B\u044D\u0445",
   extend: "\u0421\u0443\u043D\u0433\u0430\u0445",
+  wait: "\u0422\u04AF\u0440 \u0445\u04AF\u043B\u044D\u044D\u043D\u044D \u04AF\u04AF...",
+  optional: "\u0437\u0430\u0430\u0432\u0430\u043B \u0431\u0438\u0448",
+  newStore: "\u0428\u0438\u043D\u044D \u0434\u044D\u043B\u0433\u04AF\u04AF\u0440",
+  newEmployee: "\u0428\u0438\u043D\u044D \u0430\u0436\u0438\u043B\u0442\u0430\u043D",
+  subscription: "\u0422\u04E9\u043B\u0431\u04E9\u0440",
+  paid: "\u0422\u04E9\u043B\u0441\u04E9\u043D",
+  unpaid: "\u0422\u04E9\u043B\u0431\u04E9\u0440\u0433\u04AF\u0439",
+  daysLeft: "\u04E9\u0434\u04E9\u0440 \u04AF\u043B\u0434\u0441\u044D\u043D",
+  phoneLabel: "\u0423\u0442\u0430\u0441",
+  emailLabel: "\u0418\u043C\u044D\u0439\u043B",
+  vehicle: "\u0422\u044D\u044D\u0432\u044D\u0440",
+  tenantLabel: "\u0422\u0435\u043D\u0430\u043D\u0442",
+  createdLabel: "\u04AE\u04AF\u0441\u0433\u044D\u0441\u044D\u043D",
+  cancel: "\u0426\u0443\u0446\u043B\u0430\u0445",
+  create: "\u04AE\u04AF\u0441\u0433\u044D\u0445",
+  months: "\u0421\u0430\u0440",
+  extendMonths: "\u0425\u044D\u0434\u044D\u043D \u0441\u0430\u0440\u0430\u0430\u0440 \u0441\u0443\u043D\u0433\u0430\u0445 \u0432\u044D?",
+  storeName2: "\u0414\u044D\u043B\u0433\u04AF\u04AF\u0440\u0438\u0439\u043D \u043D\u044D\u0440",
+  owner: "\u042D\u0437\u044D\u043C\u0448\u0438\u0433\u0447",
+  descriptionLabel: "\u0422\u0430\u0439\u043B\u0431\u0430\u0440",
+  roleLabel: "\u04AE\u04AF\u0440\u044D\u0433",
+  passwordLabel: "\u041D\u0443\u0443\u0446 \u04AF\u0433",
+  activeStatus: "\u0418\u0434\u044D\u0432\u0445\u0442\u044D\u0439",
+  suspendedStatus: "\u0422\u04AF\u0434\u0433\u044D\u043B\u0437\u04AF\u04AF\u043B\u0441\u044D\u043D",
+  deletedStatus: "\u0423\u0441\u0442\u0433\u0430\u0441\u0430\u043D",
+  hardDelete: "\u0411\u04AF\u0440\u043C\u04E9\u0441\u04E9\u043D \u0443\u0441\u0442\u0433\u0430\u0445",
+  activateAll: "\u0411\u04AF\u0433\u0434\u0438\u0439\u0433 \u0442\u04E9\u043B\u0431\u04E9\u0440\u0442\u044D\u0439 \u0431\u043E\u043B\u0433\u043E\u0445",
   seniorCourier: "\u0410\u0445\u043B\u0430\u0445 \u0445\u04AF\u0440\u0433\u044D\u043B\u0442\u0438\u0439\u043D \u0430\u0436\u0438\u043B\u0442\u0430\u043D",
   dispatcher: "\u0414\u0438\u0441\u043F\u0435\u0442\u0447\u0435\u0440",
   actionDone: "\u04AE\u0439\u043B\u0434\u044D\u043B \u0430\u043C\u0436\u0438\u043B\u0442\u0442\u0430\u0439",
@@ -206,6 +262,280 @@ function BellIcon() {
   );
 }
 
+const employeeRoleOptions = [
+  { code: "DELIVERY_EMPLOYEE", label: "Хүргэлтийн ажилтан" },
+  { code: "STORE_ADMIN", label: "Дэлгүүрийн админ" },
+  { code: "SHOP_ADMIN", label: "Shop админ" },
+  { code: "PLATFORM_ADMIN", label: "Платформ админ" },
+];
+const employeeStatusOptions = ["ACTIVE", "SUSPENDED", "INVITED", "DELETED"];
+const vehicleOptions = ["WALK", "MOPED", "CAR"];
+
+function ModalField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="admin-modal-field">
+      <span>{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function AdminModalShell({
+  title,
+  error,
+  busy,
+  submitLabel,
+  onClose,
+  onSubmit,
+  children,
+  danger,
+}: {
+  title: string;
+  error: string | null;
+  busy: boolean;
+  submitLabel: string;
+  onClose: () => void;
+  onSubmit: (event: FormEvent) => void;
+  children: ReactNode;
+  danger?: ReactNode;
+}) {
+  return (
+    <div className="admin-modal-overlay" role="dialog" aria-modal="true" onMouseDown={onClose}>
+      <form className="admin-modal" onSubmit={onSubmit} onMouseDown={(event) => event.stopPropagation()}>
+        <header>
+          <strong>{title}</strong>
+          <button type="button" onClick={onClose} aria-label={text.close}>
+            {"×"}
+          </button>
+        </header>
+        <div className="admin-modal-body">{children}</div>
+        {error && <p className="admin-modal-error">{error}</p>}
+        <footer>
+          {danger}
+          <span className="admin-modal-spacer" />
+          <button type="button" className="admin-modal-cancel" onClick={onClose}>
+            {text.cancel}
+          </button>
+          <button type="submit" className="admin-modal-submit" disabled={busy}>
+            {busy ? text.wait : submitLabel}
+          </button>
+        </footer>
+      </form>
+    </div>
+  );
+}
+
+function StoreFormModal({
+  mode,
+  row,
+  busy,
+  error,
+  onClose,
+  onSubmit,
+  onHardDelete,
+}: {
+  mode: "create" | "edit";
+  row?: AdminStoreRow;
+  busy: boolean;
+  error: string | null;
+  onClose: () => void;
+  onSubmit: (payload: Record<string, unknown>) => void;
+  onHardDelete?: () => void;
+}) {
+  const [name, setName] = useState(row?.name ?? "");
+  const [description, setDescription] = useState(row?.description ?? "");
+  const [months, setMonths] = useState(6);
+  const [ownerName, setOwnerName] = useState("");
+  const [ownerLogin, setOwnerLogin] = useState("");
+  const [ownerPassword, setOwnerPassword] = useState("");
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    if (mode === "edit") {
+      onSubmit({ name: name.trim(), description: description.trim() });
+      return;
+    }
+    const isEmail = ownerLogin.includes("@");
+    onSubmit({
+      name: name.trim(),
+      description: description.trim(),
+      subscriptionMonths: months,
+      ownerName: ownerName.trim() || undefined,
+      ownerEmail: isEmail ? ownerLogin.trim() : undefined,
+      ownerPhone: isEmail ? undefined : ownerLogin.trim() || undefined,
+      ownerPassword: ownerPassword || undefined,
+    });
+  }
+
+  return (
+    <AdminModalShell
+      title={mode === "create" ? text.newStore : `${text.edit}: ${row?.name ?? ""}`}
+      error={error}
+      busy={busy}
+      submitLabel={mode === "create" ? text.create : text.save}
+      onClose={onClose}
+      onSubmit={submit}
+      danger={
+        mode === "edit" && onHardDelete ? (
+          <button type="button" className="admin-modal-danger" onClick={onHardDelete}>
+            {text.hardDelete}
+          </button>
+        ) : null
+      }
+    >
+      <ModalField label={text.storeName2}>
+        <input value={name} onChange={(event) => setName(event.target.value)} required />
+      </ModalField>
+      <ModalField label={text.descriptionLabel}>
+        <input value={description} onChange={(event) => setDescription(event.target.value)} />
+      </ModalField>
+      {mode === "create" && (
+        <>
+          <ModalField label={`${text.subscription} (${text.months})`}>
+            <input
+              type="number"
+              min={0}
+              max={60}
+              value={months}
+              onChange={(event) => setMonths(Math.max(0, Number(event.target.value) || 0))}
+            />
+          </ModalField>
+          <p className="admin-modal-hint">{`${text.storeName2} — ${text.owner} · ${text.optional}`}</p>
+          <ModalField label={text.owner}>
+            <input value={ownerName} onChange={(event) => setOwnerName(event.target.value)} />
+          </ModalField>
+          <ModalField label={`${text.emailLabel} / ${text.phoneLabel}`}>
+            <input value={ownerLogin} onChange={(event) => setOwnerLogin(event.target.value)} />
+          </ModalField>
+          <ModalField label={text.passwordLabel}>
+            <input type="password" value={ownerPassword} onChange={(event) => setOwnerPassword(event.target.value)} />
+          </ModalField>
+        </>
+      )}
+    </AdminModalShell>
+  );
+}
+
+function EmployeeFormModal({
+  mode,
+  row,
+  busy,
+  error,
+  onClose,
+  onSubmit,
+  onHardDelete,
+}: {
+  mode: "create" | "edit";
+  row?: AdminEmployeeRow;
+  busy: boolean;
+  error: string | null;
+  onClose: () => void;
+  onSubmit: (payload: Record<string, unknown>) => void;
+  onHardDelete?: () => void;
+}) {
+  const [fullName, setFullName] = useState(row?.name ?? "");
+  const [email, setEmail] = useState(row?.email ?? "");
+  const [phone, setPhone] = useState(row?.phone ?? "");
+  const [password, setPassword] = useState("");
+  const [roleCode, setRoleCode] = useState(row?.roles?.[0]?.code ?? "DELIVERY_EMPLOYEE");
+  const [status, setStatus] = useState(row?.status ?? "ACTIVE");
+  const [vehicleType, setVehicleType] = useState(row?.courier?.vehicleType || "WALK");
+
+  function submit(event: FormEvent) {
+    event.preventDefault();
+    if (mode === "edit") {
+      onSubmit({
+        fullName: fullName.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        status,
+        ...(row?.courier ? { vehicleType } : {}),
+      });
+      return;
+    }
+    onSubmit({
+      fullName: fullName.trim(),
+      email: email.trim() || undefined,
+      phone: phone.trim() || undefined,
+      password,
+      roleCode,
+      vehicleType,
+    });
+  }
+
+  return (
+    <AdminModalShell
+      title={mode === "create" ? text.newEmployee : `${text.edit}: ${row?.name ?? ""}`}
+      error={error}
+      busy={busy}
+      submitLabel={mode === "create" ? text.create : text.save}
+      onClose={onClose}
+      onSubmit={submit}
+      danger={
+        mode === "edit" && onHardDelete ? (
+          <button type="button" className="admin-modal-danger" onClick={onHardDelete}>
+            {text.hardDelete}
+          </button>
+        ) : null
+      }
+    >
+      <ModalField label={text.fullName}>
+        <input value={fullName} onChange={(event) => setFullName(event.target.value)} required />
+      </ModalField>
+      <ModalField label={text.emailLabel}>
+        <input value={email} onChange={(event) => setEmail(event.target.value)} />
+      </ModalField>
+      <ModalField label={text.phoneLabel}>
+        <input value={phone} onChange={(event) => setPhone(event.target.value)} />
+      </ModalField>
+      {mode === "create" && (
+        <>
+          <ModalField label={text.passwordLabel}>
+            <input type="password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} />
+          </ModalField>
+          <ModalField label={text.roleLabel}>
+            <select value={roleCode} onChange={(event) => setRoleCode(event.target.value)}>
+              {employeeRoleOptions.map((option) => (
+                <option key={option.code} value={option.code}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </ModalField>
+        </>
+      )}
+      {mode === "edit" && (
+        <ModalField label={text.status}>
+          <select value={status} onChange={(event) => setStatus(event.target.value)}>
+            {employeeStatusOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </ModalField>
+      )}
+      {(roleCode === "DELIVERY_EMPLOYEE" || row?.courier) && (
+        <ModalField label={text.vehicle}>
+          <select value={vehicleType} onChange={(event) => setVehicleType(event.target.value)}>
+            {vehicleOptions.map((option) => (
+              <option key={option} value={option}>
+                {option}
+              </option>
+            ))}
+          </select>
+        </ModalField>
+      )}
+    </AdminModalShell>
+  );
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString("mn-MN");
+}
+
 export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
   const dashboard = useRealtimeResource<AdminDashboard>("/dashboard", ["admin.dashboard.refresh"]);
   const [activeSection, setActiveSection] = useState<SectionKey>(() => routeFromHash());
@@ -247,50 +577,112 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
     setNotice(`${label}: ${target} - ${text.actionDone}`);
   }
 
-  async function editStore(store: AdminStoreRow) {
-    const nextName = window.prompt("Дэлгүүрийн нэр", store.name)?.trim();
-    if (!nextName || nextName === store.name) return;
+  const [storeModal, setStoreModal] = useState<{ mode: "create" | "edit"; row?: AdminStoreRow } | null>(null);
+  const [employeeModal, setEmployeeModal] = useState<{ mode: "create" | "edit"; row?: AdminEmployeeRow } | null>(null);
+  const [modalBusy, setModalBusy] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
 
+  async function submitStore(payload: Record<string, unknown>) {
+    if (!storeModal) return;
+    setModalBusy(true);
+    setModalError(null);
     try {
-      await postJson(`/stores/${store.id}`, { name: nextName });
+      if (storeModal.mode === "edit" && storeModal.row) {
+        await postJson(`/stores/${storeModal.row.id}`, payload);
+      } else {
+        await postJson("/stores", payload);
+      }
       await dashboard.refetch();
-      setNotice(`${text.edit}: ${nextName} - ${text.actionDone}`);
+      setStoreModal(null);
+      setNotice(text.actionDone);
+    } catch (error) {
+      setModalError(error instanceof Error ? error.message : text.profileSaveFailed);
+    } finally {
+      setModalBusy(false);
+    }
+  }
+
+  async function submitEmployee(payload: Record<string, unknown>) {
+    if (!employeeModal) return;
+    setModalBusy(true);
+    setModalError(null);
+    try {
+      if (employeeModal.mode === "edit" && employeeModal.row) {
+        await postJson(`/employees/${employeeModal.row.id}`, payload);
+      } else {
+        await postJson("/employees", payload);
+      }
+      await dashboard.refetch();
+      setEmployeeModal(null);
+      setNotice(text.actionDone);
+    } catch (error) {
+      setModalError(error instanceof Error ? error.message : text.profileSaveFailed);
+    } finally {
+      setModalBusy(false);
+    }
+  }
+
+  async function toggleStoreActive(store: AdminStoreRow) {
+    try {
+      await postJson(`/stores/${store.id}`, { isActive: store.status !== "ACTIVE" });
+      await dashboard.refetch();
+      setNotice(text.actionDone);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : text.profileSaveFailed);
     }
   }
 
-  async function deleteStore(store: AdminStoreRow) {
-    if (!window.confirm(`${store.name} дэлгүүрийг идэвхгүй болгох уу?`)) return;
-
+  async function activateAllStores() {
+    const raw = window.prompt(text.extendMonths, "6");
+    if (raw === null) return;
+    const months = Math.max(1, Math.min(60, Number(raw) || 6));
+    if (!window.confirm(`${text.activateAll} — ${months} ${text.months}?`)) return;
     try {
-      await postJson(`/stores/${store.id}/delete`);
+      const result = await postJson<{ activated: number }>("/stores/activate-all", { months });
       await dashboard.refetch();
+      setNotice(`${text.activateAll}: ${result.activated} - ${text.actionDone}`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : text.profileSaveFailed);
+    }
+  }
+
+  async function extendStore(store: AdminStoreRow) {
+    const raw = window.prompt(text.extendMonths, "6");
+    if (raw === null) return;
+    const months = Math.max(1, Math.min(60, Number(raw) || 1));
+    try {
+      await postJson(`/stores/${store.id}/subscription`, { months });
+      await dashboard.refetch();
+      setNotice(`${text.extend}: ${months} ${text.months} - ${text.actionDone}`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : text.profileSaveFailed);
+    }
+  }
+
+  async function removeStore(store: AdminStoreRow, hard = false) {
+    const question = hard
+      ? `${store.name}: ${text.hardDelete}?`
+      : `${store.name} дэлгүүрийг идэвхгүй болгох уу?`;
+    if (!window.confirm(question)) return;
+    try {
+      await postJson(`/stores/${store.id}/delete`, hard ? { hard: true } : {});
+      await dashboard.refetch();
+      setStoreModal(null);
       setNotice(`${text.delete}: ${store.name} - ${text.actionDone}`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : text.profileSaveFailed);
     }
   }
 
-  async function editEmployee(employee: AdminEmployeeRow) {
-    const nextName = window.prompt("Ажилтны нэр", employee.name)?.trim();
-    if (!nextName || nextName === employee.name) return;
-
+  async function removeEmployee(employee: AdminEmployeeRow, hard = false) {
+    const question = hard
+      ? `${employee.name}: ${text.hardDelete}?`
+      : `${employee.name} ажилтныг идэвхгүй болгох уу?`;
+    if (!window.confirm(question)) return;
     try {
-      await postJson(`/employees/${employee.id}`, { fullName: nextName });
+      await postJson(`/employees/${employee.id}/delete`, hard ? { hard: true } : {});
       await dashboard.refetch();
-      setNotice(`${text.edit}: ${nextName} - ${text.actionDone}`);
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : text.profileSaveFailed);
-    }
-  }
-
-  async function deleteEmployee(employee: AdminEmployeeRow) {
-    if (!window.confirm(`${employee.name} ажилтныг устгах уу?`)) return;
-
-    try {
-      await postJson(`/employees/${employee.id}/delete`);
-      await dashboard.refetch();
+      setEmployeeModal(null);
       setNotice(`${text.delete}: ${employee.name} - ${text.actionDone}`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : text.profileSaveFailed);
@@ -447,18 +839,32 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
   }
 
   function renderStores(storeRows: AdminStoreRow[]) {
+    const paidCount = storeRows.filter((store) => store.subscription?.paid).length;
     return (
       <article className="platform-card">
         <div className="platform-card-head">
           <h2>{text.stores}</h2>
-          <span>{storeRows.length}</span>
+          <div className="admin-card-head-actions">
+            <span>
+              {paidCount}/{storeRows.length} {text.paid}
+            </span>
+            <button className="admin-add-button admin-add-button-ghost" type="button" onClick={activateAllStores}>
+              {text.activateAll}
+            </button>
+            <button className="admin-add-button" type="button" onClick={() => setStoreModal({ mode: "create" })}>
+              + {text.newStore}
+            </button>
+          </div>
         </div>
-        <table>
+        <div className="admin-table-scroll">
+          <table>
           <thead>
             <tr>
               <th>{text.name}</th>
               <th>{text.status}</th>
+              <th>{text.subscription}</th>
               <th>Бараа / Захиалга</th>
+              <th>{text.createdLabel}</th>
               <th>{text.actions}</th>
             </tr>
           </thead>
@@ -468,32 +874,55 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
                 <td>
                   <div>
                     <strong>{store.name}</strong>
-                    <span>{store.tenantName || store.tenantStatus}</span>
+                    <span>{store.address || store.tenantName || store.tenantStatus}</span>
                   </div>
                 </td>
                 <td>
-                  <span className={`admin-pill ${statusTone(store.status)}`}>{store.statusLabel}</span>
+                  <button
+                    className={`admin-pill admin-pill-button ${statusTone(store.status)}`}
+                    type="button"
+                    onClick={() => toggleStoreActive(store)}
+                    title={text.status}
+                  >
+                    {store.statusLabel}
+                  </button>
+                </td>
+                <td>
+                  <span className={`admin-pill ${store.subscription?.paid ? "success" : "danger"}`}>
+                    {store.subscription?.paid ? text.paid : text.unpaid}
+                  </span>
+                  <div className="admin-subrow">
+                    {store.subscription?.endsAt ? formatDate(store.subscription.endsAt) : "—"}
+                    {store.subscription?.daysLeft != null ? ` · ${store.subscription.daysLeft} ${text.daysLeft}` : ""}
+                  </div>
                 </td>
                 <td>
                   {store.productCount} / {store.orderCount}
                 </td>
+                <td>{formatDate(store.createdAt)}</td>
                 <td>
-                  <button onClick={() => editStore(store)} type="button" aria-label={text.edit}>
+                  <div className="admin-row-actions">
+                  <button onClick={() => setStoreModal({ mode: "edit", row: store })} type="button" aria-label={text.edit}>
                     {"\u270E"}
                   </button>
-                  <button onClick={() => deleteStore(store)} type="button" aria-label={text.delete}>
+                  <button onClick={() => extendStore(store)} type="button" aria-label={text.extend} title={text.extend}>
+                    {"\u21BB"}
+                  </button>
+                  <button onClick={() => removeStore(store)} type="button" aria-label={text.delete}>
                     {"\u232B"}
                   </button>
+                  </div>
                 </td>
               </tr>
             ))}
             {!storeRows.length && (
               <tr>
-                <td colSpan={4}>Бүртгэлтэй дэлгүүр алга байна.</td>
+                <td colSpan={6}>Бүртгэлтэй дэлгүүр алга байна.</td>
               </tr>
             )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </article>
     );
   }
@@ -503,13 +932,23 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
       <article className="platform-card">
         <div className="platform-card-head">
           <h2>{text.employees}</h2>
-          <span>{employeeRows.length}</span>
+          <div className="admin-card-head-actions">
+            <span>{employeeRows.length}</span>
+            <button className="admin-add-button" type="button" onClick={() => setEmployeeModal({ mode: "create" })}>
+              + {text.newEmployee}
+            </button>
+          </div>
         </div>
+        <div className="admin-table-scroll">
         <table>
           <thead>
             <tr>
               <th>{text.name}</th>
               <th>{text.roleColumn}</th>
+              <th>{text.phoneLabel}</th>
+              <th>{text.vehicle}</th>
+              <th>{text.status}</th>
+              <th>{text.createdLabel}</th>
               <th>{text.actions}</th>
             </tr>
           </thead>
@@ -523,32 +962,42 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
                     </span>
                     <div>
                       <strong>{employee.name}</strong>
-                      <small>{employee.email}</small>
+                      <small>{employee.email || employee.phone}</small>
                     </div>
                   </div>
                 </td>
                 <td>
-                  {employee.roles.map((role) => role.name || role.code).join(", ")}
-                  <br />
-                  <span className={`admin-pill ${statusTone(employee.status)}`}>{employee.statusLabel}</span>
+                  {employee.roles.map((role) => role.name || role.code).join(", ") || "—"}
+                  {employee.tenantName ? <div className="admin-subrow">{employee.tenantName}</div> : null}
+                </td>
+                <td>{employee.phone || "—"}</td>
+                <td>
+                  {employee.courier ? `${employee.courier.vehicleType || "—"}${employee.courier.online ? " · online" : ""}` : "—"}
                 </td>
                 <td>
-                  <button onClick={() => editEmployee(employee)} type="button" aria-label={text.edit}>
+                  <span className={`admin-pill ${statusTone(employee.status)}`}>{employee.statusLabel}</span>
+                </td>
+                <td>{formatDate(employee.createdAt)}</td>
+                <td>
+                  <div className="admin-row-actions">
+                  <button onClick={() => setEmployeeModal({ mode: "edit", row: employee })} type="button" aria-label={text.edit}>
                     {"\u270E"}
                   </button>
-                  <button onClick={() => deleteEmployee(employee)} type="button" aria-label={text.delete}>
+                  <button onClick={() => removeEmployee(employee)} type="button" aria-label={text.delete}>
                     {"\u232B"}
                   </button>
+                  </div>
                 </td>
               </tr>
             ))}
             {!employeeRows.length && (
               <tr>
-                <td colSpan={3}>Бүртгэлтэй ажилтан алга байна.</td>
+                <td colSpan={7}>Бүртгэлтэй ажилтан алга байна.</td>
               </tr>
             )}
           </tbody>
         </table>
+        </div>
       </article>
     );
   }
@@ -787,6 +1236,28 @@ export function AdminPage({ user, onLogout, onUserChange }: AdminPageProps) {
           </StateBlock>
         </div>
 
+        {storeModal && (
+          <StoreFormModal
+            mode={storeModal.mode}
+            row={storeModal.row}
+            busy={modalBusy}
+            error={modalError}
+            onClose={() => setStoreModal(null)}
+            onSubmit={submitStore}
+            onHardDelete={storeModal.row ? () => removeStore(storeModal.row as AdminStoreRow, true) : undefined}
+          />
+        )}
+        {employeeModal && (
+          <EmployeeFormModal
+            mode={employeeModal.mode}
+            row={employeeModal.row}
+            busy={modalBusy}
+            error={modalError}
+            onClose={() => setEmployeeModal(null)}
+            onSubmit={submitEmployee}
+            onHardDelete={employeeModal.row ? () => removeEmployee(employeeModal.row as AdminEmployeeRow, true) : undefined}
+          />
+        )}
       </section>
       <nav className="platform-mobile-nav" aria-label={text.brandAdmin}>
         <button className={activeSection === "overview" ? "active" : ""} onClick={() => goTo("overview")} type="button">
