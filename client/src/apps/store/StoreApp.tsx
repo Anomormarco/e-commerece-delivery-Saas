@@ -1,7 +1,7 @@
 ﻿import { type FormEvent, useEffect, useState } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 import { StorePage } from "../../features/store/StorePage";
-import { clearAccessToken, postJson, saveAccessToken } from "../../shared/api";
+import { AUTH_EXPIRED_EVENT, clearAccessToken, postJson, saveAccessToken } from "../../shared/api";
 import { isEmailAddress, isStrongPassword } from "../../shared/validation";
 
 type StoreIdentity = {
@@ -25,10 +25,29 @@ function isStorePhone(value: string) {
   return /^\+?\d{8,15}$/.test(value.trim());
 }
 
+function tokenIsUsable(token: string | null): boolean {
+  if (!token) return false;
+  try {
+    const segment = (token.split(".")[1] ?? "").replace(/-/g, "+").replace(/_/g, "/");
+    const padded = segment.padEnd(segment.length + ((4 - (segment.length % 4)) % 4), "=");
+    const payload = JSON.parse(atob(padded));
+    if (typeof payload.exp !== "number") return true;
+    // small skew allowance so a token that is about to expire still gets one
+    // last chance rather than flashing the login screen mid-session.
+    return payload.exp * 1000 > Date.now() - 5000;
+  } catch {
+    return false;
+  }
+}
+
 function readSessionProfile(): StoreIdentity | null {
   try {
-    const hasToken = Boolean(localStorage.getItem(accessTokenStorageKey) ?? sessionStorage.getItem(accessTokenStorageKey));
-    if (!hasToken) return null;
+    const token = localStorage.getItem(accessTokenStorageKey) ?? sessionStorage.getItem(accessTokenStorageKey);
+    if (!tokenIsUsable(token)) {
+      clearAccessToken();
+      clearSessionProfile();
+      return null;
+    }
     const raw = localStorage.getItem(sessionProfileStorageKey) ?? sessionStorage.getItem(sessionProfileStorageKey);
     return raw ? (JSON.parse(raw) as StoreIdentity) : null;
   } catch {
@@ -439,6 +458,16 @@ export function StoreApp() {
     clearSessionProfile();
     setIdentity(null);
   }
+
+  useEffect(() => {
+    function onAuthExpired() {
+      clearAccessToken();
+      clearSessionProfile();
+      setIdentity(null);
+    }
+    window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+  }, []);
 
   if (!identity) {
     return <StoreAuthPage onAuthenticated={setIdentity} />;

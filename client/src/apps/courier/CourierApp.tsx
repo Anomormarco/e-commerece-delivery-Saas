@@ -1,7 +1,7 @@
 ﻿import { type FormEvent, useEffect, useRef, useState } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 import { CourierPage } from "../../features/courier/CourierPage";
-import { postJson } from "../../shared/api";
+import { AUTH_EXPIRED_EVENT, postJson } from "../../shared/api";
 import { normalizeErrorMessage } from "../../shared/errors";
 import { isCourierLoginId, isGmailAddress, isMongolianText, isStrongPassword } from "../../shared/validation";
 
@@ -1207,6 +1207,15 @@ export function CourierApp() {
     clearSession();
     setUserId(null);
   }
+
+  useEffect(() => {
+    function onAuthExpired() {
+      clearSession();
+      setUserId(null);
+    }
+    window.addEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, onAuthExpired);
+  }, []);
 
   if (!userId) {
     return <CourierAuthPage onAuthenticated={handleAuthenticated} />;

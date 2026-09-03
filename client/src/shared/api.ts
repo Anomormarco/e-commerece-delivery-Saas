@@ -56,6 +56,17 @@ export function clearAccessToken() {
   sessionStorage.removeItem(storageKey);
 }
 
+// Fired once when an authenticated request is rejected because the session is no
+// longer valid (expired / tampered token). App shells listen for this and drop
+// the user back to the login screen instead of leaving them on a dead dashboard.
+export const AUTH_EXPIRED_EVENT = "deliverhub:auth-expired";
+const authFailureCodes = new Set(["TOKEN_EXPIRED", "INVALID_TOKEN", "UNAUTHENTICATED"]);
+
+function notifyAuthExpired(code: string) {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, { detail: { mode, code } }));
+}
+
 async function requestJson<T>(path: string, options: RequestInit = {}): Promise<T> {
   const accessToken = currentAccessToken();
 
@@ -78,6 +89,12 @@ async function requestJson<T>(path: string, options: RequestInit = {}): Promise<
 
   if (!response.ok) {
     const body = await response.json().catch(() => null);
+    const isAuthFailure = response.status === 401
+      || (typeof body?.code === "string" && authFailureCodes.has(body.code));
+    if (isAuthFailure && accessToken) {
+      clearAccessToken();
+      notifyAuthExpired(typeof body?.code === "string" ? body.code : "TOKEN_EXPIRED");
+    }
     throw new Error(apiErrorMessage(body, response.status));
   }
 

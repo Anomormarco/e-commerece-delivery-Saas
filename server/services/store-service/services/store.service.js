@@ -30,7 +30,7 @@ const vehicleLabels = {
   CAR: "Машин",
 };
 
-const storeAccessTokenMaxAgeSeconds = 60 * 60 * 8;
+const storeAccessTokenMaxAgeSeconds = 60 * 60 * 24 * 7;
 
 function slugify(value) {
   return String(value ?? "")
