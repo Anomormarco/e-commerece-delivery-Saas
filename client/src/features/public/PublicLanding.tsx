@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from "react";
-import type { CSSProperties, FormEvent } from "react";
+import type { CSSProperties, FormEvent, ReactNode } from "react";
 import { useRef } from "react";
 import { BrandLogo } from "../../components/BrandLogo";
 import { InteractiveRouteMap, type RouteMapLine, type RouteMapMarker } from "../../components/InteractiveRouteMap";
@@ -231,12 +231,6 @@ const landingHeroImages = [
 
 const landingShowcaseSlides = [
   {
-    tag: "DELIVERHUB",
-    title: "Нэг платформ, бүх хэрэгцээ",
-    body: "Онлайн худалдаа, хүргэлт, бизнесийн түншлэл — DeliverHub Монголын зах зээлд нэг дороос бүгдийг холбоно.",
-    image: "https://tse4.mm.bing.net/th?q=Ulaanbaatar%20city%20skyline%20modern%20buildings&w=900&h=650&c=7&rs=1&p=0",
-  },
-  {
     tag: "МАРКЕТ",
     title: "Маркет таны гарт",
     body: "Олон зуун дэлгүүрийн мянга мянган барааг нэг дороос үзэж, хамгийн ойрхон байгаа дэлгүүрээсээ хэдхэн товшилтоор захиалаарай.",
@@ -258,7 +252,6 @@ const landingShowcaseSlides = [
     tag: "САНАЛ АВАХ",
     title: "Тусламж үргэлж ойрхон",
     body: "Асуулт, санал хүсэлт гарвал бид тантай холбогдоход бэлэн — deliverhub2025@gmail.com, +976 85356114.",
-    image: "https://tse4.mm.bing.net/th?q=customer%20support%20agent%20headset%20smiling%20office&w=900&h=650&c=7&rs=1&p=0",
   },
 ];
 
@@ -1006,6 +999,32 @@ function clearCustomerSessionStorage() {
   localStorage.removeItem(customerStorageKey);
 }
 
+function Reveal({ className = "", delayMs = 0, children }: { className?: string; delayMs?: number; children: ReactNode }) {
+  const ref = useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return undefined;
+
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setVisible(true);
+        observer.disconnect();
+      }
+    }, { threshold: 0.15, rootMargin: "0px 0px -60px 0px" });
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className={`landing-reveal ${visible ? "is-visible" : ""} ${className}`} style={{ transitionDelay: `${delayMs}ms` }}>
+      {children}
+    </div>
+  );
+}
+
 export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket, onNavigateContact, onNavigateCourier, onNavigatePartner }: PublicLandingProps = {}) {
   const [section, setSection] = useState<LandingSection>(page);
   const [menuHidden, setMenuHidden] = useState(false);
@@ -1021,8 +1040,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const customerAvatarInputRef = useRef<HTMLInputElement | null>(null);
   const [wishlistOpen, setWishlistOpen] = useState(false);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
-  const showcaseRef = useRef<HTMLElement | null>(null);
-  const [showcaseProgress, setShowcaseProgress] = useState(0);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", phone: "", login: "", password: "" });
   const [partnerAuthOpen, setPartnerAuthOpen] = useState(false);
   const [partnerAuthMode, setPartnerAuthMode] = useState<PartnerAuthMode>("register");
@@ -1342,32 +1359,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   }, [section]);
 
   useEffect(() => {
-    if (section !== "home") return undefined;
-    let frameId = 0;
-
-    function updateShowcaseProgress() {
-      window.cancelAnimationFrame(frameId);
-      frameId = window.requestAnimationFrame(() => {
-        const node = showcaseRef.current;
-        if (!node) return;
-        const rect = node.getBoundingClientRect();
-        const travel = rect.height - window.innerHeight;
-        const nextProgress = travel > 0 ? -rect.top / travel : 0;
-        setShowcaseProgress(Math.min(1, Math.max(0, nextProgress)));
-      });
-    }
-
-    updateShowcaseProgress();
-    window.addEventListener("scroll", updateShowcaseProgress, { passive: true });
-    window.addEventListener("resize", updateShowcaseProgress);
-    return () => {
-      window.cancelAnimationFrame(frameId);
-      window.removeEventListener("scroll", updateShowcaseProgress);
-      window.removeEventListener("resize", updateShowcaseProgress);
-    };
-  }, [section]);
-
-  useEffect(() => {
     if (!session?.token) return;
     const token = session.token;
     let closed = false;
@@ -1456,6 +1447,19 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return categoryCompare || first.name.localeCompare(second.name, "mn");
     }).slice(0, 100);
   }, [demoMarketStores, stores]);
+  const marketPreviewStores = useMemo(() => {
+    const seenNames = new Set<string>();
+    return marketStoreDirectory.filter((store) => {
+      const key = storeKey(store);
+      if (seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    }).slice(0, 6);
+  }, [marketStoreDirectory]);
+  const marketPreviewProducts = useMemo(
+    () => (marketPreviewStores.find((store) => isNominStoreName(store.name)) ?? marketPreviewStores[0])?.products.slice(0, 8) ?? [],
+    [marketPreviewStores],
+  );
   const filteredStores = useMemo(() => {
     const normalizedSearch = normalizeMarketSearch(storeSearch);
     return marketStoreDirectory.filter((store) => (
@@ -2390,11 +2394,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       </section>
     );
   }
-
-  const showcaseActiveIndex = Math.min(
-    landingShowcaseSlides.length - 1,
-    Math.floor(showcaseProgress * landingShowcaseSlides.length),
-  );
 
   return (
     <main className={`nomad-scroll-page ${section === "market" ? "is-market-route" : ""} ${section === "contact" ? "is-contact-route" : ""} ${section === "courier" ? "is-courier-route" : ""} ${section === "partner" ? "is-partner-route" : ""} ${cartOpen ? "is-cart-open" : ""}`} id="hero">
@@ -3432,58 +3431,69 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       </section>
 
       {section === "home" ? (
-        <section
-          className="landing-showcase"
-          aria-label="DeliverHub платформын танилцуулга"
-          ref={showcaseRef}
-          style={{
-            "--showcase-progress": showcaseProgress,
-            "--slide-count": landingShowcaseSlides.length,
-          } as CSSProperties}
-        >
-          <div className="landing-showcase-sticky">
-            <div className="landing-showcase-model" aria-hidden="true">
-              <div className="landing-showcase-ring" />
-              <div className="landing-showcase-hero">
-                <img alt="" key={showcaseActiveIndex} src={landingShowcaseSlides[showcaseActiveIndex]?.image} />
-              </div>
-              {landingShowcaseSlides.map((slide, index) => {
-                const angle = (index / landingShowcaseSlides.length) * Math.PI * 2 - Math.PI / 2;
+        <section className="landing-intro" aria-label="DeliverHub платформын танилцуулга">
+          <section className="landing-intro-section" aria-label="Маркет">
+            <Reveal className="landing-intro-header">
+              <span>{landingShowcaseSlides[0].tag}</span>
+              <h2>{landingShowcaseSlides[0].title}</h2>
+              <p>{landingShowcaseSlides[0].body}</p>
+            </Reveal>
+            <div className="landing-intro-store-row">
+              {marketPreviewStores.map((store, index) => {
+                const brand = storeBrandFor(store.name, store.categories[0]);
                 return (
-                  <div
-                    className={`landing-showcase-card ${index === showcaseActiveIndex ? "is-current" : ""}`}
-                    key={slide.title}
-                    style={{
-                      "--card-index": index,
-                      "--fly-x": Math.cos(angle).toFixed(3),
-                      "--fly-y": Math.sin(angle).toFixed(3),
-                    } as CSSProperties}
-                  >
-                    <img alt="" src={slide.image} />
-                  </div>
+                  <Reveal className="landing-intro-store-chip" delayMs={index * 60} key={store.id}>
+                    <img alt="" src={brand.logoUrl} />
+                    <span>{store.name}</span>
+                  </Reveal>
                 );
               })}
             </div>
-
-            <div className="landing-showcase-copy">
-              {landingShowcaseSlides.map((slide, index) => (
-                <div
-                  className={`landing-showcase-line ${index === showcaseActiveIndex ? "is-active" : index < showcaseActiveIndex ? "is-passed" : ""}`}
-                  key={slide.title}
-                >
-                  <span>{slide.tag}</span>
-                  <h2>{slide.title}</h2>
-                  <p>{slide.body}</p>
-                </div>
+            <div className="landing-intro-product-grid">
+              {marketPreviewProducts.map((product, index) => (
+                <Reveal className="landing-intro-product-card" delayMs={index * 40} key={product.id}>
+                  <img alt="" src={productImageFor(product)} />
+                  <span>{product.category}</span>
+                  <strong>{cleanProductName(product.name)}</strong>
+                  <em>{formatMnt(product.priceMnt)}</em>
+                </Reveal>
               ))}
             </div>
-          </div>
+          </section>
 
-          <div className="landing-showcase-progress" aria-hidden="true">
-            {landingShowcaseSlides.map((slide, index) => (
-              <i className={index <= showcaseActiveIndex ? "is-active" : ""} key={slide.title} />
-            ))}
-          </div>
+          <section className="landing-intro-section landing-intro-media-section" aria-label="Хүргэлтийн ажилтан">
+            <Reveal className="landing-intro-media">
+              <img alt="" src={landingShowcaseSlides[1].image} />
+            </Reveal>
+            <Reveal className="landing-intro-header">
+              <span>{landingShowcaseSlides[1].tag}</span>
+              <h2>{landingShowcaseSlides[1].title}</h2>
+              <p>{landingShowcaseSlides[1].body}</p>
+            </Reveal>
+          </section>
+
+          <section className="landing-intro-section landing-intro-media-section is-reverse" aria-label="Бизнесийн түншлэл">
+            <Reveal className="landing-intro-header">
+              <span>{landingShowcaseSlides[2].tag}</span>
+              <h2>{landingShowcaseSlides[2].title}</h2>
+              <p>{landingShowcaseSlides[2].body}</p>
+            </Reveal>
+            <Reveal className="landing-intro-media">
+              <img alt="" src={landingShowcaseSlides[2].image} />
+            </Reveal>
+          </section>
+
+          <section className="landing-intro-section" aria-label="Холбоо барих">
+            <Reveal className="landing-intro-header">
+              <span>{landingShowcaseSlides[3].tag}</span>
+              <h2>{landingShowcaseSlides[3].title}</h2>
+              <p>{landingShowcaseSlides[3].body}</p>
+            </Reveal>
+            <div className="landing-intro-contact-row">
+              <Reveal className="landing-intro-contact-chip">✉ deliverhub2025@gmail.com</Reveal>
+              <Reveal className="landing-intro-contact-chip" delayMs={80}>☎ +976 85356114</Reveal>
+            </div>
+          </section>
         </section>
       ) : null}
 
