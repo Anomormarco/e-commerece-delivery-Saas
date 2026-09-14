@@ -231,17 +231,17 @@ const landingHeroImages = [
 
 const landingShowcaseSlides: Array<{ tag: string; title: string; body: string; image: string; nav: LandingSection }> = [
   {
-    tag: "ДЭЛГҮҮРТ ЗОРИУЛСАН",
-    title: "Бизнесээ цахим болго",
-    body: "Дэлгүүрээ DeliverHub платформ дээр бүртгүүлж, бараагаа онлайнаар борлуулж эхэл — захиалга, орлого, нөөцөө нэг dashboard-аас удирдаарай.",
-    image: "https://tse4.mm.bing.net/th?q=small%20business%20owner%20managing%20online%20store%20dashboard%20on%20laptop&w=900&h=650&c=7&rs=1&p=0",
+    tag: "МАРКЕТ",
+    title: "Маркет таны гарт",
+    body: "Олон зуун дэлгүүрийн мянга мянган барааг нэг дороос үзэж, хамгийн ойрхон байгаа дэлгүүрээсээ хэдхэн товшилтоор захиалаарай.",
+    image: "https://tse4.mm.bing.net/th?q=online%20grocery%20marketplace%20app%20browsing%20products%20on%20phone&w=900&h=650&c=7&rs=1&p=0",
     nav: "market",
   },
   {
-    tag: "ХҮРГЭЛТИЙН АЖИЛТАНД ЗОРИУЛСАН",
-    title: "Өөрийн цагаараа ажилла",
-    body: "Мопед, машин, явган — дуртай хэлбэрээрээ, дуртай цагтаа хүргэлт хийж тогтмол орлого олоорой.",
-    image: "https://tse4.mm.bing.net/th?q=delivery%20courier%20riding%20moped%20with%20package%20city%20street&w=900&h=650&c=7&rs=1&p=0",
+    tag: "ХҮРГЭЛТИЙН АЖИЛТАН",
+    title: "Чөлөөт хүргэлтийн нэгдсэн платформ",
+    body: "Дэлгүүрүүдээс ирэх дуудлагыг ойр байршлаар хүлээн авч, өөрийн цагтаа ажиллан тогтмол орлого олох боломж.",
+    image: "https://lh3.googleusercontent.com/aida/AP1WRLtQ86oz2ChSOpdKFlao4LIojwBqcs6bCWDITTBxvZ5-nPTuZ4EJ-vASSUXTHIg53N7Y-HGvGMteuNcJurQKFndgbgOSQK2BYKhjC54XTHQqWbExMlsVKxBGLkpusJmqHBqgrv25vij5jmGezInrR3FMaktUauhfVb7TcoMfJDO8WuZBAKag9cpYpZsUNZ7A6I8IUKjctMMyPCZXxbjxKjtRCaTbrRZTtcahHmkGaSkLVUCkZ1Mb37S-KLM",
     nav: "courier",
   },
 ];
