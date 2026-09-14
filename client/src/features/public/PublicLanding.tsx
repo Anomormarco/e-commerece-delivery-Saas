@@ -229,31 +229,6 @@ const landingHeroImages = [
   heroAppleeImage,
 ];
 
-const landingShowcaseSlides = [
-  {
-    tag: "МАРКЕТ",
-    title: "Маркет таны гарт",
-    body: "Олон зуун дэлгүүрийн мянга мянган барааг нэг дороос үзэж, хамгийн ойрхон байгаа дэлгүүрээсээ хэдхэн товшилтоор захиалаарай.",
-    image: "https://tse4.mm.bing.net/th?q=Lay%27s%20Masala%20chips%20bag%20product&w=1000&h=650&c=7&rs=1&p=0",
-  },
-  {
-    tag: "ХҮРГЭЛТИЙН АЖИЛТАН",
-    title: "Өөрийн цагаараа ажилла",
-    body: "Мопед, машин, явган — дуртай хэлбэрээрээ, дуртай цагтаа хүргэлт хийж тогтмол орлого олоорой.",
-    image: "https://tse4.mm.bing.net/th?q=delivery%20courier%20riding%20moped%20with%20package%20city%20street&w=900&h=650&c=7&rs=1&p=0",
-  },
-  {
-    tag: "БИЗНЕСИЙН ТҮНШЛЭЛ",
-    title: "Хамтдаа өсөж, хамтдаа хөгжие",
-    body: "Бидэнтэй хамтран ажилласнаар бизнесээ онлайн зах зээлтэй холбож, маркетинг, захиалга, хүргэлтээ нэг системээр удирдаарай.",
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBeMl8v56Q7tiTZfWvoddNJIHDAdhGwpfxnLDxt8hPY51Qulv8xUnK94UlogvX0LQuUXZa3FU4xFBgFfu-FLtArPNGlwJh388E_iLRPwVf_y6jirUQ15_S7gAyhtYlbcBw3FpmOgbNa_KbKPbAjFLxMs_fKY7i_YK-S4TFwr1Zn1JEK8EwnTv--7crgrPLFR8Txzl3fDRmfvSWtHdkb9C44ypVUgfajYhStasK2zBAnZixndjekogRK",
-  },
-  {
-    tag: "САНАЛ АВАХ",
-    title: "Тусламж үргэлж ойрхон",
-    body: "Асуулт, санал хүсэлт гарвал бид тантай холбогдоход бэлэн — deliverhub2025@gmail.com, +976 85356114.",
-  },
-];
 
 const partnerRegisterSteps = ["Дэлгүүр", "Данс & зөвшөөрөл", "Иргэний бичиг баримт", "Царай баталгаажуулалт", "Нэвтрэх мэдээлэл", "Гэрээ"];
 
@@ -1447,19 +1422,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return categoryCompare || first.name.localeCompare(second.name, "mn");
     }).slice(0, 100);
   }, [demoMarketStores, stores]);
-  const marketPreviewStores = useMemo(() => {
-    const seenNames = new Set<string>();
-    return marketStoreDirectory.filter((store) => {
-      const key = storeKey(store);
-      if (seenNames.has(key)) return false;
-      seenNames.add(key);
-      return true;
-    }).slice(0, 6);
-  }, [marketStoreDirectory]);
-  const marketPreviewProducts = useMemo(
-    () => (marketPreviewStores.find((store) => isNominStoreName(store.name)) ?? marketPreviewStores[0])?.products.slice(0, 8) ?? [],
-    [marketPreviewStores],
-  );
   const filteredStores = useMemo(() => {
     const normalizedSearch = normalizeMarketSearch(storeSearch);
     return marketStoreDirectory.filter((store) => (
@@ -2395,6 +2357,381 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     );
   }
 
+  const marketPageContent = (
+      <div className="landing-shop-panel market-page is-open">
+        <header className="market-top-header">
+          <div>
+            <h2>Маркет таны гарт</h2>
+          </div>
+        </header>
+
+        <section className="market-layout">
+          <aside className="market-sidebar">
+            <section className="landing-store-filters" aria-label="Маркетийн төрөл">
+              {storeCategories.map((category) => (
+                <button className={storeFilter === category ? "active" : ""} key={category} onClick={() => setStoreFilter(category)} type="button">
+                  {category}
+                </button>
+              ))}
+            </section>
+          </aside>
+          <section className="market-products">
+            <section className="market-filtered-store-section">
+              <label className="market-store-search">
+                <span>⌕</span>
+                <input
+                  onChange={(event) => setStoreSearch(event.target.value)}
+                  placeholder="Төрөл эсвэл нэрээр хайх..."
+                  value={storeSearch}
+                />
+              </label>
+              <div className="landing-store-cards">
+                {filteredStores.map((store) => {
+                  const brand = storeBrandFor(store.name, store.categories[0]);
+                  const isActive = selectedStore?.id === store.id;
+                  return (
+                    <button className={isActive ? "active" : ""} key={store.id} onClick={() => selectMarketStore(store.id)} type="button">
+                      <span className="landing-store-logo">
+                        <img alt={`${store.name} logo`} src={brand.logoUrl} />
+                      </span>
+                      <span className="landing-store-card-copy">
+                        <strong>{store.name}</strong>
+                        <small>{store.productCount} бүтээгдэхүүн · {store.categories.join(", ")}</small>
+                      </span>
+                    </button>
+                  );
+                })}
+                {!filteredStores.length ? <p>Энэ төрөлд тохирох дэлгүүр олдсонгүй.</p> : null}
+              </div>
+            </section>
+            <section className="market-store-feed">
+              {!selectedStore ? (
+                <p className="market-empty">Дээрээс төрөл сонгоод, дэлгүүрийн card дээр дарахад бараанууд нь энд гарна.</p>
+              ) : pagedStoreProductGroups.length ? pagedStoreProductGroups.map(({ store, products }) => {
+                const brand = storeBrandFor(store.name, store.categories[0]);
+                return (
+                  <section className="market-store-section" key={store.id}>
+                    <header>
+                      <span className="landing-store-logo">
+                        <img alt={`${store.name} logo`} src={brand.logoUrl} />
+                      </span>
+                      <div>
+                        <strong>{store.name}</strong>
+                        <small>{store.address}</small>
+                      </div>
+                    </header>
+                    <div className="landing-product-grid">
+                      {products.map((product) => (
+                        <article key={product.id}>
+                          <button
+                            className={`landing-product-wish ${wishlist.includes(product.id) ? "active" : ""}`}
+                            onClick={() => toggleWishlist(product.id)}
+                            type="button"
+                            aria-label={`${product.name} wishlist`}
+                          >
+                            <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
+                              <path d="M6 4.8C6 3.8 6.8 3 7.8 3H16.2C17.2 3 18 3.8 18 4.8V20L12 16.6L6 20V4.8Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.9" />
+                            </svg>
+                          </button>
+                          <img
+                            alt={product.name}
+                            src={productImageFor(product)}
+                            onError={(event) => {
+                              event.currentTarget.src = productPlaceholderUrl(product);
+                            }}
+                          />
+                          <span>{product.category}</span>
+                          <h3>{product.name}</h3>
+                          <strong>{formatMnt(product.priceMnt)}</strong>
+                          <em className={product.stockCount <= 0 ? "is-empty" : product.stockCount <= 12 ? "is-low" : ""}>
+                            Үлдэгдэл: {product.stockCount} ш
+                          </em>
+                          <div className="landing-product-actions">
+                            <div className="landing-product-stepper" aria-label={`${product.name} тоо ширхэг`}>
+                              <button className="landing-product-qty" onClick={() => updateProductQuantity(product.id, -1)} type="button">−</button>
+                              <b>{productQuantities[product.id] ?? 1}</b>
+                              <button className="landing-product-qty" onClick={() => updateProductQuantity(product.id, 1)} type="button" disabled={product.stockCount <= 0}>+</button>
+                            </div>
+                            <button
+                              className="landing-product-add"
+                              onClick={() => addSelectedQuantityToCart(product.id)}
+                              type="button"
+                              disabled={product.stockCount <= 0}
+                              aria-label={`${product.name} сагсанд нэмэх`}
+                              title="Сагсанд нэмэх"
+                            >
+                              <span>Сагсанд хийх</span>
+                            </button>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  </section>
+                );
+              }) : (
+                <p className="market-empty">Энэ дэлгүүрээс тохирох бараа олдсонгүй.</p>
+              )}
+            </section>
+
+            {selectedStore ? <nav className="market-pagination" aria-label="Маркетийн хуудас">
+              <button onClick={() => setMarketPage((pageNumber) => Math.max(1, pageNumber - 1))} type="button" disabled={marketPage <= 1}>
+                Өмнөх
+              </button>
+              <span>{marketPage} / {totalMarketPages}</span>
+              <button onClick={() => setMarketPage((pageNumber) => Math.min(totalMarketPages, pageNumber + 1))} type="button" disabled={marketPage >= totalMarketPages}>
+                Дараах
+              </button>
+            </nav> : null}
+
+            {notice ? (
+              <section className="market-cart">
+                <p className="landing-commerce-notice">{notice}</p>
+              </section>
+            ) : null}
+          </section>
+        </section>
+      </div>
+  );
+
+  const courierPageContent = (
+        <section className="landing-courier-portal landing-courier-intro" aria-label="Хүргэлтийн ажилтан">
+          <section className="landing-courier-hero">
+            <div className="landing-courier-copy">
+              <h2>Чөлөөт хүргэлтийн <b>нэгдсэн платформ</b></h2>
+              <p>Дэлгүүрүүдээс ирэх дуудлагыг ойр байршлаар хүлээн авч, өөрийн цагтаа ажиллан тогтмол орлого олох боломж.</p>
+            </div>
+            <figure className="landing-courier-visual">
+              <img
+                alt="Мэргэжлийн хүргэлтийн ажилтан"
+                src="https://lh3.googleusercontent.com/aida/AP1WRLtQ86oz2ChSOpdKFlao4LIojwBqcs6bCWDITTBxvZ5-nPTuZ4EJ-vASSUXTHIg53N7Y-HGvGMteuNcJurQKFndgbgOSQK2BYKhjC54XTHQqWbExMlsVKxBGLkpusJmqHBqgrv25vij5jmGezInrR3FMaktUauhfVb7TcoMfJDO8WuZBAKag9cpYpZsUNZ7A6I8IUKjctMMyPCZXxbjxKjtRCaTbrRZTtcahHmkGaSkLVUCkZ1Mb37S-KLM"
+              />
+            </figure>
+          </section>
+
+          <section className="landing-courier-feature-block" aria-label="Давуу тал">
+            <header>
+              <h3>Яагаад DeliverHub гэж?</h3>
+              <p>Бизнесээ өргөжүүлэхэд шаардлагатай логистикийн цогц шийдлийг нэг дороос.</p>
+            </header>
+            <div className="landing-courier-portal-grid">
+              <article>
+                <span>◎</span>
+                <strong>Баталгаажсан ажилтнууд</strong>
+                <p>Манай сүлжээний хүргэлтийн ажилтнууд аюулгүй байдлын бүрэн шалгалтад хамрагдсан.</p>
+              </article>
+              <article>
+                <span>⌖</span>
+                <strong>Бодит хяналт</strong>
+                <p>Захиалга хаана явааг болон хүргэлтийн явцыг гар утаснаасаа хянах боломжтой.</p>
+              </article>
+              <article>
+                <span>▣</span>
+                <strong>Хялбар тооцоо</strong>
+                <p>Хүргэлтийн төлбөр болон тооцоо хийх процессийг системээр автоматжуулсан.</p>
+              </article>
+              <article>
+                <span>▱</span>
+                <strong>Уян хатан тариф</strong>
+                <p>Зай, жин болон яаралтай байдлаас хамаарсан хамгийн оновчтой тарифын систем.</p>
+              </article>
+            </div>
+          </section>
+
+          <section className="landing-courier-benefit">
+            <figure>
+              <img
+                alt="Хүргэлтийн ажилтан"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuJPn7sNDlDQ73xuuppuazlThVfnB9-HvhkUHiSdKGUp980PZa1Yhva3DO8QLuAIf92Z2wWM0LrPlftAyg7je7yhhmLXIXMsannM_ueAO3FMEHJy9mNIcyC48TLS0dtOzcBPjmoSUNKltekvHCS8a4Zr88fyiyEg38F1ggnvKm-TCXjz_q6082J9Do71v0vaaYf6sh8ETYLd18c1fQseXjEeER0fxf-QNXhu1QMhTEvy5V-9FjHfh2IxI5UJ6QLNnsfBV00UdMxiw"
+              />
+            </figure>
+            <div>
+              <h3>Мэргэжлийн хүргэлт,<br /> <b>Чөлөөт цагаараа орлого олох</b></h3>
+              <p>DeliverHub-д нэгдсэнээр та чанартай цүнхтэй, ухаалаг системээр ажлаа хянан, найдвартай орлого олох бүрэн боломжтой болно.</p>
+              <ul>
+                <li><span>◎</span><div><b>Хүссэн үедээ ажилла</b><small>Өдрийн боломжит цагтаа та хүргэлтийн ажил хийж, орлого нэмэгдүүлэх бүрэн боломжтой.</small></div></li>
+                <li><span>↗</span><div><b>Шууд дэмжлэг</b><small>Хүргэлтийн үед тулгарсан аливаа асуудалд 24/7 цагийн шуурхай тусламж үзүүлнэ.</small></div></li>
+                <li><span>▣</span><div><b>Тогтмол орлого</b><small>Хийсэн хүргэлтээсээ тогтмол түрийвч бүрт нь баталгаатай хянагдана.</small></div></li>
+              </ul>
+            </div>
+          </section>
+
+          <footer className="landing-courier-footer">
+            <strong>Хүргэлтийн асуудлаа<br /> өнөөдөр шийд.</strong>
+            <span>Хэдхэн минутын дотор бүртгүүлээд эхний захиалгаа илгээж эхлээрэй.</span>
+            <nav className="landing-courier-auth-links" aria-label="Хүргэлтийн ажилтан нэвтрэх">
+              <a href={`${employeePortalUrl}/?mode=login`}>Нэвтрэх</a>
+              <a href={`${employeePortalUrl}/?mode=register`}>Бүртгүүлэх</a>
+            </nav>
+          </footer>
+
+          <footer className="landing-courier-site-footer">
+            <span>© 2026. Бүх эрх хуулиар хамгаалагдсан.</span>
+            <nav aria-label="DeliverHub холбоосууд">
+              <a href="#stores">Нууцлалын бодлого</a>
+              <a href="#stores">Үйлчилгээний нөхцөл</a>
+              <a href="#stores">API баримт бичиг</a>
+              <a href="#contact">Тусламж</a>
+            </nav>
+          </footer>
+        </section>
+  );
+
+  const partnerPageContent = (
+        <section className="landing-partner-page" aria-label="БИЗНЕСИЙН ТҮНШЛЭЛ">
+          <section className="landing-partner-hero">
+            <div className="landing-partner-copy">
+              <span>БИЗНЕСИЙН ТҮНШЛЭЛ</span>
+              <h2>Хамтдаа өсөж, хамтдаа хөгжие</h2>
+              <p>Бидэнтэй хамтран ажилласнаар бизнесээ онлайн зах зээлтэй холбож, маркетинг, захиалга, хүргэлтээ нэг системээр удирдаарай.</p>
+            </div>
+            <figure className="landing-partner-hero-media">
+              <img
+                alt="DeliverHub бизнесийн түншлэл"
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeMl8v56Q7tiTZfWvoddNJIHDAdhGwpfxnLDxt8hPY51Qulv8xUnK94UlogvX0LQuUXZa3FU4xFBgFfu-FLtArPNGlwJh388E_iLRPwVf_y6jirUQ15_S7gAyhtYlbcBw3FpmOgbNa_KbKPbAjFLxMs_fKY7i_YK-S4TFwr1Zn1JEK8EwnTv--7crgrPLFR8Txzl3fDRmfvSWtHdkb9C44ypVUgfajYhStasK2zBAnZixndjekogRK"
+              />
+            </figure>
+          </section>
+
+          <section className="landing-partner-feature-section" aria-label="Түншлэлийн давуу тал">
+            <header>
+              <h3>Яагаад бидэнтэй нэгдэх вэ?</h3>
+              <p>Өсөлт, маркетинг, найдвартай логистикийг нэг платформоос.</p>
+            </header>
+            <div className="landing-partner-feature-grid">
+              <article>
+                <span className="landing-partner-feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" role="img">
+                    <path d="M4.8 10.7h14.4" />
+                    <path d="M6.8 20.2h10.4a2 2 0 0 0 2-2V9.4a2 2 0 0 0-2-2H6.8a2 2 0 0 0-2 2v8.8a2 2 0 0 0 2 2Z" />
+                    <path d="M8.4 7.4V5.8a2 2 0 0 1 2-2h3.2a2 2 0 0 1 2 2v1.6" />
+                    <path d="M12 13.1v2.8" />
+                    <path d="M10.6 14.5h2.8" />
+                  </svg>
+                </span>
+                <strong>Бизнесээ өргөжүүл</strong>
+                <p>Өдөр бүр шинэ хэрэглэгчидтэй холбогдож, борлуулалтын сувгаа нэмэгдүүл.</p>
+              </article>
+              <article>
+                <span className="landing-partner-feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" role="img">
+                    <path d="M4.6 18.6 9.2 14l3 3 6.9-7" />
+                    <path d="M15.3 10.1h3.8v3.8" />
+                    <path d="M5 5.4h14" />
+                    <path d="M5 9h6.4" />
+                    <path d="M5 12.6h3" />
+                  </svg>
+                </span>
+                <strong>Маркетингаа сайжруул</strong>
+                <p>Ангилал, хайлт, урамшуулал, хэрэглэгчийн өгөгдөл дээр суурилсан өсөлт.</p>
+              </article>
+              <article>
+                <span className="landing-partner-feature-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" role="img">
+                    <path d="M5 17.7 19 5" />
+                    <path d="M12.5 5H19v6.5" />
+                    <path d="M6.5 19.5h10.9a2.1 2.1 0 0 0 2.1-2.1V15" />
+                    <path d="M4.5 7.2v10.2a2.1 2.1 0 0 0 2.1 2.1" />
+                  </svg>
+                </span>
+                <strong>Найдвартай логистик</strong>
+                <p>Realtime хяналттай хүргэлтээр бүтээгдэхүүнээ хурдан, ил тод хүргэнэ.</p>
+              </article>
+            </div>
+          </section>
+
+          <section className="landing-partner-bento" aria-label="Бизнесийн төрөл">
+            <header>
+              <h3>Бүх төрлийн бизнест зориулав</h3>
+            </header>
+            <div className="landing-partner-bento-grid">
+              <article className="is-wide">
+                <div>
+                  <strong>Ресторан &amp; кофе шоп</strong>
+                  <p>Хоолны салбарын онцлогт тохирсон хурдан, найдвартай хүргэлт. Дулаан барих тусгай цүнх, шуурхай үйлчилгээ.</p>
+                  <ul>
+                    <li>15-30 минутын хүргэлт</li>
+                    <li>Чанарын хяналт</li>
+                  </ul>
+                </div>
+                <img
+                  alt="Ресторан түншлэл"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDeOugPoZ703w1WUKA_OvSzg9TTaFtbj56foic_yhb0HO0ar2xQO3BWhn7ZIYiBJFZr-IIuU9rM3bSvIo75Jkat3inFCAHXmSdPNCZ2V-0Ibb9Np_AGeDyIeOpVuEcCRuLJ8vsYNQN_ws3R_XdkJcUU1QnAS27rAfJNsaMonVzFGBBvvAKkUeE7mwW2ox2cOZOe4cpWPzsV2eWR2gfEbJL0Q9Smgl9HOVy0si2avNpk4K92r5NEeIh_"
+                />
+              </article>
+              <article>
+                <strong>Жижиглэн худалдаа</strong>
+                <p>Дэлгүүрийн бараагаа онлайнаар борлуулж, өдөрт нь хүргэх боломж.</p>
+                <img
+                  alt="Жижиглэн худалдаа"
+                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzSzkMmwrKneN-EbUsCTdqbwJAfEH2OoPqOjC7u3hCS7oujoKV7n1--5BfHKgvXunTZrjz_a66pAdeph_sQdPFusDpvrzuja_mOnAhy-GC8yEN5syP5hc8h5jWdVrss084NJbxDvyQCYyyP1NJ6_AXUBCstUF-vW8zKPmFF_VzHTWFfQ1cUQTlikA1l4k5Vese8q1xkFVJUT8vZGKd1t3LPUnBcBvUC33MehYC2bbRJFeUXM1anij_"
+                />
+              </article>
+            </div>
+          </section>
+
+          <section className="landing-partner-contact" id="partner-contact" aria-label="Түнш болох">
+            <div>
+              <h3>Хамтын ажиллагаагаа эхлүүлье</h3>
+              <p>Дэлгүүрээ бүртгүүлээд захиалга, хүргэлт, орлогоо нэг dashboard дээр удирдаарай.</p>
+              <button
+                className="landing-partner-cta"
+                onClick={() => {
+                  setPartnerAuthMode("register");
+                  setPartnerAuthOpen(true);
+                }}
+                type="button"
+              >
+                Бүртгэл үүсгэх
+              </button>
+            </div>
+          </section>
+
+          <footer className="landing-partner-footer">
+            <span>Бизнесийн түншлэлийн нэгдсэн баг</span>
+            <nav>
+              <a href="#partner-contact">Түншийн дэмжлэг</a>
+              <a href="#partner-contact">Холбоо барих</a>
+            </nav>
+          </footer>
+        </section>
+  );
+
+  const contactPageContent = (
+      <section className="landing-contact-dashboard" aria-label="Холбоо барих">
+        <div className="landing-contact-head">
+          <span>САНАЛ АВАХ</span>
+          <h2>Борлуулалтаа өсгөе</h2>
+        </div>
+        <div className="landing-contact-grid">
+          <article>
+            <span>Имэйл</span>
+            <strong>deliverhub2025@gmail.com</strong>
+            <p>Бизнесээ холбох зөвлөгөө аваарай.</p>
+          </article>
+          <article>
+            <span>Утас</span>
+            <strong>+976 85356114</strong>
+            <p>Бүртгэл, хүргэлт, marketplace-ийн дэмжлэг.</p>
+          </article>
+          <form>
+            <label>
+              <span>Нэр</span>
+              <input placeholder="Таны нэр" />
+            </label>
+            <label>
+              <span>Холбогдох дугаар</span>
+              <input placeholder="Утас эсвэл Gmail" />
+            </label>
+            <label>
+              <span>Мессеж</span>
+              <textarea placeholder="Бизнесээ хэрхэн өсгөх талаар бичээрэй" />
+            </label>
+            <button type="button">Санал авах</button>
+          </form>
+        </div>
+      </section>
+  );
+
   return (
     <main className={`nomad-scroll-page ${section === "market" ? "is-market-route" : ""} ${section === "contact" ? "is-contact-route" : ""} ${section === "courier" ? "is-courier-route" : ""} ${section === "partner" ? "is-partner-route" : ""} ${cartOpen ? "is-cart-open" : ""}`} id="hero">
       <div
@@ -2940,261 +3277,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         </section>
       ) : null}
 
-      {section === "market" ? (
-      <div className="landing-shop-panel market-page is-open">
-        <header className="market-top-header">
-          <div>
-            <h2>Маркет таны гарт</h2>
-          </div>
-        </header>
+      {section === "market" ? marketPageContent : null}
 
-        <section className="market-layout">
-          <aside className="market-sidebar">
-            <section className="landing-store-filters" aria-label="Маркетийн төрөл">
-              {storeCategories.map((category) => (
-                <button className={storeFilter === category ? "active" : ""} key={category} onClick={() => setStoreFilter(category)} type="button">
-                  {category}
-                </button>
-              ))}
-            </section>
-          </aside>
-          <section className="market-products">
-            <section className="market-filtered-store-section">
-              <label className="market-store-search">
-                <span>⌕</span>
-                <input
-                  onChange={(event) => setStoreSearch(event.target.value)}
-                  placeholder="Төрөл эсвэл нэрээр хайх..."
-                  value={storeSearch}
-                />
-              </label>
-              <div className="landing-store-cards">
-                {filteredStores.map((store) => {
-                  const brand = storeBrandFor(store.name, store.categories[0]);
-                  const isActive = selectedStore?.id === store.id;
-                  return (
-                    <button className={isActive ? "active" : ""} key={store.id} onClick={() => selectMarketStore(store.id)} type="button">
-                      <span className="landing-store-logo">
-                        <img alt={`${store.name} logo`} src={brand.logoUrl} />
-                      </span>
-                      <span className="landing-store-card-copy">
-                        <strong>{store.name}</strong>
-                        <small>{store.productCount} бүтээгдэхүүн · {store.categories.join(", ")}</small>
-                      </span>
-                    </button>
-                  );
-                })}
-                {!filteredStores.length ? <p>Энэ төрөлд тохирох дэлгүүр олдсонгүй.</p> : null}
-              </div>
-            </section>
-            <section className="market-store-feed">
-              {!selectedStore ? (
-                <p className="market-empty">Дээрээс төрөл сонгоод, дэлгүүрийн card дээр дарахад бараанууд нь энд гарна.</p>
-              ) : pagedStoreProductGroups.length ? pagedStoreProductGroups.map(({ store, products }) => {
-                const brand = storeBrandFor(store.name, store.categories[0]);
-                return (
-                  <section className="market-store-section" key={store.id}>
-                    <header>
-                      <span className="landing-store-logo">
-                        <img alt={`${store.name} logo`} src={brand.logoUrl} />
-                      </span>
-                      <div>
-                        <strong>{store.name}</strong>
-                        <small>{store.address}</small>
-                      </div>
-                    </header>
-                    <div className="landing-product-grid">
-                      {products.map((product) => (
-                        <article key={product.id}>
-                          <button
-                            className={`landing-product-wish ${wishlist.includes(product.id) ? "active" : ""}`}
-                            onClick={() => toggleWishlist(product.id)}
-                            type="button"
-                            aria-label={`${product.name} wishlist`}
-                          >
-                            <svg aria-hidden="true" fill="none" viewBox="0 0 24 24">
-                              <path d="M6 4.8C6 3.8 6.8 3 7.8 3H16.2C17.2 3 18 3.8 18 4.8V20L12 16.6L6 20V4.8Z" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.9" />
-                            </svg>
-                          </button>
-                          <img
-                            alt={product.name}
-                            src={productImageFor(product)}
-                            onError={(event) => {
-                              event.currentTarget.src = productPlaceholderUrl(product);
-                            }}
-                          />
-                          <span>{product.category}</span>
-                          <h3>{product.name}</h3>
-                          <strong>{formatMnt(product.priceMnt)}</strong>
-                          <em className={product.stockCount <= 0 ? "is-empty" : product.stockCount <= 12 ? "is-low" : ""}>
-                            Үлдэгдэл: {product.stockCount} ш
-                          </em>
-                          <div className="landing-product-actions">
-                            <div className="landing-product-stepper" aria-label={`${product.name} тоо ширхэг`}>
-                              <button className="landing-product-qty" onClick={() => updateProductQuantity(product.id, -1)} type="button">−</button>
-                              <b>{productQuantities[product.id] ?? 1}</b>
-                              <button className="landing-product-qty" onClick={() => updateProductQuantity(product.id, 1)} type="button" disabled={product.stockCount <= 0}>+</button>
-                            </div>
-                            <button
-                              className="landing-product-add"
-                              onClick={() => addSelectedQuantityToCart(product.id)}
-                              type="button"
-                              disabled={product.stockCount <= 0}
-                              aria-label={`${product.name} сагсанд нэмэх`}
-                              title="Сагсанд нэмэх"
-                            >
-                              <span>Сагсанд хийх</span>
-                            </button>
-                          </div>
-                        </article>
-                      ))}
-                    </div>
-                  </section>
-                );
-              }) : (
-                <p className="market-empty">Энэ дэлгүүрээс тохирох бараа олдсонгүй.</p>
-              )}
-            </section>
-
-            {selectedStore ? <nav className="market-pagination" aria-label="Маркетийн хуудас">
-              <button onClick={() => setMarketPage((pageNumber) => Math.max(1, pageNumber - 1))} type="button" disabled={marketPage <= 1}>
-                Өмнөх
-              </button>
-              <span>{marketPage} / {totalMarketPages}</span>
-              <button onClick={() => setMarketPage((pageNumber) => Math.min(totalMarketPages, pageNumber + 1))} type="button" disabled={marketPage >= totalMarketPages}>
-                Дараах
-              </button>
-            </nav> : null}
-
-            {notice ? (
-              <section className="market-cart">
-                <p className="landing-commerce-notice">{notice}</p>
-              </section>
-            ) : null}
-          </section>
-        </section>
-      </div>
-      ) : null}
-
-      {section === "partner" ? (
-        <section className="landing-partner-page" aria-label="БИЗНЕСИЙН ТҮНШЛЭЛ">
-          <section className="landing-partner-hero">
-            <div className="landing-partner-copy">
-              <span>БИЗНЕСИЙН ТҮНШЛЭЛ</span>
-              <h2>Хамтдаа өсөж, хамтдаа хөгжие</h2>
-              <p>Бидэнтэй хамтран ажилласнаар бизнесээ онлайн зах зээлтэй холбож, маркетинг, захиалга, хүргэлтээ нэг системээр удирдаарай.</p>
-            </div>
-            <figure className="landing-partner-hero-media">
-              <img
-                alt="DeliverHub бизнесийн түншлэл"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeMl8v56Q7tiTZfWvoddNJIHDAdhGwpfxnLDxt8hPY51Qulv8xUnK94UlogvX0LQuUXZa3FU4xFBgFfu-FLtArPNGlwJh388E_iLRPwVf_y6jirUQ15_S7gAyhtYlbcBw3FpmOgbNa_KbKPbAjFLxMs_fKY7i_YK-S4TFwr1Zn1JEK8EwnTv--7crgrPLFR8Txzl3fDRmfvSWtHdkb9C44ypVUgfajYhStasK2zBAnZixndjekogRK"
-              />
-            </figure>
-          </section>
-
-          <section className="landing-partner-feature-section" aria-label="Түншлэлийн давуу тал">
-            <header>
-              <h3>Яагаад бидэнтэй нэгдэх вэ?</h3>
-              <p>Өсөлт, маркетинг, найдвартай логистикийг нэг платформоос.</p>
-            </header>
-            <div className="landing-partner-feature-grid">
-              <article>
-                <span className="landing-partner-feature-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" role="img">
-                    <path d="M4.8 10.7h14.4" />
-                    <path d="M6.8 20.2h10.4a2 2 0 0 0 2-2V9.4a2 2 0 0 0-2-2H6.8a2 2 0 0 0-2 2v8.8a2 2 0 0 0 2 2Z" />
-                    <path d="M8.4 7.4V5.8a2 2 0 0 1 2-2h3.2a2 2 0 0 1 2 2v1.6" />
-                    <path d="M12 13.1v2.8" />
-                    <path d="M10.6 14.5h2.8" />
-                  </svg>
-                </span>
-                <strong>Бизнесээ өргөжүүл</strong>
-                <p>Өдөр бүр шинэ хэрэглэгчидтэй холбогдож, борлуулалтын сувгаа нэмэгдүүл.</p>
-              </article>
-              <article>
-                <span className="landing-partner-feature-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" role="img">
-                    <path d="M4.6 18.6 9.2 14l3 3 6.9-7" />
-                    <path d="M15.3 10.1h3.8v3.8" />
-                    <path d="M5 5.4h14" />
-                    <path d="M5 9h6.4" />
-                    <path d="M5 12.6h3" />
-                  </svg>
-                </span>
-                <strong>Маркетингаа сайжруул</strong>
-                <p>Ангилал, хайлт, урамшуулал, хэрэглэгчийн өгөгдөл дээр суурилсан өсөлт.</p>
-              </article>
-              <article>
-                <span className="landing-partner-feature-icon" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" role="img">
-                    <path d="M5 17.7 19 5" />
-                    <path d="M12.5 5H19v6.5" />
-                    <path d="M6.5 19.5h10.9a2.1 2.1 0 0 0 2.1-2.1V15" />
-                    <path d="M4.5 7.2v10.2a2.1 2.1 0 0 0 2.1 2.1" />
-                  </svg>
-                </span>
-                <strong>Найдвартай логистик</strong>
-                <p>Realtime хяналттай хүргэлтээр бүтээгдэхүүнээ хурдан, ил тод хүргэнэ.</p>
-              </article>
-            </div>
-          </section>
-
-          <section className="landing-partner-bento" aria-label="Бизнесийн төрөл">
-            <header>
-              <h3>Бүх төрлийн бизнест зориулав</h3>
-            </header>
-            <div className="landing-partner-bento-grid">
-              <article className="is-wide">
-                <div>
-                  <strong>Ресторан &amp; кофе шоп</strong>
-                  <p>Хоолны салбарын онцлогт тохирсон хурдан, найдвартай хүргэлт. Дулаан барих тусгай цүнх, шуурхай үйлчилгээ.</p>
-                  <ul>
-                    <li>15-30 минутын хүргэлт</li>
-                    <li>Чанарын хяналт</li>
-                  </ul>
-                </div>
-                <img
-                  alt="Ресторан түншлэл"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDeOugPoZ703w1WUKA_OvSzg9TTaFtbj56foic_yhb0HO0ar2xQO3BWhn7ZIYiBJFZr-IIuU9rM3bSvIo75Jkat3inFCAHXmSdPNCZ2V-0Ibb9Np_AGeDyIeOpVuEcCRuLJ8vsYNQN_ws3R_XdkJcUU1QnAS27rAfJNsaMonVzFGBBvvAKkUeE7mwW2ox2cOZOe4cpWPzsV2eWR2gfEbJL0Q9Smgl9HOVy0si2avNpk4K92r5NEeIh_"
-                />
-              </article>
-              <article>
-                <strong>Жижиглэн худалдаа</strong>
-                <p>Дэлгүүрийн бараагаа онлайнаар борлуулж, өдөрт нь хүргэх боломж.</p>
-                <img
-                  alt="Жижиглэн худалдаа"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzSzkMmwrKneN-EbUsCTdqbwJAfEH2OoPqOjC7u3hCS7oujoKV7n1--5BfHKgvXunTZrjz_a66pAdeph_sQdPFusDpvrzuja_mOnAhy-GC8yEN5syP5hc8h5jWdVrss084NJbxDvyQCYyyP1NJ6_AXUBCstUF-vW8zKPmFF_VzHTWFfQ1cUQTlikA1l4k5Vese8q1xkFVJUT8vZGKd1t3LPUnBcBvUC33MehYC2bbRJFeUXM1anij_"
-                />
-              </article>
-            </div>
-          </section>
-
-          <section className="landing-partner-contact" id="partner-contact" aria-label="Түнш болох">
-            <div>
-              <h3>Хамтын ажиллагаагаа эхлүүлье</h3>
-              <p>Дэлгүүрээ бүртгүүлээд захиалга, хүргэлт, орлогоо нэг dashboard дээр удирдаарай.</p>
-              <button
-                className="landing-partner-cta"
-                onClick={() => {
-                  setPartnerAuthMode("register");
-                  setPartnerAuthOpen(true);
-                }}
-                type="button"
-              >
-                Бүртгэл үүсгэх
-              </button>
-            </div>
-          </section>
-
-          <footer className="landing-partner-footer">
-            <span>Бизнесийн түншлэлийн нэгдсэн баг</span>
-            <nav>
-              <a href="#partner-contact">Түншийн дэмжлэг</a>
-              <a href="#partner-contact">Холбоо барих</a>
-            </nav>
-          </footer>
-        </section>
-      ) : null}
+      {section === "partner" ? partnerPageContent : null}
 
       {partnerAuthOpen ? (
         <div className="landing-auth-modal landing-partner-modal" role="dialog" aria-modal="true">
@@ -3431,190 +3516,17 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       </section>
 
       {section === "home" ? (
-        <section className="landing-intro" aria-label="DeliverHub платформын танилцуулга">
-          <section className="landing-intro-section" aria-label="Маркет">
-            <Reveal className="landing-intro-header">
-              <span>{landingShowcaseSlides[0].tag}</span>
-              <h2>{landingShowcaseSlides[0].title}</h2>
-              <p>{landingShowcaseSlides[0].body}</p>
-            </Reveal>
-            <div className="landing-intro-store-row">
-              {marketPreviewStores.map((store, index) => {
-                const brand = storeBrandFor(store.name, store.categories[0]);
-                return (
-                  <Reveal className="landing-intro-store-chip" delayMs={index * 60} key={store.id}>
-                    <img alt="" src={brand.logoUrl} />
-                    <span>{store.name}</span>
-                  </Reveal>
-                );
-              })}
-            </div>
-            <div className="landing-intro-product-grid">
-              {marketPreviewProducts.map((product, index) => (
-                <Reveal className="landing-intro-product-card" delayMs={index * 40} key={product.id}>
-                  <img alt="" src={productImageFor(product)} />
-                  <span>{product.category}</span>
-                  <strong>{cleanProductName(product.name)}</strong>
-                  <em>{formatMnt(product.priceMnt)}</em>
-                </Reveal>
-              ))}
-            </div>
-          </section>
-
-          <section className="landing-intro-section landing-intro-media-section" aria-label="Хүргэлтийн ажилтан">
-            <Reveal className="landing-intro-media">
-              <img alt="" src={landingShowcaseSlides[1].image} />
-            </Reveal>
-            <Reveal className="landing-intro-header">
-              <span>{landingShowcaseSlides[1].tag}</span>
-              <h2>{landingShowcaseSlides[1].title}</h2>
-              <p>{landingShowcaseSlides[1].body}</p>
-            </Reveal>
-          </section>
-
-          <section className="landing-intro-section landing-intro-media-section is-reverse" aria-label="Бизнесийн түншлэл">
-            <Reveal className="landing-intro-header">
-              <span>{landingShowcaseSlides[2].tag}</span>
-              <h2>{landingShowcaseSlides[2].title}</h2>
-              <p>{landingShowcaseSlides[2].body}</p>
-            </Reveal>
-            <Reveal className="landing-intro-media">
-              <img alt="" src={landingShowcaseSlides[2].image} />
-            </Reveal>
-          </section>
-
-          <section className="landing-intro-section" aria-label="Холбоо барих">
-            <Reveal className="landing-intro-header">
-              <span>{landingShowcaseSlides[3].tag}</span>
-              <h2>{landingShowcaseSlides[3].title}</h2>
-              <p>{landingShowcaseSlides[3].body}</p>
-            </Reveal>
-            <div className="landing-intro-contact-row">
-              <Reveal className="landing-intro-contact-chip">✉ deliverhub2025@gmail.com</Reveal>
-              <Reveal className="landing-intro-contact-chip" delayMs={80}>☎ +976 85356114</Reveal>
-            </div>
-          </section>
-        </section>
-      ) : null}
-
-      {section === "contact" ? (
-      <section className="landing-contact-dashboard" aria-label="Холбоо барих">
-        <div className="landing-contact-head">
-          <span>САНАЛ АВАХ</span>
-          <h2>Борлуулалтаа өсгөе</h2>
+        <div className="landing-intro" aria-label="DeliverHub платформын танилцуулга">
+          <Reveal className="landing-intro-block landing-intro-market-embed">{marketPageContent}</Reveal>
+          <Reveal className="landing-intro-block">{courierPageContent}</Reveal>
+          <Reveal className="landing-intro-block">{partnerPageContent}</Reveal>
+          <Reveal className="landing-intro-block">{contactPageContent}</Reveal>
         </div>
-        <div className="landing-contact-grid">
-          <article>
-            <span>Имэйл</span>
-            <strong>deliverhub2025@gmail.com</strong>
-            <p>Бизнесээ холбох зөвлөгөө аваарай.</p>
-          </article>
-          <article>
-            <span>Утас</span>
-            <strong>+976 85356114</strong>
-            <p>Бүртгэл, хүргэлт, marketplace-ийн дэмжлэг.</p>
-          </article>
-          <form>
-            <label>
-              <span>Нэр</span>
-              <input placeholder="Таны нэр" />
-            </label>
-            <label>
-              <span>Холбогдох дугаар</span>
-              <input placeholder="Утас эсвэл Gmail" />
-            </label>
-            <label>
-              <span>Мессеж</span>
-              <textarea placeholder="Бизнесээ хэрхэн өсгөх талаар бичээрэй" />
-            </label>
-            <button type="button">Санал авах</button>
-          </form>
-        </div>
-      </section>
       ) : null}
 
-      {section === "courier" ? (
-        <section className="landing-courier-portal landing-courier-intro" aria-label="Хүргэлтийн ажилтан">
-          <section className="landing-courier-hero">
-            <div className="landing-courier-copy">
-              <h2>Чөлөөт хүргэлтийн <b>нэгдсэн платформ</b></h2>
-              <p>Дэлгүүрүүдээс ирэх дуудлагыг ойр байршлаар хүлээн авч, өөрийн цагтаа ажиллан тогтмол орлого олох боломж.</p>
-            </div>
-            <figure className="landing-courier-visual">
-              <img
-                alt="Мэргэжлийн хүргэлтийн ажилтан"
-                src="https://lh3.googleusercontent.com/aida/AP1WRLtQ86oz2ChSOpdKFlao4LIojwBqcs6bCWDITTBxvZ5-nPTuZ4EJ-vASSUXTHIg53N7Y-HGvGMteuNcJurQKFndgbgOSQK2BYKhjC54XTHQqWbExMlsVKxBGLkpusJmqHBqgrv25vij5jmGezInrR3FMaktUauhfVb7TcoMfJDO8WuZBAKag9cpYpZsUNZ7A6I8IUKjctMMyPCZXxbjxKjtRCaTbrRZTtcahHmkGaSkLVUCkZ1Mb37S-KLM"
-              />
-            </figure>
-          </section>
+      {section === "contact" ? contactPageContent : null}
 
-          <section className="landing-courier-feature-block" aria-label="Давуу тал">
-            <header>
-              <h3>Яагаад DeliverHub гэж?</h3>
-              <p>Бизнесээ өргөжүүлэхэд шаардлагатай логистикийн цогц шийдлийг нэг дороос.</p>
-            </header>
-            <div className="landing-courier-portal-grid">
-              <article>
-                <span>◎</span>
-                <strong>Баталгаажсан ажилтнууд</strong>
-                <p>Манай сүлжээний хүргэлтийн ажилтнууд аюулгүй байдлын бүрэн шалгалтад хамрагдсан.</p>
-              </article>
-              <article>
-                <span>⌖</span>
-                <strong>Бодит хяналт</strong>
-                <p>Захиалга хаана явааг болон хүргэлтийн явцыг гар утаснаасаа хянах боломжтой.</p>
-              </article>
-              <article>
-                <span>▣</span>
-                <strong>Хялбар тооцоо</strong>
-                <p>Хүргэлтийн төлбөр болон тооцоо хийх процессийг системээр автоматжуулсан.</p>
-              </article>
-              <article>
-                <span>▱</span>
-                <strong>Уян хатан тариф</strong>
-                <p>Зай, жин болон яаралтай байдлаас хамаарсан хамгийн оновчтой тарифын систем.</p>
-              </article>
-            </div>
-          </section>
-
-          <section className="landing-courier-benefit">
-            <figure>
-              <img
-                alt="Хүргэлтийн ажилтан"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDuJPn7sNDlDQ73xuuppuazlThVfnB9-HvhkUHiSdKGUp980PZa1Yhva3DO8QLuAIf92Z2wWM0LrPlftAyg7je7yhhmLXIXMsannM_ueAO3FMEHJy9mNIcyC48TLS0dtOzcBPjmoSUNKltekvHCS8a4Zr88fyiyEg38F1ggnvKm-TCXjz_q6082J9Do71v0vaaYf6sh8ETYLd18c1fQseXjEeER0fxf-QNXhu1QMhTEvy5V-9FjHfh2IxI5UJ6QLNnsfBV00UdMxiw"
-              />
-            </figure>
-            <div>
-              <h3>Мэргэжлийн хүргэлт,<br /> <b>Чөлөөт цагаараа орлого олох</b></h3>
-              <p>DeliverHub-д нэгдсэнээр та чанартай цүнхтэй, ухаалаг системээр ажлаа хянан, найдвартай орлого олох бүрэн боломжтой болно.</p>
-              <ul>
-                <li><span>◎</span><div><b>Хүссэн үедээ ажилла</b><small>Өдрийн боломжит цагтаа та хүргэлтийн ажил хийж, орлого нэмэгдүүлэх бүрэн боломжтой.</small></div></li>
-                <li><span>↗</span><div><b>Шууд дэмжлэг</b><small>Хүргэлтийн үед тулгарсан аливаа асуудалд 24/7 цагийн шуурхай тусламж үзүүлнэ.</small></div></li>
-                <li><span>▣</span><div><b>Тогтмол орлого</b><small>Хийсэн хүргэлтээсээ тогтмол түрийвч бүрт нь баталгаатай хянагдана.</small></div></li>
-              </ul>
-            </div>
-          </section>
-
-          <footer className="landing-courier-footer">
-            <strong>Хүргэлтийн асуудлаа<br /> өнөөдөр шийд.</strong>
-            <span>Хэдхэн минутын дотор бүртгүүлээд эхний захиалгаа илгээж эхлээрэй.</span>
-            <nav className="landing-courier-auth-links" aria-label="Хүргэлтийн ажилтан нэвтрэх">
-              <a href={`${employeePortalUrl}/?mode=login`}>Нэвтрэх</a>
-              <a href={`${employeePortalUrl}/?mode=register`}>Бүртгүүлэх</a>
-            </nav>
-          </footer>
-
-          <footer className="landing-courier-site-footer">
-            <span>© 2026. Бүх эрх хуулиар хамгаалагдсан.</span>
-            <nav aria-label="DeliverHub холбоосууд">
-              <a href="#stores">Нууцлалын бодлого</a>
-              <a href="#stores">Үйлчилгээний нөхцөл</a>
-              <a href="#stores">API баримт бичиг</a>
-              <a href="#contact">Тусламж</a>
-            </nav>
-          </footer>
-        </section>
-      ) : null}
+      {section === "courier" ? courierPageContent : null}
     </main>
   );
 }
