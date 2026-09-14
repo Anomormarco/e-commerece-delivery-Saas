@@ -229,34 +229,36 @@ const landingHeroImages = [
   heroAppleeImage,
 ];
 
-const landingShowcaseSlides: Array<{ tag: string; title: string; body: string; image: string; nav: LandingSection }> = [
+const landingShowcaseSlides = [
+  {
+    tag: "DELIVERHUB",
+    title: "Нэг платформ, бүх хэрэгцээ",
+    body: "Онлайн худалдаа, хүргэлт, бизнесийн түншлэл — DeliverHub Монголын зах зээлд нэг дороос бүгдийг холбоно.",
+    image: heroIphoneImage,
+  },
   {
     tag: "МАРКЕТ",
     title: "Маркет таны гарт",
     body: "Олон зуун дэлгүүрийн мянга мянган барааг нэг дороос үзэж, хамгийн ойрхон байгаа дэлгүүрээсээ хэдхэн товшилтоор захиалаарай.",
-    image: "https://tse4.mm.bing.net/th?q=online%20grocery%20marketplace%20app%20browsing%20products%20on%20phone&w=900&h=650&c=7&rs=1&p=0",
-    nav: "market",
+    image: "https://tse4.mm.bing.net/th?q=Lay%27s%20Masala%20chips%20bag%20product&w=1000&h=650&c=7&rs=1&p=0",
   },
   {
     tag: "ХҮРГЭЛТИЙН АЖИЛТАН",
-    title: "Чөлөөт хүргэлтийн нэгдсэн платформ",
-    body: "Дэлгүүрүүдээс ирэх дуудлагыг ойр байршлаар хүлээн авч, өөрийн цагтаа ажиллан тогтмол орлого олох боломж.",
+    title: "Өөрийн цагаараа ажилла",
+    body: "Мопед, машин, явган — дуртай хэлбэрээрээ, дуртай цагтаа хүргэлт хийж тогтмол орлого олоорой.",
     image: "https://tse4.mm.bing.net/th?q=delivery%20courier%20riding%20moped%20with%20package%20city%20street&w=900&h=650&c=7&rs=1&p=0",
-    nav: "courier",
   },
   {
     tag: "БИЗНЕСИЙН ТҮНШЛЭЛ",
     title: "Хамтдаа өсөж, хамтдаа хөгжие",
     body: "Бидэнтэй хамтран ажилласнаар бизнесээ онлайн зах зээлтэй холбож, маркетинг, захиалга, хүргэлтээ нэг системээр удирдаарай.",
     image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBeMl8v56Q7tiTZfWvoddNJIHDAdhGwpfxnLDxt8hPY51Qulv8xUnK94UlogvX0LQuUXZa3FU4xFBgFfu-FLtArPNGlwJh388E_iLRPwVf_y6jirUQ15_S7gAyhtYlbcBw3FpmOgbNa_KbKPbAjFLxMs_fKY7i_YK-S4TFwr1Zn1JEK8EwnTv--7crgrPLFR8Txzl3fDRmfvSWtHdkb9C44ypVUgfajYhStasK2zBAnZixndjekogRK",
-    nav: "partner",
   },
   {
     tag: "САНАЛ АВАХ",
-    title: "Борлуулалтаа өсгөе",
-    body: "Имэйл: deliverhub2025@gmail.com · Утас: +976 85356114 — Бизнесээ холбох зөвлөгөө аваарай.",
-    image: "",
-    nav: "contact",
+    title: "Тусламж үргэлж ойрхон",
+    body: "Асуулт, санал хүсэлт гарвал бид тантай холбогдоход бэлэн — deliverhub2025@gmail.com, +976 85356114.",
+    image: "https://tse4.mm.bing.net/th?q=customer%20support%20agent%20headset%20smiling%20office&w=900&h=650&c=7&rs=1&p=0",
   },
 ];
 
@@ -1021,7 +1023,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [heroImageIndex, setHeroImageIndex] = useState(0);
   const showcaseRef = useRef<HTMLElement | null>(null);
   const [showcaseProgress, setShowcaseProgress] = useState(0);
-  const [showcaseEngaged, setShowcaseEngaged] = useState(false);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", phone: "", login: "", password: "" });
   const [partnerAuthOpen, setPartnerAuthOpen] = useState(false);
   const [partnerAuthMode, setPartnerAuthMode] = useState<PartnerAuthMode>("register");
@@ -1353,7 +1354,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         const travel = rect.height - window.innerHeight;
         const nextProgress = travel > 0 ? -rect.top / travel : 0;
         setShowcaseProgress(Math.min(1, Math.max(0, nextProgress)));
-        setShowcaseEngaged(rect.top <= 1 && rect.bottom > window.innerHeight);
       });
     }
 
@@ -1456,19 +1456,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return categoryCompare || first.name.localeCompare(second.name, "mn");
     }).slice(0, 100);
   }, [demoMarketStores, stores]);
-  const marketPreviewStores = useMemo(() => {
-    const seenNames = new Set<string>();
-    return marketStoreDirectory.filter((store) => {
-      const key = storeKey(store);
-      if (seenNames.has(key)) return false;
-      seenNames.add(key);
-      return true;
-    }).slice(0, 5);
-  }, [marketStoreDirectory]);
-  const marketPreviewProducts = useMemo(
-    () => (marketPreviewStores.find((store) => isNominStoreName(store.name)) ?? marketPreviewStores[0])?.products.slice(0, 5) ?? [],
-    [marketPreviewStores],
-  );
   const filteredStores = useMemo(() => {
     const normalizedSearch = normalizeMarketSearch(storeSearch);
     return marketStoreDirectory.filter((store) => (
@@ -2408,10 +2395,6 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     landingShowcaseSlides.length - 1,
     Math.floor(showcaseProgress * landingShowcaseSlides.length),
   );
-  const scrollSpySection = section === "home" && showcaseEngaged
-    ? landingShowcaseSlides[showcaseActiveIndex]?.nav ?? "home"
-    : null;
-  const displaySection = scrollSpySection ?? section;
 
   return (
     <main className={`nomad-scroll-page ${section === "market" ? "is-market-route" : ""} ${section === "contact" ? "is-contact-route" : ""} ${section === "courier" ? "is-courier-route" : ""} ${section === "partner" ? "is-partner-route" : ""} ${cartOpen ? "is-cart-open" : ""}`} id="hero">
@@ -2429,11 +2412,11 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <a className="landing-commerce-brand" href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>
           <BrandLogo showText size={32} />
         </a>
-        <a className={displaySection === "home" ? "active" : ""} href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>Нүүр</a>
-        <button className={displaySection === "market" ? "active" : ""} onClick={openMarket} type="button">Маркет</button>
-        <button className={displaySection === "courier" ? "active" : ""} onClick={openCourier} type="button">Хүргэлтийн ажилтан</button>
-        <button className={`landing-partner-nav ${displaySection === "partner" ? "active" : ""}`} onClick={openPartner} type="button">Бизнесийн түншлэл</button>
-        <button className={displaySection === "contact" ? "active" : ""} onClick={openContact} type="button">Холбоо барих</button>
+        <a className={section === "home" ? "active" : ""} href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>Нүүр</a>
+        <button className={section === "market" ? "active" : ""} onClick={openMarket} type="button">Маркет</button>
+        <button className={section === "courier" ? "active" : ""} onClick={openCourier} type="button">Хүргэлтийн ажилтан</button>
+        <button className={`landing-partner-nav ${section === "partner" ? "active" : ""}`} onClick={openPartner} type="button">Бизнесийн түншлэл</button>
+        <button className={section === "contact" ? "active" : ""} onClick={openContact} type="button">Холбоо барих</button>
         <div className="landing-nav-actions" aria-label="Хэрэглэгчийн үйлдлүүд">
           <button
             className={cartOpen ? "active" : ""}
@@ -3460,48 +3443,26 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         >
           <div className="landing-showcase-sticky">
             <div className="landing-showcase-model" aria-hidden="true">
-              <div className={`landing-showcase-panel landing-showcase-panel-market ${landingShowcaseSlides[showcaseActiveIndex]?.nav === "market" ? "is-active" : ""}`}>
-                <div className="landing-showcase-store-row">
-                  {marketPreviewStores.map((store) => {
-                    const brand = storeBrandFor(store.name, store.categories[0]);
-                    return (
-                      <div className="landing-showcase-store-chip" key={store.id}>
-                        <img alt="" src={brand.logoUrl} />
-                        <span>{store.name}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="landing-showcase-product-row">
-                  {marketPreviewProducts.map((product) => (
-                    <div className="landing-showcase-product-chip" key={product.id}>
-                      <img alt="" src={productImageFor(product)} />
-                      <strong>{cleanProductName(product.name)}</strong>
-                      <span>{formatMnt(product.priceMnt)}</span>
-                    </div>
-                  ))}
-                </div>
+              <div className="landing-showcase-ring" />
+              <div className="landing-showcase-hero">
+                <img alt="" src={heroPromaxImage} />
               </div>
-              <div className={`landing-showcase-panel landing-showcase-panel-courier ${landingShowcaseSlides[showcaseActiveIndex]?.nav === "courier" ? "is-active" : ""}`}>
-                <div className="landing-showcase-hero">
-                  <img alt="" src={landingShowcaseSlides.find((slide) => slide.nav === "courier")?.image} />
-                </div>
-              </div>
-              <div className={`landing-showcase-panel landing-showcase-panel-partner ${landingShowcaseSlides[showcaseActiveIndex]?.nav === "partner" ? "is-active" : ""}`}>
-                <div className="landing-showcase-hero">
-                  <img alt="" src={landingShowcaseSlides.find((slide) => slide.nav === "partner")?.image} />
-                </div>
-              </div>
-              <div className={`landing-showcase-panel landing-showcase-panel-contact ${landingShowcaseSlides[showcaseActiveIndex]?.nav === "contact" ? "is-active" : ""}`}>
-                <div className="landing-showcase-store-row">
-                  <div className="landing-showcase-store-chip landing-showcase-store-chip-text">
-                    <span>✉ deliverhub2025@gmail.com</span>
+              {landingShowcaseSlides.map((slide, index) => {
+                const angle = (index / landingShowcaseSlides.length) * Math.PI * 2 - Math.PI / 2;
+                return (
+                  <div
+                    className={`landing-showcase-card ${index === showcaseActiveIndex ? "is-active" : ""}`}
+                    key={slide.title}
+                    style={{
+                      "--card-index": index,
+                      "--fly-x": Math.cos(angle).toFixed(3),
+                      "--fly-y": Math.sin(angle).toFixed(3),
+                    } as CSSProperties}
+                  >
+                    <img alt="" src={slide.image} />
                   </div>
-                  <div className="landing-showcase-store-chip landing-showcase-store-chip-text">
-                    <span>☎ +976 85356114</span>
-                  </div>
-                </div>
-              </div>
+                );
+              })}
             </div>
 
             <div className="landing-showcase-copy">

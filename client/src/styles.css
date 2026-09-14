@@ -1658,107 +1658,13 @@ h3 {
   perspective: 1400px;
 }
 
-.landing-showcase-panel {
+.landing-showcase-ring {
   position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-  opacity: 0;
-  transform: scale(0.94);
-  transition: opacity 0.5s ease, transform 0.5s ease;
-  pointer-events: none;
-}
-
-.landing-showcase-panel.is-active {
-  opacity: 1;
-  transform: scale(1);
-  pointer-events: auto;
-}
-
-.landing-showcase-store-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  max-width: 480px;
-}
-
-.landing-showcase-store-chip {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 14px 8px 8px;
-  border-radius: 999px;
-  background: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba(148, 163, 184, 0.22);
-}
-
-.landing-showcase-store-chip img {
-  width: 28px;
-  height: 28px;
+  inset: 10% 6%;
+  border: 1px dashed rgba(94, 234, 212, 0.24);
   border-radius: 50%;
-  object-fit: cover;
-  flex: none;
-}
-
-.landing-showcase-store-chip span {
-  font-size: 12px;
-  font-weight: 800;
-  color: #e2e8f0;
-  white-space: nowrap;
-}
-
-.landing-showcase-store-chip-text {
-  padding: 12px 20px;
-}
-
-.landing-showcase-store-chip-text span {
-  font-size: 14px;
-}
-
-.landing-showcase-product-row {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 12px;
-  width: 100%;
-  max-width: 520px;
-}
-
-.landing-showcase-product-chip {
-  display: grid;
-  gap: 6px;
-  padding: 10px;
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.55);
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  text-align: center;
-}
-
-.landing-showcase-product-chip img {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 12px;
-  object-fit: cover;
-}
-
-.landing-showcase-product-chip strong {
-  display: block;
-  font-size: 11px;
-  font-weight: 800;
-  color: #f1f5f9;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.landing-showcase-product-chip span {
-  display: block;
-  font-size: 11px;
-  font-weight: 750;
-  color: #fb923c;
+  transform: rotateX(68deg) rotateZ(calc(var(--showcase-progress, 0) * 60deg));
+  transition: transform 0.2s linear;
 }
 
 .landing-showcase-hero {
@@ -1790,6 +1696,42 @@ h3 {
 @keyframes landing-showcase-hero-float {
   0%, 100% { margin-top: 0; }
   50% { margin-top: -14px; }
+}
+
+.landing-showcase-card {
+  --local: calc(var(--showcase-progress, 0) * var(--slide-count, 3) - var(--card-index, 0));
+  --local-sq: calc(var(--local) * var(--local));
+  --fly-dist: calc(var(--local) + 1);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 1;
+  width: clamp(130px, 14vw, 180px);
+  aspect-ratio: 1.24;
+  margin: calc(clamp(130px, 14vw, 180px) / -1.24 / 2) 0 0 calc(clamp(130px, 14vw, 180px) / -2);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+  opacity: calc(1 - min(1, var(--local-sq) * 1.4));
+  filter: saturate(calc(1 - min(0.5, var(--local-sq) * 0.7))) brightness(calc(1 - min(0.42, var(--local-sq) * 0.6)));
+  transform-style: preserve-3d;
+  transform:
+    translate(-50%, -50%)
+    translate(calc(var(--fly-dist) * var(--fly-x, 0) * 34%), calc(var(--fly-dist) * var(--fly-y, 0) * 34%))
+    rotateZ(calc(var(--local) * 16deg))
+    scale(calc(0.72 + 0.28 * (1 - min(1, var(--local-sq) * 1.1))));
+}
+
+.landing-showcase-card.is-active {
+  filter: none;
+}
+
+.landing-showcase-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  backface-visibility: hidden;
 }
 
 .landing-showcase-progress {
@@ -1848,8 +1790,8 @@ h3 {
     min-height: 340px;
   }
 
-  .landing-showcase-product-row {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+  .landing-showcase-card {
+    width: min(50vw, 190px);
   }
 
   .landing-showcase-line h2 {
