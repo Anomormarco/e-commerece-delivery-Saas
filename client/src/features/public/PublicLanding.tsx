@@ -234,7 +234,7 @@ const landingShowcaseSlides = [
     tag: "DELIVERHUB",
     title: "Нэг платформ, бүх хэрэгцээ",
     body: "Онлайн худалдаа, хүргэлт, бизнесийн түншлэл — DeliverHub Монголын зах зээлд нэг дороос бүгдийг холбоно.",
-    image: heroIphoneImage,
+    image: "https://tse4.mm.bing.net/th?q=Ulaanbaatar%20city%20skyline%20modern%20buildings&w=900&h=650&c=7&rs=1&p=0",
   },
   {
     tag: "МАРКЕТ",
@@ -3445,13 +3445,13 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
             <div className="landing-showcase-model" aria-hidden="true">
               <div className="landing-showcase-ring" />
               <div className="landing-showcase-hero">
-                <img alt="" src={heroPromaxImage} />
+                <img alt="" key={showcaseActiveIndex} src={landingShowcaseSlides[showcaseActiveIndex]?.image} />
               </div>
               {landingShowcaseSlides.map((slide, index) => {
                 const angle = (index / landingShowcaseSlides.length) * Math.PI * 2 - Math.PI / 2;
                 return (
                   <div
-                    className={`landing-showcase-card ${index === showcaseActiveIndex ? "is-active" : ""}`}
+                    className={`landing-showcase-card ${index === showcaseActiveIndex ? "is-current" : ""}`}
                     key={slide.title}
                     style={{
                       "--card-index": index,

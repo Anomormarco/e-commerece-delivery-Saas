@@ -1691,6 +1691,12 @@ h3 {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  animation: landing-showcase-hero-fade-in 0.5s ease;
+}
+
+@keyframes landing-showcase-hero-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 @keyframes landing-showcase-hero-float {
@@ -1722,8 +1728,9 @@ h3 {
     scale(calc(0.72 + 0.28 * (1 - min(1, var(--local-sq) * 1.1))));
 }
 
-.landing-showcase-card.is-active {
-  filter: none;
+.landing-showcase-card.is-current {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .landing-showcase-card img {
