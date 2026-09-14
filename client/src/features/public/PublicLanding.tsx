@@ -229,24 +229,20 @@ const landingHeroImages = [
   heroAppleeImage,
 ];
 
-const landingShowcaseSlides = [
+const landingShowcaseSlides: Array<{ tag: string; title: string; body: string; image: string; nav: LandingSection }> = [
   {
     tag: "ДЭЛГҮҮРТ ЗОРИУЛСАН",
     title: "Бизнесээ цахим болго",
     body: "Дэлгүүрээ DeliverHub платформ дээр бүртгүүлж, бараагаа онлайнаар борлуулж эхэл — захиалга, орлого, нөөцөө нэг dashboard-аас удирдаарай.",
     image: "https://tse4.mm.bing.net/th?q=small%20business%20owner%20managing%20online%20store%20dashboard%20on%20laptop&w=900&h=650&c=7&rs=1&p=0",
+    nav: "market",
   },
   {
     tag: "ХҮРГЭЛТИЙН АЖИЛТАНД ЗОРИУЛСАН",
     title: "Өөрийн цагаараа ажилла",
     body: "Мопед, машин, явган — дуртай хэлбэрээрээ, дуртай цагтаа хүргэлт хийж тогтмол орлого олоорой.",
     image: "https://tse4.mm.bing.net/th?q=delivery%20courier%20riding%20moped%20with%20package%20city%20street&w=900&h=650&c=7&rs=1&p=0",
-  },
-  {
-    tag: "ХЭРЭГЛЭГЧДЭД ЗОРИУЛСАН",
-    title: "Цаг хэмнэ, итгэлтэй байгаарай",
-    body: "Хамгийн ойрхон байгаа найдвартай хүргэлтээр хүссэн бараагаа түргэн шуурхай гарт хүлээн аваарай.",
-    image: "https://tse4.mm.bing.net/th?q=happy%20customer%20receiving%20delivery%20package%20at%20doorstep&w=900&h=650&c=7&rs=1&p=0",
+    nav: "courier",
   },
 ];
 
@@ -1011,6 +1007,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
   const [heroImageIndex, setHeroImageIndex] = useState(0);
   const showcaseRef = useRef<HTMLElement | null>(null);
   const [showcaseProgress, setShowcaseProgress] = useState(0);
+  const [showcaseEngaged, setShowcaseEngaged] = useState(false);
   const [authForm, setAuthForm] = useState({ fullName: "", email: "", phone: "", login: "", password: "" });
   const [partnerAuthOpen, setPartnerAuthOpen] = useState(false);
   const [partnerAuthMode, setPartnerAuthMode] = useState<PartnerAuthMode>("register");
@@ -1342,6 +1339,7 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         const travel = rect.height - window.innerHeight;
         const nextProgress = travel > 0 ? -rect.top / travel : 0;
         setShowcaseProgress(Math.min(1, Math.max(0, nextProgress)));
+        setShowcaseEngaged(rect.top <= 1 && rect.bottom > window.innerHeight);
       });
     }
 
@@ -2383,6 +2381,10 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
     landingShowcaseSlides.length - 1,
     Math.floor(showcaseProgress * landingShowcaseSlides.length),
   );
+  const scrollSpySection = section === "home" && showcaseEngaged
+    ? landingShowcaseSlides[showcaseActiveIndex]?.nav ?? "home"
+    : null;
+  const displaySection = scrollSpySection ?? section;
 
   return (
     <main className={`nomad-scroll-page ${section === "market" ? "is-market-route" : ""} ${section === "contact" ? "is-contact-route" : ""} ${section === "courier" ? "is-courier-route" : ""} ${section === "partner" ? "is-partner-route" : ""} ${cartOpen ? "is-cart-open" : ""}`} id="hero">
@@ -2400,9 +2402,9 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <a className="landing-commerce-brand" href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>
           <BrandLogo showText size={32} />
         </a>
-        <a className={section === "home" ? "active" : ""} href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>Нүүр</a>
-        <button className={section === "market" ? "active" : ""} onClick={openMarket} type="button">Маркет</button>
-        <button className={section === "courier" ? "active" : ""} onClick={openCourier} type="button">Хүргэлтийн ажилтан</button>
+        <a className={displaySection === "home" ? "active" : ""} href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>Нүүр</a>
+        <button className={displaySection === "market" ? "active" : ""} onClick={openMarket} type="button">Маркет</button>
+        <button className={displaySection === "courier" ? "active" : ""} onClick={openCourier} type="button">Хүргэлтийн ажилтан</button>
         <button className={`landing-partner-nav ${section === "partner" ? "active" : ""}`} onClick={openPartner} type="button">Бизнесийн түншлэл</button>
         <button className={section === "contact" ? "active" : ""} onClick={openContact} type="button">Холбоо барих</button>
         <div className="landing-nav-actions" aria-label="Хэрэглэгчийн үйлдлүүд">
