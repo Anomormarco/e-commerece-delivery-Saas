@@ -1711,6 +1711,14 @@ h3 {
   white-space: nowrap;
 }
 
+.landing-showcase-store-chip-text {
+  padding: 12px 20px;
+}
+
+.landing-showcase-store-chip-text span {
+  font-size: 14px;
+}
+
 .landing-showcase-product-row {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));

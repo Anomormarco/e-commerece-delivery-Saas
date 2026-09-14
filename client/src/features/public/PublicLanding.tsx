@@ -244,6 +244,20 @@ const landingShowcaseSlides: Array<{ tag: string; title: string; body: string; i
     image: "https://tse4.mm.bing.net/th?q=delivery%20courier%20riding%20moped%20with%20package%20city%20street&w=900&h=650&c=7&rs=1&p=0",
     nav: "courier",
   },
+  {
+    tag: "БИЗНЕСИЙН ТҮНШЛЭЛ",
+    title: "Хамтдаа өсөж, хамтдаа хөгжие",
+    body: "Бидэнтэй хамтран ажилласнаар бизнесээ онлайн зах зээлтэй холбож, маркетинг, захиалга, хүргэлтээ нэг системээр удирдаарай.",
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuBeMl8v56Q7tiTZfWvoddNJIHDAdhGwpfxnLDxt8hPY51Qulv8xUnK94UlogvX0LQuUXZa3FU4xFBgFfu-FLtArPNGlwJh388E_iLRPwVf_y6jirUQ15_S7gAyhtYlbcBw3FpmOgbNa_KbKPbAjFLxMs_fKY7i_YK-S4TFwr1Zn1JEK8EwnTv--7crgrPLFR8Txzl3fDRmfvSWtHdkb9C44ypVUgfajYhStasK2zBAnZixndjekogRK",
+    nav: "partner",
+  },
+  {
+    tag: "САНАЛ АВАХ",
+    title: "Борлуулалтаа өсгөе",
+    body: "Имэйл: deliverhub2025@gmail.com · Утас: +976 85356114 — Бизнесээ холбох зөвлөгөө аваарай.",
+    image: "",
+    nav: "contact",
+  },
 ];
 
 const partnerRegisterSteps = ["Дэлгүүр", "Данс & зөвшөөрөл", "Иргэний бичиг баримт", "Царай баталгаажуулалт", "Нэвтрэх мэдээлэл", "Гэрээ"];
@@ -2418,8 +2432,8 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         <a className={displaySection === "home" ? "active" : ""} href="/" onClick={(event) => { event.preventDefault(); closeMarket(); }}>Нүүр</a>
         <button className={displaySection === "market" ? "active" : ""} onClick={openMarket} type="button">Маркет</button>
         <button className={displaySection === "courier" ? "active" : ""} onClick={openCourier} type="button">Хүргэлтийн ажилтан</button>
-        <button className={`landing-partner-nav ${section === "partner" ? "active" : ""}`} onClick={openPartner} type="button">Бизнесийн түншлэл</button>
-        <button className={section === "contact" ? "active" : ""} onClick={openContact} type="button">Холбоо барих</button>
+        <button className={`landing-partner-nav ${displaySection === "partner" ? "active" : ""}`} onClick={openPartner} type="button">Бизнесийн түншлэл</button>
+        <button className={displaySection === "contact" ? "active" : ""} onClick={openContact} type="button">Холбоо барих</button>
         <div className="landing-nav-actions" aria-label="Хэрэглэгчийн үйлдлүүд">
           <button
             className={cartOpen ? "active" : ""}
@@ -3471,6 +3485,21 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
               <div className={`landing-showcase-panel landing-showcase-panel-courier ${landingShowcaseSlides[showcaseActiveIndex]?.nav === "courier" ? "is-active" : ""}`}>
                 <div className="landing-showcase-hero">
                   <img alt="" src={landingShowcaseSlides.find((slide) => slide.nav === "courier")?.image} />
+                </div>
+              </div>
+              <div className={`landing-showcase-panel landing-showcase-panel-partner ${landingShowcaseSlides[showcaseActiveIndex]?.nav === "partner" ? "is-active" : ""}`}>
+                <div className="landing-showcase-hero">
+                  <img alt="" src={landingShowcaseSlides.find((slide) => slide.nav === "partner")?.image} />
+                </div>
+              </div>
+              <div className={`landing-showcase-panel landing-showcase-panel-contact ${landingShowcaseSlides[showcaseActiveIndex]?.nav === "contact" ? "is-active" : ""}`}>
+                <div className="landing-showcase-store-row">
+                  <div className="landing-showcase-store-chip landing-showcase-store-chip-text">
+                    <span>✉ deliverhub2025@gmail.com</span>
+                  </div>
+                  <div className="landing-showcase-store-chip landing-showcase-store-chip-text">
+                    <span>☎ +976 85356114</span>
+                  </div>
                 </div>
               </div>
             </div>
