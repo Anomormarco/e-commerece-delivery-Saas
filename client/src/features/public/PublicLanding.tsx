@@ -241,7 +241,7 @@ const landingShowcaseSlides: Array<{ tag: string; title: string; body: string; i
     tag: "ХҮРГЭЛТИЙН АЖИЛТАН",
     title: "Чөлөөт хүргэлтийн нэгдсэн платформ",
     body: "Дэлгүүрүүдээс ирэх дуудлагыг ойр байршлаар хүлээн авч, өөрийн цагтаа ажиллан тогтмол орлого олох боломж.",
-    image: "https://lh3.googleusercontent.com/aida/AP1WRLtQ86oz2ChSOpdKFlao4LIojwBqcs6bCWDITTBxvZ5-nPTuZ4EJ-vASSUXTHIg53N7Y-HGvGMteuNcJurQKFndgbgOSQK2BYKhjC54XTHQqWbExMlsVKxBGLkpusJmqHBqgrv25vij5jmGezInrR3FMaktUauhfVb7TcoMfJDO8WuZBAKag9cpYpZsUNZ7A6I8IUKjctMMyPCZXxbjxKjtRCaTbrRZTtcahHmkGaSkLVUCkZ1Mb37S-KLM",
+    image: "https://tse4.mm.bing.net/th?q=delivery%20courier%20riding%20moped%20with%20package%20city%20street&w=900&h=650&c=7&rs=1&p=0",
     nav: "courier",
   },
 ];
@@ -1442,6 +1442,19 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
       return categoryCompare || first.name.localeCompare(second.name, "mn");
     }).slice(0, 100);
   }, [demoMarketStores, stores]);
+  const marketPreviewStores = useMemo(() => {
+    const seenNames = new Set<string>();
+    return marketStoreDirectory.filter((store) => {
+      const key = storeKey(store);
+      if (seenNames.has(key)) return false;
+      seenNames.add(key);
+      return true;
+    }).slice(0, 5);
+  }, [marketStoreDirectory]);
+  const marketPreviewProducts = useMemo(
+    () => (marketPreviewStores.find((store) => isNominStoreName(store.name)) ?? marketPreviewStores[0])?.products.slice(0, 5) ?? [],
+    [marketPreviewStores],
+  );
   const filteredStores = useMemo(() => {
     const normalizedSearch = normalizeMarketSearch(storeSearch);
     return marketStoreDirectory.filter((store) => (
@@ -3433,26 +3446,33 @@ export function PublicLanding({ page = "home", onNavigateHome, onNavigateMarket,
         >
           <div className="landing-showcase-sticky">
             <div className="landing-showcase-model" aria-hidden="true">
-              <div className="landing-showcase-ring" />
-              <div className="landing-showcase-hero">
-                <img alt="" src={heroPromaxImage} />
+              <div className={`landing-showcase-panel landing-showcase-panel-market ${landingShowcaseSlides[showcaseActiveIndex]?.nav === "market" ? "is-active" : ""}`}>
+                <div className="landing-showcase-store-row">
+                  {marketPreviewStores.map((store) => {
+                    const brand = storeBrandFor(store.name, store.categories[0]);
+                    return (
+                      <div className="landing-showcase-store-chip" key={store.id}>
+                        <img alt="" src={brand.logoUrl} />
+                        <span>{store.name}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="landing-showcase-product-row">
+                  {marketPreviewProducts.map((product) => (
+                    <div className="landing-showcase-product-chip" key={product.id}>
+                      <img alt="" src={productImageFor(product)} />
+                      <strong>{cleanProductName(product.name)}</strong>
+                      <span>{formatMnt(product.priceMnt)}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
-              {landingShowcaseSlides.map((slide, index) => {
-                const angle = (index / landingShowcaseSlides.length) * Math.PI * 2 - Math.PI / 2;
-                return (
-                  <div
-                    className={`landing-showcase-card ${index === showcaseActiveIndex ? "is-active" : ""}`}
-                    key={slide.title}
-                    style={{
-                      "--card-index": index,
-                      "--fly-x": Math.cos(angle).toFixed(3),
-                      "--fly-y": Math.sin(angle).toFixed(3),
-                    } as CSSProperties}
-                  >
-                    <img alt="" src={slide.image} />
-                  </div>
-                );
-              })}
+              <div className={`landing-showcase-panel landing-showcase-panel-courier ${landingShowcaseSlides[showcaseActiveIndex]?.nav === "courier" ? "is-active" : ""}`}>
+                <div className="landing-showcase-hero">
+                  <img alt="" src={landingShowcaseSlides.find((slide) => slide.nav === "courier")?.image} />
+                </div>
+              </div>
             </div>
 
             <div className="landing-showcase-copy">
